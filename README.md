@@ -165,7 +165,7 @@ QueryStmt
 
 ## Comprehensive examples
 
-See a list of comprehensive usage examples [here](../zetasql-toolkit-examples).
+See a list of comprehensive usage examples [here](zetasql-toolkit-examples).
 
 ## Pushing to Artifact Registry
 
