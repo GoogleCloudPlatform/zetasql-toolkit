@@ -89,6 +89,16 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
   }
 
   /**
+   * Constructs a BigQueryAPIResourceProvider with a given {@link BigQueryService}.
+   *
+   * @param service The BigQueryService to use when building the service
+   * @return The new BigQueryAPIResourceProvider instance
+   */
+  public static BigQueryAPIResourceProvider build(BigQueryService service) {
+    return new BigQueryAPIResourceProvider(service);
+  }
+
+  /**
    * Converts a StandardSQLTypeName from the BigQuery API to a ZetaSQL {@link TypeKind}.
    *
    * @param bigqueryTypeName The StandardSQLTypeName to convert
