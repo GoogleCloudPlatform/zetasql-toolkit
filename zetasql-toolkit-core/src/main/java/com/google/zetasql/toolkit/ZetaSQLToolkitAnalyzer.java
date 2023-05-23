@@ -25,8 +25,6 @@ import com.google.zetasql.toolkit.catalog.CatalogWrapper;
 import com.google.zetasql.toolkit.catalog.basic.BasicCatalogWrapper;
 import com.google.zetasql.toolkit.catalog.bigquery.BigQueryCatalog;
 import com.google.zetasql.toolkit.catalog.spanner.SpannerCatalog;
-import com.google.zetasql.toolkit.usage.UsageTracker;
-import com.google.zetasql.toolkit.usage.UsageTrackerImpl;
 import java.util.Iterator;
 import java.util.Optional;
 
@@ -45,7 +43,6 @@ import java.util.Optional;
 public class ZetaSQLToolkitAnalyzer {
 
   private final AnalyzerOptions analyzerOptions;
-  private final UsageTracker usageTracker;
 
   /**
    * Constructs a ZetaSQLToolkitAnalyzer using the provided {@link AnalyzerOptions}
@@ -53,21 +50,7 @@ public class ZetaSQLToolkitAnalyzer {
    * @param analyzerOptions The AnalyzerOptions that should be used when performing analysis
    */
   public ZetaSQLToolkitAnalyzer(AnalyzerOptions analyzerOptions) {
-    this(analyzerOptions, new UsageTrackerImpl());
-  }
-
-  /**
-   * Constructs a ZetaSQLToolkitAnalyzer using the provided {@link AnalyzerOptions} and {@link
-   * UsageTracker}.
-   *
-   * <p>Package-private, only used internally and for testing.
-   *
-   * @param analyzerOptions The AnalyzerOptions that should be used when performing analysis
-   * @param usageTracker The UsageTracker used for tracking tool usage
-   */
-  ZetaSQLToolkitAnalyzer(AnalyzerOptions analyzerOptions, UsageTracker usageTracker) {
     this.analyzerOptions = analyzerOptions;
-    this.usageTracker = usageTracker;
   }
 
   /**
@@ -114,7 +97,6 @@ public class ZetaSQLToolkitAnalyzer {
    */
   public Iterator<ResolvedStatement> analyzeStatements(
       String query, CatalogWrapper catalog, boolean inPlace) {
-    this.usageTracker.trackUsage();
 
     CatalogWrapper catalogForAnalysis = inPlace ? catalog : catalog.copy();
 

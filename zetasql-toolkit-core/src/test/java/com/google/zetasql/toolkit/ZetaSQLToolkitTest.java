@@ -17,12 +17,10 @@
 package com.google.zetasql.toolkit;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
 
 import com.google.zetasql.AnalyzerOptions;
 import com.google.zetasql.resolvedast.ResolvedNodes.*;
 import com.google.zetasql.toolkit.options.BigQueryLanguageOptions;
-import com.google.zetasql.toolkit.usage.UsageTracker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -32,12 +30,10 @@ public class ZetaSQLToolkitTest {
 
   @BeforeEach
   void init() {
-    UsageTracker mockUsageTracker = mock(UsageTracker.class);
-
     AnalyzerOptions analyzerOptions = new AnalyzerOptions();
     analyzerOptions.setLanguageOptions(BigQueryLanguageOptions.get());
 
-    this.analyzer = new ZetaSQLToolkitAnalyzer(analyzerOptions, mockUsageTracker);
+    this.analyzer = new ZetaSQLToolkitAnalyzer(analyzerOptions);
   }
 
   @Test
