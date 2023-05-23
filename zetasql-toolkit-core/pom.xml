@@ -30,12 +30,14 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <zetasql.version>2023.03.2</zetasql.version>
-        <antlr4.version>4.12.0</antlr4.version>
-        <google.cloud.libraries.version>26.11.0</google.cloud.libraries.version>
-        <google.cloud.jib.version>3.3.1</google.cloud.jib.version>
-        <junit.version>5.9.2</junit.version>
-        <mockito.version>5.2.0</mockito.version>
+        <zetasql.version>2023.04.1</zetasql.version>
+        <antlr4.version>4.13.0</antlr4.version>
+        <google.cloud.libraries.version>26.15.0</google.cloud.libraries.version>
+        <google.cloud.jib.version>3.3.2</google.cloud.jib.version>
+        <junit.version>5.9.3</junit.version>
+        <mockito.version>5.3.1</mockito.version>
+        <properties.maven.plugin.version>1.1.0</properties.maven.plugin.version>
+        <artifactregistry.version>2.2.1</artifactregistry.version>
         <artifactregistry.repository/>
     </properties>
 
@@ -50,6 +52,22 @@
                     <groupId>com.google.protobuf</groupId>
                     <artifactId>protobuf-javalite</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>io.grpc</groupId>
+                    <artifactId>grpc-stub</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.grpc</groupId>
+                    <artifactId>grpc-context</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.grpc</groupId>
+                    <artifactId>grpc-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.grpc</groupId>
+                    <artifactId>grpc-api</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.google.zetasql/zetasql-types -->
@@ -63,6 +81,28 @@
             <groupId>com.google.zetasql</groupId>
             <artifactId>zetasql-jni-channel</artifactId>
             <version>${zetasql.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.protobuf</groupId>
+                    <artifactId>protobuf-javalite</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.grpc</groupId>
+                    <artifactId>grpc-stub</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.grpc</groupId>
+                    <artifactId>grpc-context</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.grpc</groupId>
+                    <artifactId>grpc-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.grpc</groupId>
+                    <artifactId>grpc-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.antlr/antlr4-runtime -->
         <dependency>
@@ -145,7 +185,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>properties-maven-plugin</artifactId>
-                <version>1.1.0</version>
+                <version>${properties.maven.plugin.version}</version>
                 <executions>
                     <execution>
                         <phase>generate-resources</phase>
@@ -171,7 +211,7 @@
             <extension>
                 <groupId>com.google.cloud.artifactregistry</groupId>
                 <artifactId>artifactregistry-maven-wagon</artifactId>
-                <version>2.2.0</version>
+                <version>${artifactregistry.version}</version>
             </extension>
         </extensions>
     </build>
