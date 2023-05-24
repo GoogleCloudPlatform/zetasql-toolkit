@@ -21,7 +21,7 @@
 
     <groupId>com.google.zetasql.toolkit</groupId>
     <artifactId>zetasql-toolkit-core</artifactId>
-    <version>0.3.0</version>
+    <version>0.3.1-SNAPSHOT</version>
 
     <properties>
         <zetasql.toolkit.version>${project.version}</zetasql.toolkit.version>
