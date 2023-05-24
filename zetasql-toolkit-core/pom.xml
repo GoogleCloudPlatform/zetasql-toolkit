@@ -34,6 +34,7 @@
         <antlr4.version>4.13.0</antlr4.version>
         <google.cloud.libraries.version>26.15.0</google.cloud.libraries.version>
         <google.cloud.jib.version>3.3.2</google.cloud.jib.version>
+        <slf4j.version>1.7.25</slf4j.version>
         <junit.version>5.9.3</junit.version>
         <mockito.version>5.3.1</mockito.version>
         <maven.surefire.version>3.1.0</maven.surefire.version>
@@ -44,7 +45,6 @@
     </properties>
 
     <dependencies>
-        <!-- https://mvnrepository.com/artifact/com.google.zetasql/zetasql-client -->
         <dependency>
             <groupId>com.google.zetasql</groupId>
             <artifactId>zetasql-client</artifactId>
@@ -72,13 +72,11 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.google.zetasql/zetasql-types -->
         <dependency>
             <groupId>com.google.zetasql</groupId>
             <artifactId>zetasql-types</artifactId>
             <version>${zetasql.version}</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.google.zetasql/zetasql-jni-channel -->
         <dependency>
             <groupId>com.google.zetasql</groupId>
             <artifactId>zetasql-jni-channel</artifactId>
@@ -106,13 +104,11 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.antlr/antlr4-runtime -->
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr4-runtime</artifactId>
             <version>${antlr4.version}</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.google.cloud/google-cloud-bigquery -->
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-bigquery</artifactId>
@@ -123,25 +119,31 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.google.cloud/google-cloud-spanner -->
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-spanner</artifactId>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-engine -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.mockito/mockito-core -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.mockito/mockito-junit-jupiter -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
