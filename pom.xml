@@ -26,6 +26,11 @@
     <version>0.2.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <scm>
+        <url>https://github.com/GoogleCloudPlatform/zetasql-toolkit</url>
+        <developerConnection>scm:git:https://github.com/GoogleCloudPlatform/zetasql-toolkit.git</developerConnection>
+    </scm>
+
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
