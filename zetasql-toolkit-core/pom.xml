@@ -23,6 +23,36 @@
     <artifactId>zetasql-toolkit-core</artifactId>
     <version>0.3.1-SNAPSHOT</version>
 
+    <name>${project.groupId}:${project.artifactId}</name>
+    <url>https://github.com/GoogleCloudPlatform/zetasql-toolkit</url>
+    <description>
+        The ZetaSQL Toolkit is a library that helps users use ZetaSQL Java API
+        to perform SQL analysis for multiple query engines, including
+        BigQuery and Cloud Spanner.
+    </description>
+
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>ppaglilla</id>
+            <name>Pablo Paglilla</name>
+            <email>ppaglilla@google.com</email>
+            <organization>Google</organization>
+            <organizationUrl>http://www.google.com</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git@github.com:GoogleCloudPlatform/zetasql-toolkit.git</connection>
+        <developerConnection>scm:git:git@github.com:GoogleCloudPlatform/zetasql-toolkit.git</developerConnection>
+        <url>git@github.com:GoogleCloudPlatform/zetasql-toolkit.git</url>
+    </scm>
+
     <properties>
         <zetasql.toolkit.version>${project.version}</zetasql.toolkit.version>
         <maven.compiler.source>11</maven.compiler.source>
@@ -38,8 +68,9 @@
         <maven.surefire.version>3.1.0</maven.surefire.version>
         <skipTests>true</skipTests>
         <properties.maven.plugin.version>1.1.0</properties.maven.plugin.version>
-        <artifactregistry.version>2.2.1</artifactregistry.version>
-        <artifactregistry.repository />
+        <maven.source.plugin.version>3.3.0</maven.source.plugin.version>
+        <maven.javadoc.plugin.version>3.5.0</maven.javadoc.plugin.version>
+        <maven.gpg.plugin.version>1.6</maven.gpg.plugin.version>
     </properties>
 
     <dependencies>
@@ -209,6 +240,46 @@
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${maven.source.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven.javadoc.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>${maven.gpg.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>com.google.cloud.tools</groupId>
                 <artifactId>jib-maven-plugin</artifactId>
                 <version>${google.cloud.jib.version}</version>
@@ -217,13 +288,6 @@
                 </configuration>
             </plugin>
         </plugins>
-        <extensions>
-            <extension>
-                <groupId>com.google.cloud.artifactregistry</groupId>
-                <artifactId>artifactregistry-maven-wagon</artifactId>
-                <version>${artifactregistry.version}</version>
-            </extension>
-        </extensions>
     </build>
 
     <distributionManagement>

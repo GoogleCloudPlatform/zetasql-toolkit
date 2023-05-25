@@ -141,7 +141,7 @@ public class BigQueryService {
    * Lists datasets in a BigQuery project
    *
    * @param projectId The project id to list datasets from
-   * @return A Result<List<DatasetId>> containing the list DatasetId objects
+   * @return A Result&lt;List&lt;DatasetId&gt;&gt; containing the list DatasetId objects
    */
   public Result<List<DatasetId>> listDatasets(String projectId) {
     try {
@@ -175,7 +175,7 @@ public class BigQueryService {
    * @param projectId The default BigQuery project id
    * @param tableReference The String referencing the table,
    * e.g. "project.dataset.table"
-   * @return A Result<Table> containing the fetched Table
+   * @return A Result&lt;Table&gt; containing the fetched Table
    */
   public Result<Table> fetchTable(String projectId, String tableReference) {
     return this.fetchResource(
@@ -187,7 +187,7 @@ public class BigQueryService {
    *
    * @param projectId The project id the dataset belongs to
    * @param datasetName The name of the dataset to list tables from
-   * @return A Result<List<TableId>> containing the list TableId objects
+   * @return A Result&lt;List&lt;TableId&gt;&gt; containing the list TableId objects
    */
   public Result<List<TableId>> listTables(String projectId, String datasetName) {
     DatasetId datasetId = DatasetId.of(projectId, datasetName);
@@ -225,7 +225,7 @@ public class BigQueryService {
    *
    * @param projectId The default BigQuery project id
    * @param routineReference The String referencing the routine, e.g. "project.dataset.routine"
-   * @return A Result<Routine> containing the fetched Routine
+   * @return A Result&lt;Routine&gt; containing the fetched Routine
    */
   public Result<Routine> fetchRoutine(String projectId, String routineReference) {
     return this.fetchResource(
@@ -237,7 +237,7 @@ public class BigQueryService {
    *
    * @param projectId The project id the dataset belongs to
    * @param datasetName The name of the dataset to list tables from
-   * @return A Result<List<RoutineId>> containing the list RoutineId objects
+   * @return A Result&lt;List&lt;RoutineId&gt;&gt; containing the list RoutineId objects
    */
   public Result<List<RoutineId>> listRoutines(String projectId, String datasetName) {
     DatasetId datasetId = DatasetId.of(projectId, datasetName);
@@ -264,7 +264,7 @@ public class BigQueryService {
    * contain an object of type T; or have failed and contain an exception.
    *
    * <p>This is a very limited implementation of a functional error handling resource similar to
-   * scala.util.Try[T] or kotlin.Result<T>.
+   * scala.util.Try[T] or kotlin.Result&lt;T&gt;.
    *
    * @param <T> The type of the result for the operation.
    */
@@ -283,7 +283,7 @@ public class BigQueryService {
      * Builds a successful Result, containing an object of type T.
      *
      * @param result The resulting object
-     * @return A successful instance of Result<T>
+     * @return A successful instance of Result&lt;T&gt;
      * @param <T> The type of the resulting object
      */
     public static <T> Result<T> success(T result) {
@@ -294,19 +294,27 @@ public class BigQueryService {
      * Builds a failed Result, containing an error.
      *
      * @param error The error that caused the failure
-     * @return A failed instance of Result<T>
+     * @return A failed instance of Result&lt;T&gt;
      * @param <T> The originally expected type of the resulting object
      */
     public static <T> Result<T> failure(BigQueryCatalogException error) {
       return new Result<>(null, error);
     }
 
-    /** Returns true if this Result is successful */
+    /**
+     * Returns true if this Result is successful
+     *
+     * @return Whether this Result is successful
+     */
     public boolean succeeded() {
       return this.result != null;
     }
 
-    /** Returns true if this Result failed */
+    /**
+     * Returns true if this Result failed
+     *
+     * @return Whether this Result failed
+     */
     public boolean failed() {
       return this.error != null;
     }

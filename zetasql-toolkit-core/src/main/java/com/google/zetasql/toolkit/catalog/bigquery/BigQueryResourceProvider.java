@@ -16,6 +16,7 @@
 
 package com.google.zetasql.toolkit.catalog.bigquery;
 
+import com.google.zetasql.Function;
 import com.google.zetasql.SimpleTable;
 import java.util.List;
 
