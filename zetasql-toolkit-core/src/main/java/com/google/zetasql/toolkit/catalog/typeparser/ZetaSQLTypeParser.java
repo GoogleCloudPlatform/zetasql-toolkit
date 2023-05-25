@@ -35,7 +35,8 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
  * Parser for ZetaSQL types.
  *
  * <p>Allows parsing string representations of SQL types to their corresponding Type objects. For
- * example; it can parse type strings such as "STRING", "ARRAY<INT64>" and "STRUCT<f DECIMAL>".
+ * example; it can parse type strings such as "STRING", "ARRAY&lt;INT64&gt;"
+ * and "STRUCT&lt;f DECIMAL&gt;".
  *
  * <p>Uses an ANTLR4 based parser.
  */

@@ -7,22 +7,32 @@ for multiple query engines.
 This toolkit offers built-in support for:
 
 * Building catalogs using BigQuery and Cloud Spanner resources.
-  Supports tables, views, functions, table-valued functions and procedures.
+  Supports tables, views, functions, table-valued functions and procedures. Connections and models coming soon.
 * Analyzing queries and scripts using the BigQuery or Cloud Spanner feature
   sets.
-* Analyzing scripts that mutate the catalog during execution, for example,
-  through a `CREATE TABLE` statement.
+* Analyzing scripts that perform DDL.
 
-## Quickstart for BigQuery
+## Quickstart
+
+### Using Maven
+
+``` xml
+<dependency>
+  <groupId>com.google.zetasql.toolkit</groupId>
+  <artifactId>zetasql-toolkit-core</artifactId>
+  <scope>compile</scope>
+  <version>0.3.0</version>
+</dependency>
+```
+
+### Analyzing BigQuery Jobs
 
 When analyzing queries using BigQuery semantics, you need to:
 
 1. Create a `BigQueryCatalog` and add resources to it. The `BigQueryCatalog`
-   supports tables, views, functions, table-valued functions and procedures.
+   supports tables, views, functions, table-valued functions and procedures. Connections and models coming soon.
 2. Configure the ZetaSQL `AnalyzerOptions` using the BigQuery feature set.
 3. Use `ZetaSQLToolkit.analyzeStatements()` to perform analysis.
-
-### BigQuery example
 
 ``` java
 String query =
@@ -53,7 +63,7 @@ statementIterator.forEachRemaining(
 );
 ```
 
-### BigQuery example output
+#### Output
 
 ```
 InsertStmt
@@ -86,16 +96,14 @@ QueryStmt
             +-Literal(type=STRING, value=string_value: "random title")
 ```
 
-## Quickstart for Cloud Spanner
+## Analyzing Cloud Spanner jobs
 
 Similarly, when analyzing queries using Spanner semantics, you need to:
 
 1. Create a `SpannerCatalog` and add resources to it. The `SpannerCatalog`
    supports tables and views.
 2. Configure the ZetaSQL `AnalyzerOptions` using the Spanner feature set.
-3. Use `ZetaSQLToolkit.analyzeStatements()` to perform analysis.
-
-### Cloud Spanner example
+3. Use `ZetaSQLToolkit.analyzeStatements()` to perform analysis
 
 ``` java
 String query = "UPDATE MyTable SET column2 = 5 WHERE column1 = ''; SELECT * FROM MyTable;";
@@ -132,7 +140,7 @@ statementIterator.forEachRemaining(
 );
 ```
 
-### Cloud Spanner example output
+#### Output
 
 ```
 UpdateStmt
@@ -163,37 +171,8 @@ QueryStmt
       +-TableScan(table=MyTable, column_list=MyTable.[column1#1, column2#2])
 ```
 
-## Comprehensive examples
+## Examples
 
 See a list of comprehensive usage examples [here](zetasql-toolkit-examples).
 
-## Pushing to Artifact Registry
 
-The ZetaSQL toolkit package is not hosted on maven central for the moment. 
-It can, however, easily be built and hosted on [Artifact Registry](https://cloud.google.com/artifact-registry/docs/java).
-
-To build and push the package to Artifact Registry:
-
-1. Configure the project id, repository name and location
-    ``` bash
-   export PROJECT_ID=...
-   export REPOSITORY_NAME=...
-   export LOCATION=...
-   ```
-2. Create an Artifact Registry Maven Repository if necessary
-   ``` bash
-   gcloud artifacts repositories create $REPOSITORY_NAME \
-     --repository-format=maven \
-     --location=$LOCATION
-   ```
-3. [Configure Authentication](https://cloud.google.com/artifact-registry/docs/java/authentication)
-4. Build and push the package
-   ``` bash
-   mvn deploy \
-     -DskipTests \
-     -Dartifactregistry.repository=artifactregistry://$LOCATION-maven.pkg.dev/$PROJECT_ID/$REPOSITORY_NAME
-   ```
-
-## Support Disclaimer
-
-This is not an officially supported Google product.

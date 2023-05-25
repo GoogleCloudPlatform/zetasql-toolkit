@@ -16,14 +16,42 @@
  limitations under the License.
 -->
 
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.google.zetasql.toolkit</groupId>
     <artifactId>zetasql-toolkit-core</artifactId>
-    <version>0.2.2-SNAPSHOT</version>
+    <version>0.3.1-SNAPSHOT</version>
+
+    <name>${project.groupId}:${project.artifactId}</name>
+    <url>https://github.com/GoogleCloudPlatform/zetasql-toolkit</url>
+    <description>
+        The ZetaSQL Toolkit is a library that helps users use ZetaSQL Java API
+        to perform SQL analysis for multiple query engines, including
+        BigQuery and Cloud Spanner.
+    </description>
+
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>ppaglilla</id>
+            <name>Pablo Paglilla</name>
+            <email>ppaglilla@google.com</email>
+            <organization>Google</organization>
+            <organizationUrl>http://www.google.com</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git@github.com:GoogleCloudPlatform/zetasql-toolkit.git</connection>
+        <developerConnection>scm:git:git@github.com:GoogleCloudPlatform/zetasql-toolkit.git</developerConnection>
+        <url>git@github.com:GoogleCloudPlatform/zetasql-toolkit.git</url>
+    </scm>
 
     <properties>
         <zetasql.toolkit.version>${project.version}</zetasql.toolkit.version>
@@ -34,15 +62,18 @@
         <antlr4.version>4.13.0</antlr4.version>
         <google.cloud.libraries.version>26.15.0</google.cloud.libraries.version>
         <google.cloud.jib.version>3.3.2</google.cloud.jib.version>
+        <slf4j.version>1.7.25</slf4j.version>
         <junit.version>5.9.3</junit.version>
         <mockito.version>5.3.1</mockito.version>
+        <maven.surefire.version>3.1.0</maven.surefire.version>
+        <skipTests>true</skipTests>
         <properties.maven.plugin.version>1.1.0</properties.maven.plugin.version>
-        <artifactregistry.version>2.2.1</artifactregistry.version>
-        <artifactregistry.repository/>
+        <maven.source.plugin.version>3.3.0</maven.source.plugin.version>
+        <maven.javadoc.plugin.version>3.5.0</maven.javadoc.plugin.version>
+        <maven.gpg.plugin.version>1.6</maven.gpg.plugin.version>
     </properties>
 
     <dependencies>
-        <!-- https://mvnrepository.com/artifact/com.google.zetasql/zetasql-client -->
         <dependency>
             <groupId>com.google.zetasql</groupId>
             <artifactId>zetasql-client</artifactId>
@@ -70,13 +101,11 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.google.zetasql/zetasql-types -->
         <dependency>
             <groupId>com.google.zetasql</groupId>
             <artifactId>zetasql-types</artifactId>
             <version>${zetasql.version}</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.google.zetasql/zetasql-jni-channel -->
         <dependency>
             <groupId>com.google.zetasql</groupId>
             <artifactId>zetasql-jni-channel</artifactId>
@@ -104,13 +133,11 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.antlr/antlr4-runtime -->
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr4-runtime</artifactId>
             <version>${antlr4.version}</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.google.cloud/google-cloud-bigquery -->
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-bigquery</artifactId>
@@ -121,25 +148,31 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.google.cloud/google-cloud-spanner -->
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-spanner</artifactId>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
+            <artifactId>junit-jupiter-engine</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.mockito/mockito-core -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.mockito/mockito-junit-jupiter -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
@@ -199,6 +232,54 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.surefire.version}</version>
+                <configuration>
+                    <skipTests>${skipTests}</skipTests>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${maven.source.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven.javadoc.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>${maven.gpg.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>com.google.cloud.tools</groupId>
                 <artifactId>jib-maven-plugin</artifactId>
                 <version>${google.cloud.jib.version}</version>
@@ -207,23 +288,18 @@
                 </configuration>
             </plugin>
         </plugins>
-        <extensions>
-            <extension>
-                <groupId>com.google.cloud.artifactregistry</groupId>
-                <artifactId>artifactregistry-maven-wagon</artifactId>
-                <version>${artifactregistry.version}</version>
-            </extension>
-        </extensions>
     </build>
 
     <distributionManagement>
         <repository>
-            <id>artifact-registry</id>
-            <url>${artifactregistry.repository}</url>
+            <id>sonatype-nexus-staging</id>
+            <name>Sonatype Nexus Staging</name>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
         </repository>
         <snapshotRepository>
-            <id>artifact-registry</id>
-            <url>${artifactregistry.repository}</url>
+            <id>sonatype-nexus-snapshots</id>
+            <name>Sonatype Nexus Snapshots</name>
+            <url>http://oss.sonatype.org/content/repositories/snapshots</url>
         </snapshotRepository>
     </distributionManagement>
 

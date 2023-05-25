@@ -59,7 +59,6 @@ public class ZetaSQLToolkitAnalyzer {
    * <p>This method uses the {@link BasicCatalogWrapper} for maintaining the catalog. To follow the
    * semantics of a particular SQL engine (e.g. BigQuery or Spanner),
    *
-   * @see #analyzeStatements(String, CatalogWrapper).
    * @param query The SQL query or script to analyze
    * @return An iterator of the resulting {@link ResolvedStatement}s
    */
@@ -71,7 +70,6 @@ public class ZetaSQLToolkitAnalyzer {
    * Analyze a SQL query or script, using the provided {@link CatalogWrapper} to manage the catalog.
    * Creates a copy of the catalog before analyzing to avoid mutating the provided catalog.
    *
-   * @see #analyzeStatements(String, CatalogWrapper, boolean)
    * @param query The SQL query or script to analyze
    * @param catalog The CatalogWrapper implementation to use when managing the catalog
    * @return An iterator of the resulting {@link ResolvedStatement}s
