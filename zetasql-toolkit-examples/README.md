@@ -11,8 +11,7 @@
 ### Packaging examples into containers
 
 You can package an example into a container
-using [Jib](https://cloud.google.com/java/getting-started/jib)
-by running the following command on the [root project directory](./..).
+using [Jib](https://cloud.google.com/java/getting-started/jib).
 
 `mvn clean packge jib:build -DskipTests -Dcontainer.mainClass=MAIN_CLASS`
 
