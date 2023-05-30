@@ -175,4 +175,6 @@ QueryStmt
 
 See a list of comprehensive usage examples [here](zetasql-toolkit-examples).
 
+## Disclaimer
 
+This is not an officially supported Google product.
