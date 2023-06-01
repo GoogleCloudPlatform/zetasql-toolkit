@@ -30,6 +30,8 @@ import com.google.zetasql.ZetaSQLFunctions.SignatureArgumentKind;
 import com.google.zetasql.ZetaSQLType.TypeKind;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedCreateTableFunctionStmt;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedExpr;
+import com.google.zetasql.toolkit.catalog.FunctionInfo;
+import com.google.zetasql.toolkit.catalog.TVFInfo;
 import com.google.zetasql.toolkit.catalog.bigquery.exceptions.CouldNotInferFunctionReturnType;
 import com.google.zetasql.toolkit.catalog.bigquery.exceptions.MissingFunctionResultType;
 import java.util.List;
@@ -134,10 +136,10 @@ class FunctionResultTypeResolver {
     }
 
     // The return type in unknown, try to infer it
-    BigQueryRoutineLanguage language =
-        function.getLanguage().orElse(BigQueryRoutineLanguage.LANGUAGE_UNSPECIFIED);
+    FunctionInfo.Language language =
+        function.getLanguage().orElse(FunctionInfo.Language.LANGUAGE_UNSPECIFIED);
 
-    if (!language.equals(BigQueryRoutineLanguage.SQL)) {
+    if (!language.equals(FunctionInfo.Language.SQL)) {
       throw new MissingFunctionResultType(function.getNamePath());
     }
 

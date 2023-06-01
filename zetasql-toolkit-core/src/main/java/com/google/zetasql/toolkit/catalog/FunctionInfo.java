@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.zetasql.toolkit.catalog.bigquery;
+package com.google.zetasql.toolkit.catalog;
 
 import com.google.zetasql.FunctionSignature;
 import com.google.zetasql.ZetaSQLFunctions.FunctionEnums.Mode;
@@ -22,6 +22,18 @@ import java.util.List;
 import java.util.Optional;
 
 public class FunctionInfo {
+
+  public enum Language {
+    LANGUAGE_UNSPECIFIED, SQL;
+
+    public static Language valueOfOrUnspecified(String name) {
+      try {
+        return Language.valueOf(name);
+      } catch (NullPointerException | IllegalArgumentException err) {
+        return LANGUAGE_UNSPECIFIED;
+      }
+    }
+  }
 
   private final List<String> namePath;
 
@@ -31,7 +43,7 @@ public class FunctionInfo {
 
   private final List<FunctionSignature> signatures;
 
-  private final Optional<BigQueryRoutineLanguage> language;
+  private final Optional<Language> language;
 
   private final Optional<String> body;
 
@@ -60,7 +72,7 @@ public class FunctionInfo {
     return signatures;
   }
 
-  public Optional<BigQueryRoutineLanguage> getLanguage() {
+  public Optional<Language> getLanguage() {
     return language;
   }
 
@@ -87,7 +99,7 @@ public class FunctionInfo {
     private String group;
     private Mode mode;
     private List<FunctionSignature> signatures;
-    private Optional<BigQueryRoutineLanguage> language;
+    private Optional<Language> language;
     private Optional<String> body;
 
     public Builder setNamePath(List<String> namePath) {
@@ -110,12 +122,12 @@ public class FunctionInfo {
       return this;
     }
 
-    public Builder setLanguage(BigQueryRoutineLanguage language) {
+    public Builder setLanguage(Language language) {
       this.language = Optional.ofNullable(language);
       return this;
     }
 
-    public Builder setLanguage(Optional<BigQueryRoutineLanguage> language) {
+    public Builder setLanguage(Optional<Language> language) {
       this.language = language;
       return this;
     }
@@ -146,7 +158,7 @@ public class FunctionInfo {
       return signatures;
     }
 
-    public Optional<BigQueryRoutineLanguage> getLanguage() {
+    public Optional<Language> getLanguage() {
       return language;
     }
 

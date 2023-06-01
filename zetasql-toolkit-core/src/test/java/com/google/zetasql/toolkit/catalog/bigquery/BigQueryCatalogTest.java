@@ -28,6 +28,9 @@ import com.google.zetasql.ZetaSQLType.TypeKind;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateScope;
 import com.google.zetasql.toolkit.catalog.CatalogTestUtils;
+import com.google.zetasql.toolkit.catalog.FunctionInfo;
+import com.google.zetasql.toolkit.catalog.ProcedureInfo;
+import com.google.zetasql.toolkit.catalog.TVFInfo;
 import com.google.zetasql.toolkit.catalog.bigquery.exceptions.InvalidBigQueryReference;
 import com.google.zetasql.toolkit.catalog.exceptions.CatalogResourceAlreadyExists;
 import java.util.ArrayList;
@@ -404,7 +407,7 @@ public class BigQueryCatalogTest {
                             TypeFactory.createSimpleType(TypeKind.TYPE_UNKNOWN)),
                         List.of(),
                         -1)))
-            .setLanguage(BigQueryRoutineLanguage.SQL)
+            .setLanguage(FunctionInfo.Language.SQL)
             .setBody("5.6 + 5")
             .build();
 
