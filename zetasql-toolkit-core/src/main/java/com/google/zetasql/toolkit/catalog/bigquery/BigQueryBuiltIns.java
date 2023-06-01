@@ -32,6 +32,7 @@ import com.google.zetasql.ZetaSQLType;
 import com.google.zetasql.ZetaSQLType.TypeKind;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.toolkit.catalog.CatalogOperations;
+import com.google.zetasql.toolkit.catalog.ProcedureInfo;
 import java.util.List;
 import java.util.Map;
 
