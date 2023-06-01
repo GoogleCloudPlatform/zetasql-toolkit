@@ -35,6 +35,9 @@ import com.google.zetasql.ZetaSQLFunctions.FunctionEnums.ProcedureArgumentMode;
 import com.google.zetasql.ZetaSQLFunctions.SignatureArgumentKind;
 import com.google.zetasql.ZetaSQLType.TypeKind;
 import com.google.zetasql.toolkit.catalog.CatalogOperations;
+import com.google.zetasql.toolkit.catalog.FunctionInfo;
+import com.google.zetasql.toolkit.catalog.ProcedureInfo;
+import com.google.zetasql.toolkit.catalog.TVFInfo;
 import com.google.zetasql.toolkit.catalog.bigquery.BigQueryService.Result;
 import com.google.zetasql.toolkit.catalog.bigquery.exceptions.BigQueryAPIError;
 import com.google.zetasql.toolkit.catalog.bigquery.exceptions.InvalidBigQueryReference;
@@ -428,7 +431,7 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
         .setGroup("UDF")
         .setMode(Mode.SCALAR)
         .setSignatures(List.of(signature))
-        .setLanguage(BigQueryRoutineLanguage.valueOfOrUnspecified(routine.getLanguage()))
+        .setLanguage(FunctionInfo.Language.valueOfOrUnspecified(routine.getLanguage()))
         .setBody(routine.getBody())
         .build();
   }

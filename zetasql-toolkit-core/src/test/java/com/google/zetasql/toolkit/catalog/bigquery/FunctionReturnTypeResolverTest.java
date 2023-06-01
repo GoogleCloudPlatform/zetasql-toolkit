@@ -30,6 +30,8 @@ import com.google.zetasql.ZetaSQLBuiltinFunctionOptions;
 import com.google.zetasql.ZetaSQLFunctions.FunctionEnums.Mode;
 import com.google.zetasql.ZetaSQLFunctions.SignatureArgumentKind;
 import com.google.zetasql.ZetaSQLType.TypeKind;
+import com.google.zetasql.toolkit.catalog.FunctionInfo;
+import com.google.zetasql.toolkit.catalog.TVFInfo;
 import com.google.zetasql.toolkit.options.BigQueryLanguageOptions;
 import java.util.List;
 import java.util.Optional;
@@ -61,7 +63,7 @@ public class FunctionReturnTypeResolverTest {
                             TypeFactory.createSimpleType(TypeKind.TYPE_UNKNOWN)),
                         List.of(),
                         -1)))
-            .setLanguage(BigQueryRoutineLanguage.SQL)
+            .setLanguage(FunctionInfo.Language.SQL)
             .setBody("CAST(FLOOR(5.5) AS INT64) + 1")
             .build();
 

@@ -18,6 +18,9 @@ package com.google.zetasql.toolkit.catalog.bigquery;
 
 import com.google.zetasql.Function;
 import com.google.zetasql.SimpleTable;
+import com.google.zetasql.toolkit.catalog.FunctionInfo;
+import com.google.zetasql.toolkit.catalog.ProcedureInfo;
+import com.google.zetasql.toolkit.catalog.TVFInfo;
 import java.util.List;
 
 /** Interface for an object that can find and provide BigQuery resources */

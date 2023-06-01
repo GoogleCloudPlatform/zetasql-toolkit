@@ -25,9 +25,9 @@ import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateScope;
 import com.google.zetasql.resolvedast.ResolvedNodes.*;
 import com.google.zetasql.toolkit.catalog.CatalogOperations;
 import com.google.zetasql.toolkit.catalog.CatalogWrapper;
-import com.google.zetasql.toolkit.catalog.bigquery.FunctionInfo;
-import com.google.zetasql.toolkit.catalog.bigquery.ProcedureInfo;
-import com.google.zetasql.toolkit.catalog.bigquery.TVFInfo;
+import com.google.zetasql.toolkit.catalog.FunctionInfo;
+import com.google.zetasql.toolkit.catalog.ProcedureInfo;
+import com.google.zetasql.toolkit.catalog.TVFInfo;
 import java.util.List;
 import java.util.stream.Collectors;
 

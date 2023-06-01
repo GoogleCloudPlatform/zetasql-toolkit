@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.zetasql.toolkit.catalog.bigquery;
+package com.google.zetasql.toolkit.catalog;
 
 import com.google.common.collect.ImmutableList;
 import com.google.zetasql.FunctionSignature;
