@@ -20,9 +20,6 @@ import com.google.zetasql.SimpleCatalog;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateScope;
-import com.google.zetasql.toolkit.catalog.bigquery.FunctionInfo;
-import com.google.zetasql.toolkit.catalog.bigquery.ProcedureInfo;
-import com.google.zetasql.toolkit.catalog.bigquery.TVFInfo;
 import java.util.List;
 
 /**
