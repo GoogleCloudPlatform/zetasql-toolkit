@@ -19,6 +19,7 @@ package com.google.zetasql.toolkit.catalog.bigquery;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.zetasql.toolkit.catalog.bigquery.exceptions.InvalidBigQueryReference;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class BigQueryReferenceTest {
@@ -30,7 +31,7 @@ public class BigQueryReferenceTest {
     String resourceName = "resource";
 
     BigQueryReference reference =
-        assertDoesNotThrow(
+        Assertions.assertDoesNotThrow(
             () ->
                 BigQueryReference.from(
                     projectId, String.format("%s.%s.%s", projectId, datasetId, resourceName)));
@@ -48,7 +49,7 @@ public class BigQueryReferenceTest {
     String resourceName = "resource";
 
     BigQueryReference reference =
-        assertDoesNotThrow(
+        Assertions.assertDoesNotThrow(
             () ->
                 BigQueryReference.from(projectId, String.format("%s.%s", datasetId, resourceName)));
 
