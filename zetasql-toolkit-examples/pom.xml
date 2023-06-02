@@ -44,9 +44,8 @@
 
     <dependencies>
         <dependency>
-            <artifactId>zetasql-toolkit-core</artifactId>
+            <artifactId>zetasql-toolkit-bigquery</artifactId>
             <groupId>com.google.zetasql.toolkit</groupId>
-            <scope>compile</scope>
             <version>${zetasql.toolkit.version}</version>
         </dependency>
     </dependencies>

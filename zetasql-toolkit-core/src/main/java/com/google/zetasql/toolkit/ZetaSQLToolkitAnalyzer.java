@@ -23,16 +23,14 @@ import com.google.zetasql.SimpleCatalog;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
 import com.google.zetasql.toolkit.catalog.CatalogWrapper;
 import com.google.zetasql.toolkit.catalog.basic.BasicCatalogWrapper;
-import com.google.zetasql.toolkit.catalog.bigquery.BigQueryCatalog;
-import com.google.zetasql.toolkit.catalog.spanner.SpannerCatalog;
 import java.util.Iterator;
 
 /**
  * Primary class exposed by the ZetaSQL Toolkit to perform SQL analysis.
  *
  * <p>It exposes methods to analyze statements using an empty catalog, an existing {@link
- * SimpleCatalog} or a {@link CatalogWrapper} implementation (such as the {@link BigQueryCatalog} or
- * the {@link SpannerCatalog}).
+ * SimpleCatalog} or a {@link CatalogWrapper} implementation (such as the BigQueryCatalog or
+ * the SpannerCatalog).
  *
  * <p>When analyzing statements that create resources (e.g. a CREATE TEMP TABLE statement), this
  * class will also persist those resources to the catalog. This allows it to transparently support
@@ -80,8 +78,8 @@ public class ZetaSQLToolkitAnalyzer {
   /**
    * Analyze a SQL query or script, using the provided {@link CatalogWrapper} to manage the catalog.
    *
-   * <p>This toolkit includes two implementations, the {@link BigQueryCatalog} and the {@link
-   * SpannerCatalog}; which can be used to run the analyzer following BigQuery or Spanner catalog
+   * <p>This toolkit includes two implementations, the BigQueryCatalog and the SpannerCatalog;
+   * which can be used to run the analyzer following BigQuery or Spanner catalog
    * semantics respectively. For other use-cases, you can provide your own CatalogWrapper
    * implementation.
    *
