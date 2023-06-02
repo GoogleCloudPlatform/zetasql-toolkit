@@ -12,20 +12,7 @@ This toolkit offers built-in support for:
   sets.
 * Analyzing scripts that perform DDL.
 
-## Quickstart
-
-### Using Maven
-
-``` xml
-<dependency>
-  <groupId>com.google.zetasql.toolkit</groupId>
-  <artifactId>zetasql-toolkit-core</artifactId>
-  <scope>compile</scope>
-  <version>0.3.2</version>
-</dependency>
-```
-
-### Analyzing BigQuery Jobs
+## Quickstart for BigQuery
 
 When analyzing queries using BigQuery semantics, you need to:
 
@@ -33,6 +20,18 @@ When analyzing queries using BigQuery semantics, you need to:
    supports tables, views, functions, table-valued functions and procedures. Connections and models coming soon.
 2. Configure the ZetaSQL `AnalyzerOptions` using the BigQuery feature set.
 3. Use `ZetaSQLToolkit.analyzeStatements()` to perform analysis.
+
+### BigQuery dependency
+
+``` xml
+<dependency>
+  <groupId>com.google.zetasql.toolkit</groupId>
+  <artifactId>zetasql-toolkit-bigquery</artifactId>
+  <version>0.3.2-SNAPSHOT</version>
+</dependency>
+```
+
+### Example
 
 ``` java
 String query =
@@ -96,7 +95,7 @@ QueryStmt
             +-Literal(type=STRING, value=string_value: "random title")
 ```
 
-## Analyzing Cloud Spanner jobs
+## Quickstart for Cloud Spanner
 
 Similarly, when analyzing queries using Spanner semantics, you need to:
 
@@ -104,6 +103,18 @@ Similarly, when analyzing queries using Spanner semantics, you need to:
    supports tables and views.
 2. Configure the ZetaSQL `AnalyzerOptions` using the Spanner feature set.
 3. Use `ZetaSQLToolkit.analyzeStatements()` to perform analysis
+
+### Spanner dependency
+
+``` xml
+<dependency>
+  <groupId>com.google.zetasql.toolkit</groupId>
+  <artifactId>zetasql-toolkit-spanner</artifactId>
+  <version>0.3.2-SNAPSHOT</version>
+</dependency>
+```
+
+### Example
 
 ``` java
 String query = "UPDATE MyTable SET column2 = 5 WHERE column1 = ''; SELECT * FROM MyTable;";
