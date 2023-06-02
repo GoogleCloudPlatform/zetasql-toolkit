@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.zetasql.AnalyzerOptions;
 import com.google.zetasql.resolvedast.ResolvedNodes.*;
-import com.google.zetasql.toolkit.options.BigQueryLanguageOptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +30,8 @@ public class ZetaSQLToolkitTest {
   @BeforeEach
   void init() {
     AnalyzerOptions analyzerOptions = new AnalyzerOptions();
-    analyzerOptions.setLanguageOptions(BigQueryLanguageOptions.get());
+    analyzerOptions.getLanguageOptions().enableMaximumLanguageFeatures();
+    analyzerOptions.getLanguageOptions().setSupportsAllStatementKinds();
 
     this.analyzer = new ZetaSQLToolkitAnalyzer(analyzerOptions);
   }
