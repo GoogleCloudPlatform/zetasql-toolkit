@@ -78,6 +78,7 @@
     <modules>
         <module>zetasql-toolkit-core</module>
         <module>zetasql-toolkit-bigquery</module>
+        <module>zetasql-toolkit-spanner</module>
         <module>zetasql-toolkit-examples</module>
     </modules>
 
