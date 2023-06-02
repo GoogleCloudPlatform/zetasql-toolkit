@@ -20,13 +20,17 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.zetasql.LanguageOptions;
 import com.google.zetasql.ParseResumeLocation;
-import com.google.zetasql.toolkit.options.BigQueryLanguageOptions;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 public class AnalyzerExtensionsTest {
 
-  private static final LanguageOptions languageOptions = BigQueryLanguageOptions.get();
+  private static final LanguageOptions languageOptions = new LanguageOptions();
+
+  static {
+    languageOptions.enableMaximumLanguageFeatures();
+    languageOptions.setSupportsAllStatementKinds();
+  }
 
   @Test
   void testExtractFunctionNamesFromStatement() {
