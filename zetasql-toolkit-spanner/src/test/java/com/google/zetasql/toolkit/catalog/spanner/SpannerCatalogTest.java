@@ -39,7 +39,8 @@ public class SpannerCatalogTest {
 
   SpannerCatalog spannerCatalog;
 
-  @Mock SpannerResourceProvider spannerResourceProviderMock;
+  @Mock
+  SpannerResourceProvider spannerResourceProviderMock;
 
   SimpleTable exampleTable =
       new SimpleTable(

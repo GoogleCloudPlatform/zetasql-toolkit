@@ -48,6 +48,11 @@
             <groupId>com.google.zetasql.toolkit</groupId>
             <version>${zetasql.toolkit.version}</version>
         </dependency>
+        <dependency>
+            <artifactId>zetasql-toolkit-spanner</artifactId>
+            <groupId>com.google.zetasql.toolkit</groupId>
+            <version>${zetasql.toolkit.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
