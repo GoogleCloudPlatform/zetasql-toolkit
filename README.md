@@ -21,7 +21,7 @@ This toolkit offers built-in support for:
   <groupId>com.google.zetasql.toolkit</groupId>
   <artifactId>zetasql-toolkit-core</artifactId>
   <scope>compile</scope>
-  <version>0.3.0</version>
+  <version>0.3.1</version>
 </dependency>
 ```
 
