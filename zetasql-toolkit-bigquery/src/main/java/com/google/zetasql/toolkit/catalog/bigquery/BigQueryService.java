@@ -19,15 +19,18 @@ package com.google.zetasql.toolkit.catalog.bigquery;
 import com.google.api.gax.paging.Page;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.BigQuery.*;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.google.zetasql.toolkit.catalog.bigquery.exceptions.BigQueryAPIError;
 import com.google.zetasql.toolkit.catalog.bigquery.exceptions.BigQueryCatalogException;
 import com.google.zetasql.toolkit.catalog.bigquery.exceptions.BigQueryResourceNotFound;
 import com.google.zetasql.toolkit.catalog.bigquery.exceptions.InvalidBigQueryReference;
 import com.google.zetasql.toolkit.usage.UsageTracking;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -46,8 +49,16 @@ import java.util.stream.StreamSupport;
 public class BigQueryService {
 
   private final BigQuery client;
-  private final Map<String, Table> cachedTables = new HashMap<>();
-  private final Map<String, Routine> cachedRoutines = new HashMap<>();
+
+  private final Cache<BigQueryReference, Table> cachedTables = CacheBuilder.newBuilder()
+      .maximumSize(10000)
+      .expireAfterWrite(10, TimeUnit.MINUTES)
+      .build();
+
+  private final Cache<BigQueryReference, Routine> cachedRoutines = CacheBuilder.newBuilder()
+      .maximumSize(1000)
+      .expireAfterWrite(10, TimeUnit.MINUTES)
+      .build();
 
   /**
    * Constructs a BigQueryService with a given BigQuery client.
@@ -108,29 +119,25 @@ public class BigQueryService {
    *
    * @param projectId The default BigQuery project id
    * @param reference The String referencing the resource, e.g. "project.dataset.resource"
-   * @param fetcher A Function<BigQueryReference, T> that fetches the resource and might throw a
-   *     BigQueryException
-   * @param cache The Map<String, T> to use as the cache for this operation
+   * @param cache The Cache<BigQueryReference, T> to use as the cache for this operation
+   * @param loader A Function<BigQueryReference, T> that fetches the resource and might throw a
+   *  BigQueryException. Will be called if the resource is not available in the cache.
    * @return A Result<T> representing the fetch result
    * @param <T> The type of resource being fetched
    */
   private <T> Result<T> fetchResource(
       String projectId,
       String reference,
-      Function<BigQueryReference, T> fetcher,
-      Map<String, T> cache) {
+      Cache<BigQueryReference, T> cache,
+      Function<BigQueryReference, T> loader) {
 
     try {
       BigQueryReference parsedReference = BigQueryReference.from(projectId, reference);
-      T fetchedResource =
-          cache.computeIfAbsent(
-              parsedReference.getFullName(), key -> fetcher.apply(parsedReference));
-      return fetchedResource == null
-          ? Result.failure(new BigQueryResourceNotFound(parsedReference.getFullName()))
-          : Result.success(fetchedResource);
+      T fetchedResource = cache.get(parsedReference, () -> loader.apply(parsedReference));
+      return Result.success(fetchedResource);
     } catch (InvalidBigQueryReference err) {
       return Result.failure(err);
-    } catch (BigQueryException err) {
+    } catch (BigQueryException | ExecutionException | UncheckedExecutionException err) {
       String message = String.format("Failed to fetch BigQuery resource: %s", reference);
       BigQueryAPIError wrapperError = new BigQueryAPIError(message, err);
       return Result.failure(wrapperError);
@@ -164,9 +171,11 @@ public class BigQueryService {
    * @param reference The BigQueryReference referencing the table
    * @return The fetched Table object, null if not found
    * @throws BigQueryException if an API error occurs
+   * @throws BigQueryResourceNotFound if the table does not exist
    */
   private Table fetchTableFromAPI(BigQueryReference reference) {
-    return this.client.getTable(reference.toTableId());
+    return Optional.ofNullable(this.client.getTable(reference.toTableId()))
+        .orElseThrow(() -> new BigQueryResourceNotFound(reference.getFullName()));
   }
 
   /**
@@ -179,7 +188,7 @@ public class BigQueryService {
    */
   public Result<Table> fetchTable(String projectId, String tableReference) {
     return this.fetchResource(
-        projectId, tableReference, this::fetchTableFromAPI, this.cachedTables);
+        projectId, tableReference, this.cachedTables, this::fetchTableFromAPI);
   }
 
   /**
@@ -215,9 +224,11 @@ public class BigQueryService {
    * @param reference The BigQueryReference referencing the routine
    * @return The fetched Routine object, null if not found
    * @throws BigQueryException if an API error occurs
+   * @throws BigQueryResourceNotFound if the routine does not exist
    */
   private Routine fetchRoutineFromAPI(BigQueryReference reference) {
-    return this.client.getRoutine(reference.toRoutineId());
+    return Optional.ofNullable(this.client.getRoutine(reference.toRoutineId()))
+        .orElseThrow(() -> new BigQueryResourceNotFound(reference.getFullName()));
   }
 
   /**
@@ -229,7 +240,7 @@ public class BigQueryService {
    */
   public Result<Routine> fetchRoutine(String projectId, String routineReference) {
     return this.fetchResource(
-        projectId, routineReference, this::fetchRoutineFromAPI, this.cachedRoutines);
+        projectId, routineReference, this.cachedRoutines, this::fetchRoutineFromAPI);
   }
 
   /**
