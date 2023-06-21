@@ -26,7 +26,6 @@ import com.google.zetasql.toolkit.catalog.basic.BasicCatalogWrapper;
 import com.google.zetasql.toolkit.catalog.bigquery.BigQueryCatalog;
 import com.google.zetasql.toolkit.catalog.spanner.SpannerCatalog;
 import java.util.Iterator;
-import java.util.Optional;
 
 /**
  * Primary class exposed by the ZetaSQL Toolkit to perform SQL analysis.
@@ -103,7 +102,6 @@ public class ZetaSQLToolkitAnalyzer {
 
     return new Iterator<>() {
 
-      private Optional<ResolvedStatement> previous = Optional.empty();
 
       private void applyCatalogMutation(ResolvedStatement statement) {
         statement.accept(catalogUpdaterVisitor);
@@ -118,13 +116,11 @@ public class ZetaSQLToolkitAnalyzer {
 
       @Override
       public ResolvedStatement next() {
-        this.previous.ifPresent(this::applyCatalogMutation);
-
         ResolvedStatement statement =
             Analyzer.analyzeNextStatement(
                 parseResumeLocation, analyzerOptions, catalogForAnalysis.getZetaSQLCatalog());
 
-        this.previous = Optional.of(statement);
+        this.applyCatalogMutation(statement);
 
         return statement;
       }
