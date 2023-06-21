@@ -21,7 +21,7 @@
 
     <groupId>com.google.zetasql.toolkit</groupId>
     <artifactId>zetasql-toolkit-core</artifactId>
-    <version>0.3.1-SNAPSHOT</version>
+    <version>0.3.2-SNAPSHOT</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <url>https://github.com/GoogleCloudPlatform/zetasql-toolkit</url>
@@ -51,7 +51,8 @@
         <connection>scm:git:git@github.com:GoogleCloudPlatform/zetasql-toolkit.git</connection>
         <developerConnection>scm:git:git@github.com:GoogleCloudPlatform/zetasql-toolkit.git</developerConnection>
         <url>git@github.com:GoogleCloudPlatform/zetasql-toolkit.git</url>
-    </scm>
+      <tag>HEAD</tag>
+  </scm>
 
     <properties>
         <zetasql.toolkit.version>${project.version}</zetasql.toolkit.version>
