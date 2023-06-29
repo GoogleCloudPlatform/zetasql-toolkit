@@ -18,12 +18,18 @@ package com.google.zetasql.toolkit;
 
 import com.google.zetasql.Analyzer;
 import com.google.zetasql.AnalyzerOptions;
+import com.google.zetasql.LanguageOptions;
 import com.google.zetasql.ParseResumeLocation;
+import com.google.zetasql.Parser;
 import com.google.zetasql.SimpleCatalog;
+import com.google.zetasql.parser.ASTNodes.ASTScriptStatement;
+import com.google.zetasql.parser.ASTNodes.ASTStatement;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
 import com.google.zetasql.toolkit.catalog.CatalogWrapper;
 import com.google.zetasql.toolkit.catalog.basic.BasicCatalogWrapper;
 import java.util.Iterator;
+import java.util.Optional;
+import javax.swing.text.html.Option;
 
 /**
  * Primary class exposed by the ZetaSQL Toolkit to perform SQL analysis.
@@ -59,7 +65,7 @@ public class ZetaSQLToolkitAnalyzer {
    * @param query The SQL query or script to analyze
    * @return An iterator of the resulting {@link ResolvedStatement}s
    */
-  public Iterator<ResolvedStatement> analyzeStatements(String query) {
+  public Iterator<AnalyzedStatement> analyzeStatements(String query) {
     return this.analyzeStatements(query, new BasicCatalogWrapper());
   }
 
@@ -71,7 +77,7 @@ public class ZetaSQLToolkitAnalyzer {
    * @param catalog The CatalogWrapper implementation to use when managing the catalog
    * @return An iterator of the resulting {@link ResolvedStatement}s
    */
-  public Iterator<ResolvedStatement> analyzeStatements(String query, CatalogWrapper catalog) {
+  public Iterator<AnalyzedStatement> analyzeStatements(String query, CatalogWrapper catalog) {
     return this.analyzeStatements(query, catalog, false);
   }
 
@@ -90,7 +96,7 @@ public class ZetaSQLToolkitAnalyzer {
    *     catalog is copied and the copy is used.
    * @return An iterator of the resulting {@link ResolvedStatement}s
    */
-  public Iterator<ResolvedStatement> analyzeStatements(
+  public Iterator<AnalyzedStatement> analyzeStatements(
       String query, CatalogWrapper catalog, boolean inPlace) {
 
     CatalogWrapper catalogForAnalysis = inPlace ? catalog : catalog.copy();
@@ -100,9 +106,12 @@ public class ZetaSQLToolkitAnalyzer {
 
     return new Iterator<>() {
 
-
       private void applyCatalogMutation(ResolvedStatement statement) {
         statement.accept(catalogUpdaterVisitor);
+      }
+
+      private boolean isAnalyzableStatement(ASTStatement parsedStatement) {
+        return !(parsedStatement instanceof ASTScriptStatement);
       }
 
       @Override
@@ -113,14 +122,27 @@ public class ZetaSQLToolkitAnalyzer {
       }
 
       @Override
-      public ResolvedStatement next() {
-        ResolvedStatement statement =
+      public AnalyzedStatement next() {
+        int startLocation = parseResumeLocation.getBytePosition();
+        LanguageOptions languageOptions = analyzerOptions.getLanguageOptions();
+
+        ASTStatement parsedStatement =
+            Parser.parseNextScriptStatement(parseResumeLocation, languageOptions);
+
+        // TODO(ppaglilla): Create constant in the catalog in the case of an ASTVariableDeclaration
+
+        if(!this.isAnalyzableStatement(parsedStatement)) {
+          return new AnalyzedStatement(parsedStatement);
+        }
+
+        parseResumeLocation.setBytePosition(startLocation);
+        ResolvedStatement resolvedStatement =
             Analyzer.analyzeNextStatement(
                 parseResumeLocation, analyzerOptions, catalogForAnalysis.getZetaSQLCatalog());
 
-        this.applyCatalogMutation(statement);
+        this.applyCatalogMutation(resolvedStatement);
 
-        return statement;
+        return new AnalyzedStatement(parsedStatement, resolvedStatement);
       }
     };
   }
