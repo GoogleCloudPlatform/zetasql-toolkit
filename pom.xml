@@ -21,7 +21,7 @@
 
     <groupId>com.google.zetasql.toolkit</groupId>
     <artifactId>zetasql-toolkit</artifactId>
-    <version>0.3.2-SNAPSHOT</version>
+    <version>0.3.3-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <scm>

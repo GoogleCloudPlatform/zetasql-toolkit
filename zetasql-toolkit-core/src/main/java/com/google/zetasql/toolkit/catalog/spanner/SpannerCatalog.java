@@ -34,6 +34,7 @@ import com.google.zetasql.toolkit.catalog.exceptions.CatalogResourceAlreadyExist
 import com.google.zetasql.toolkit.catalog.spanner.exceptions.InvalidSpannerTableName;
 import com.google.zetasql.toolkit.options.SpannerLanguageOptions;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -212,8 +213,12 @@ public class SpannerCatalog implements CatalogWrapper {
   public void addTables(List<String> tableNames) {
     this.validateSpannerTableNames(tableNames);
 
+    List<String> tablesNotInCatalog = tableNames.stream()
+        .filter(tableName -> Objects.isNull(this.catalog.getTable(tableName, null)))
+        .collect(Collectors.toList());
+
     this.spannerResourceProvider
-        .getTables(tableNames)
+        .getTables(tablesNotInCatalog)
         .forEach(
             table ->
                 this.register(

@@ -21,13 +21,13 @@
 
     <groupId>com.google.zetasql.toolkit</groupId>
     <artifactId>zetasql-toolkit-examples</artifactId>
-    <version>0.3.2-SNAPSHOT</version>
+    <version>0.3.3-SNAPSHOT</version>
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <zetasql.toolkit.version>0.3.2-SNAPSHOT</zetasql.toolkit.version>
+        <zetasql.toolkit.version>0.3.3-SNAPSHOT</zetasql.toolkit.version>
         <google.cloud.jib.version>3.3.2</google.cloud.jib.version>
         <container.mainClass />
     </properties>
