@@ -21,13 +21,13 @@
 
     <groupId>com.google.zetasql.toolkit</groupId>
     <artifactId>zetasql-toolkit</artifactId>
-    <version>0.3.2</version>
+    <version>0.3.3-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <scm>
         <url>https://github.com/GoogleCloudPlatform/zetasql-toolkit</url>
         <developerConnection>scm:git:https://github.com/GoogleCloudPlatform/zetasql-toolkit.git</developerConnection>
-      <tag>v0.3.2</tag>
+      <tag>HEAD</tag>
   </scm>
 
     <properties>
