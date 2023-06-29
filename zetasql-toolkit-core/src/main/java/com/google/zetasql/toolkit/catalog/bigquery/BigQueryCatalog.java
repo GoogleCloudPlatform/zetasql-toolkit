@@ -29,8 +29,10 @@ import com.google.zetasql.toolkit.catalog.exceptions.CatalogResourceAlreadyExist
 import com.google.zetasql.toolkit.options.BigQueryLanguageOptions;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -101,6 +103,60 @@ public class BigQueryCatalog implements CatalogWrapper {
     this.defaultProjectId = defaultProjectId;
     this.bigQueryResourceProvider = bigQueryResourceProvider;
     this.catalog = internalCatalog;
+  }
+
+  /**
+   * Returns whether the table referenced by the provided reference exists
+   * in the catalog.
+   *
+   * @param reference The reference to check (e.g. "project.dataset.table")
+   * @return Whether there's a table in the catalog referenced by the reference
+   */
+  private boolean tableExistsInCatalog(String reference) {
+    return Objects.nonNull(this.catalog.getTable(reference, null));
+  }
+
+  /**
+   * Returns whether the function referenced by the provided reference exists
+   * in the catalog.
+   *
+   * @param reference The reference to check (e.g. "project.dataset.function")
+   * @return Whether there's a function in the catalog referenced by the reference
+   */
+  private boolean functionExistsInCatalog(String reference) {
+    try {
+      this.catalog.findFunction(List.of(reference));
+      return true;
+    } catch (NotFoundException err) {
+      return false;
+    }
+  }
+
+  /**
+   * Returns whether the TVF referenced by the provided reference exists
+   * in the catalog.
+   *
+   * @param reference The reference to check (e.g. "project.dataset.tvf")
+   * @return Whether there's a TVF in the catalog referenced by the reference
+   */
+  private boolean tvfExistsInCatalog(String reference) {
+    return Objects.nonNull(this.catalog.getTVFByName(reference));
+  }
+
+  /**
+   * Returns whether the procedure referenced by the provided reference exists
+   * in the catalog.
+   *
+   * @param reference The reference to check (e.g. "project.dataset.procedure")
+   * @return Whether there's a procedure in the catalog referenced by the reference
+   */
+  private boolean procedureExistsInCatalog(String reference) {
+    try {
+      this.catalog.findProcedure(List.of(reference));
+      return true;
+    } catch (NotFoundException err) {
+      return false;
+    }
   }
 
   /**
@@ -423,8 +479,12 @@ public class BigQueryCatalog implements CatalogWrapper {
    */
   @Override
   public void addTables(List<String> tableReferences) {
+    List<String> tablesNotInCatalog = tableReferences.stream()
+        .filter(Predicate.not(this::tableExistsInCatalog))
+        .collect(Collectors.toList());
+
     this.bigQueryResourceProvider
-        .getTables(this.defaultProjectId, tableReferences)
+        .getTables(this.defaultProjectId, tablesNotInCatalog)
         .forEach(
             table ->
                 this.register(
@@ -490,8 +550,12 @@ public class BigQueryCatalog implements CatalogWrapper {
    */
   @Override
   public void addFunctions(List<String> functionReferences) {
+    List<String> functionsNotInCatalog = functionReferences.stream()
+        .filter(Predicate.not(this::functionExistsInCatalog))
+        .collect(Collectors.toList());
+
     this.bigQueryResourceProvider
-        .getFunctions(this.defaultProjectId, functionReferences)
+        .getFunctions(this.defaultProjectId, functionsNotInCatalog)
         .forEach(
             function ->
                 this.register(
@@ -577,8 +641,12 @@ public class BigQueryCatalog implements CatalogWrapper {
    */
   @Override
   public void addTVFs(List<String> functionReferences) {
+    List<String> functionsNotInCatalog = functionReferences.stream()
+        .filter(Predicate.not(this::tvfExistsInCatalog))
+        .collect(Collectors.toList());
+
     this.bigQueryResourceProvider
-        .getTVFs(this.defaultProjectId, functionReferences)
+        .getTVFs(this.defaultProjectId, functionsNotInCatalog)
         .forEach(
             tvfInfo ->
                 this.register(
@@ -660,8 +728,12 @@ public class BigQueryCatalog implements CatalogWrapper {
    */
   @Override
   public void addProcedures(List<String> procedureReferences) {
+    List<String> proceduresNotInCatalog = procedureReferences.stream()
+        .filter(Predicate.not(this::procedureExistsInCatalog))
+        .collect(Collectors.toList());
+
     this.bigQueryResourceProvider
-        .getProcedures(this.defaultProjectId, procedureReferences)
+        .getProcedures(this.defaultProjectId, proceduresNotInCatalog)
         .forEach(
             procedureInfo ->
                 this.register(
