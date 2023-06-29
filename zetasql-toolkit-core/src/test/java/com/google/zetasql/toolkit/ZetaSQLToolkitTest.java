@@ -40,9 +40,11 @@ public class ZetaSQLToolkitTest {
   void testSimpleSelectStmt() {
     String stmt = "SELECT 1 AS col";
 
-    ResolvedStatement analyzedStmt = this.analyzer.analyzeStatements(stmt).next();
+    AnalyzedStatement analyzedStmt = this.analyzer.analyzeStatements(stmt).next();
 
-    ResolvedQueryStmt queryStmt = assertInstanceOf(ResolvedQueryStmt.class, analyzedStmt);
+    assertTrue(analyzedStmt.getResolvedStatement().isPresent());
+    ResolvedQueryStmt queryStmt =
+        assertInstanceOf(ResolvedQueryStmt.class, analyzedStmt.getResolvedStatement().get());
 
     ResolvedProjectScan projectScan =
         assertInstanceOf(ResolvedProjectScan.class, queryStmt.getQuery());
