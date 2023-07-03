@@ -16,20 +16,35 @@
 
 package com.google.zetasql.toolkit;
 
+import com.google.common.collect.ImmutableList;
 import com.google.zetasql.Analyzer;
 import com.google.zetasql.AnalyzerOptions;
+import com.google.zetasql.Constant;
 import com.google.zetasql.LanguageOptions;
+import com.google.zetasql.NotFoundException;
 import com.google.zetasql.ParseResumeLocation;
 import com.google.zetasql.Parser;
 import com.google.zetasql.SimpleCatalog;
+import com.google.zetasql.SimpleConstantProtos.SimpleConstantProto;
+import com.google.zetasql.SqlException;
+import com.google.zetasql.Type;
+import com.google.zetasql.TypeFactory;
+import com.google.zetasql.ZetaSQLType.TypeProto;
+import com.google.zetasql.parser.ASTNodes.ASTExpression;
+import com.google.zetasql.parser.ASTNodes.ASTIdentifier;
 import com.google.zetasql.parser.ASTNodes.ASTScriptStatement;
+import com.google.zetasql.parser.ASTNodes.ASTSingleAssignment;
 import com.google.zetasql.parser.ASTNodes.ASTStatement;
+import com.google.zetasql.parser.ASTNodes.ASTType;
+import com.google.zetasql.parser.ASTNodes.ASTVariableDeclaration;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedExpr;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
 import com.google.zetasql.toolkit.catalog.CatalogWrapper;
 import com.google.zetasql.toolkit.catalog.basic.BasicCatalogWrapper;
+import com.google.zetasql.toolkit.catalog.typeparser.ZetaSQLTypeParser;
 import java.util.Iterator;
-import java.util.Optional;
-import javax.swing.text.html.Option;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Primary class exposed by the ZetaSQL Toolkit to perform SQL analysis.
@@ -106,12 +121,57 @@ public class ZetaSQLToolkitAnalyzer {
 
     return new Iterator<>() {
 
-      private void applyCatalogMutation(ResolvedStatement statement) {
-        statement.accept(catalogUpdaterVisitor);
-      }
-
       private boolean isAnalyzableStatement(ASTStatement parsedStatement) {
         return !(parsedStatement instanceof ASTScriptStatement);
+      }
+
+      private ResolvedExpr analyzeExpression(ASTExpression expression) {
+        String expressionSource = query.substring(
+            expression.getParseLocationRange().start(),
+            expression.getParseLocationRange().end()
+        );
+        return Analyzer.analyzeExpression(
+            expressionSource, analyzerOptions, catalogForAnalysis.getZetaSQLCatalog());
+      }
+
+      private TypeProto astTypeToTypeProto(ASTType astType) {
+        String typeString = query.substring(
+            astType.getParseLocationRange().start(),
+            astType.getParseLocationRange().end()
+        );
+        Type type = ZetaSQLTypeParser.parse(typeString);
+        return type.serialize();
+      }
+
+      private void applyVariableDeclaration(ASTVariableDeclaration declaration) {
+        TypeProto constantType;
+
+        if (declaration.getType() != null) {
+          constantType = this.astTypeToTypeProto(declaration.getType());
+        } else {
+          ASTExpression expression = declaration.getDefaultValue();
+          ResolvedExpr analyzedExpression = this.analyzeExpression(expression);
+          constantType = analyzedExpression.getType().serialize();
+        }
+
+        List<Constant> constants = declaration.getVariableList()
+            .getIdentifierList()
+            .stream()
+            .map(ASTIdentifier::getIdString)
+            .map(variableName -> SimpleConstantProto.newBuilder()
+                .addNamePath(variableName)
+                .setType(constantType)
+                .build())
+            .map(constantProto -> Constant.deserialize(
+                constantProto, ImmutableList.of(), TypeFactory.nonUniqueNames()))
+            .collect(Collectors.toList());
+
+        // TODO: Add constants to the catalog properly
+        constants.forEach(catalogForAnalysis.getZetaSQLCatalog()::addConstant);
+      }
+
+      private void applyCatalogMutation(ResolvedStatement statement) {
+        statement.accept(catalogUpdaterVisitor);
       }
 
       @Override
@@ -129,7 +189,9 @@ public class ZetaSQLToolkitAnalyzer {
         ASTStatement parsedStatement =
             Parser.parseNextScriptStatement(parseResumeLocation, languageOptions);
 
-        // TODO(ppaglilla): Create constant in the catalog in the case of an ASTVariableDeclaration
+        if (parsedStatement instanceof ASTVariableDeclaration) {
+          this.applyVariableDeclaration((ASTVariableDeclaration) parsedStatement);
+        }
 
         if(!this.isAnalyzableStatement(parsedStatement)) {
           return new AnalyzedStatement(parsedStatement);
