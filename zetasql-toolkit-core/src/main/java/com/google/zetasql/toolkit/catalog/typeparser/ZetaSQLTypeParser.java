@@ -80,7 +80,7 @@ public class ZetaSQLTypeParser {
             Map.entry("INT64", TypeKind.TYPE_INT64),
             Map.entry("UINT32", TypeKind.TYPE_UINT32),
             Map.entry("UINT64", TypeKind.TYPE_UINT64),
-            Map.entry("FLOAT64", TypeKind.TYPE_FLOAT),
+            Map.entry("FLOAT64", TypeKind.TYPE_DOUBLE),
             Map.entry("DECIMAL", TypeKind.TYPE_NUMERIC),
             Map.entry("NUMERIC", TypeKind.TYPE_NUMERIC),
             Map.entry("BIGNUMERIC", TypeKind.TYPE_BIGNUMERIC),
