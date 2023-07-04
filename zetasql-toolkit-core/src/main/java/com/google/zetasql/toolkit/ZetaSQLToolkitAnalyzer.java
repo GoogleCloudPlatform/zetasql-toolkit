@@ -26,10 +26,8 @@ import com.google.zetasql.ParseResumeLocation;
 import com.google.zetasql.Parser;
 import com.google.zetasql.SimpleCatalog;
 import com.google.zetasql.SimpleConstantProtos.SimpleConstantProto;
-import com.google.zetasql.SqlException;
 import com.google.zetasql.Type;
 import com.google.zetasql.TypeFactory;
-import com.google.zetasql.ZetaSQLType.TypeProto;
 import com.google.zetasql.parser.ASTNodes.ASTExpression;
 import com.google.zetasql.parser.ASTNodes.ASTIdentifier;
 import com.google.zetasql.parser.ASTNodes.ASTScriptStatement;
@@ -38,12 +36,15 @@ import com.google.zetasql.parser.ASTNodes.ASTStatement;
 import com.google.zetasql.parser.ASTNodes.ASTType;
 import com.google.zetasql.parser.ASTNodes.ASTVariableDeclaration;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedExpr;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedLiteral;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedParameter;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
 import com.google.zetasql.toolkit.catalog.CatalogWrapper;
 import com.google.zetasql.toolkit.catalog.basic.BasicCatalogWrapper;
 import com.google.zetasql.toolkit.catalog.typeparser.ZetaSQLTypeParser;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -115,97 +116,157 @@ public class ZetaSQLToolkitAnalyzer {
       String query, CatalogWrapper catalog, boolean inPlace) {
 
     CatalogWrapper catalogForAnalysis = inPlace ? catalog : catalog.copy();
-
-    ParseResumeLocation parseResumeLocation = new ParseResumeLocation(query);
-    CatalogUpdaterVisitor catalogUpdaterVisitor = new CatalogUpdaterVisitor(catalogForAnalysis);
-
-    return new Iterator<>() {
-
-      private boolean isAnalyzableStatement(ASTStatement parsedStatement) {
-        return !(parsedStatement instanceof ASTScriptStatement);
-      }
-
-      private ResolvedExpr analyzeExpression(ASTExpression expression) {
-        String expressionSource = query.substring(
-            expression.getParseLocationRange().start(),
-            expression.getParseLocationRange().end()
-        );
-        return Analyzer.analyzeExpression(
-            expressionSource, analyzerOptions, catalogForAnalysis.getZetaSQLCatalog());
-      }
-
-      private TypeProto astTypeToTypeProto(ASTType astType) {
-        String typeString = query.substring(
-            astType.getParseLocationRange().start(),
-            astType.getParseLocationRange().end()
-        );
-        Type type = ZetaSQLTypeParser.parse(typeString);
-        return type.serialize();
-      }
-
-      private void applyVariableDeclaration(ASTVariableDeclaration declaration) {
-        TypeProto constantType;
-
-        if (declaration.getType() != null) {
-          constantType = this.astTypeToTypeProto(declaration.getType());
-        } else {
-          ASTExpression expression = declaration.getDefaultValue();
-          ResolvedExpr analyzedExpression = this.analyzeExpression(expression);
-          constantType = analyzedExpression.getType().serialize();
-        }
-
-        List<Constant> constants = declaration.getVariableList()
-            .getIdentifierList()
-            .stream()
-            .map(ASTIdentifier::getIdString)
-            .map(variableName -> SimpleConstantProto.newBuilder()
-                .addNamePath(variableName)
-                .setType(constantType)
-                .build())
-            .map(constantProto -> Constant.deserialize(
-                constantProto, ImmutableList.of(), TypeFactory.nonUniqueNames()))
-            .collect(Collectors.toList());
-
-        // TODO: Add constants to the catalog properly
-        constants.forEach(catalogForAnalysis.getZetaSQLCatalog()::addConstant);
-      }
-
-      private void applyCatalogMutation(ResolvedStatement statement) {
-        statement.accept(catalogUpdaterVisitor);
-      }
-
-      @Override
-      public boolean hasNext() {
-        int inputLength = parseResumeLocation.getInput().getBytes().length;
-        int currentPosition = parseResumeLocation.getBytePosition();
-        return inputLength > currentPosition;
-      }
-
-      @Override
-      public AnalyzedStatement next() {
-        int startLocation = parseResumeLocation.getBytePosition();
-        LanguageOptions languageOptions = analyzerOptions.getLanguageOptions();
-
-        ASTStatement parsedStatement =
-            Parser.parseNextScriptStatement(parseResumeLocation, languageOptions);
-
-        if (parsedStatement instanceof ASTVariableDeclaration) {
-          this.applyVariableDeclaration((ASTVariableDeclaration) parsedStatement);
-        }
-
-        if(!this.isAnalyzableStatement(parsedStatement)) {
-          return new AnalyzedStatement(parsedStatement);
-        }
-
-        parseResumeLocation.setBytePosition(startLocation);
-        ResolvedStatement resolvedStatement =
-            Analyzer.analyzeNextStatement(
-                parseResumeLocation, analyzerOptions, catalogForAnalysis.getZetaSQLCatalog());
-
-        this.applyCatalogMutation(resolvedStatement);
-
-        return new AnalyzedStatement(parsedStatement, resolvedStatement);
-      }
-    };
+    return new StatementAnalyzer(query, catalogForAnalysis, analyzerOptions);
   }
+
+  private static class StatementAnalyzer implements Iterator<AnalyzedStatement> {
+
+    private final String query;
+    private final CatalogWrapper catalog;
+    private final AnalyzerOptions analyzerOptions;
+    private final Coercer coercer;
+    private final CatalogUpdaterVisitor catalogUpdaterVisitor;
+    private final ParseResumeLocation parseResumeLocation;
+
+    public StatementAnalyzer(String query, CatalogWrapper catalog,
+        AnalyzerOptions analyzerOptions) {
+      this.query = query;
+      this.catalog = catalog;
+      this.analyzerOptions = analyzerOptions;
+      this.coercer = new Coercer(analyzerOptions.getLanguageOptions());
+      this.catalogUpdaterVisitor = new CatalogUpdaterVisitor(catalog);
+      this.parseResumeLocation = new ParseResumeLocation(query);
+    }
+
+    private boolean isAnalyzableStatement(ASTStatement parsedStatement) {
+      return !(parsedStatement instanceof ASTScriptStatement);
+    }
+
+    private Type parseASTType(ASTType astType) {
+      String typeString = query.substring(
+          astType.getParseLocationRange().start(),
+          astType.getParseLocationRange().end()
+      );
+      return ZetaSQLTypeParser.parse(typeString);
+    }
+
+    private Constant buildConstant(String name, Type type) {
+      SimpleConstantProto proto = SimpleConstantProto.newBuilder()
+          .addNamePath(name)
+          .setType(type.serialize())
+          .build();
+
+      return Constant.deserialize(
+          proto,
+          ImmutableList.of(),
+          TypeFactory.nonUniqueNames());
+    }
+
+    private void coerceExpressionToType(Type type, ResolvedExpr resolvedExpr) {
+      Type expressionType = resolvedExpr.getType();
+      boolean isLiteral = resolvedExpr instanceof ResolvedLiteral;
+      boolean isParameter = resolvedExpr instanceof ResolvedParameter;
+
+      boolean coerces = this.coercer.coercesTo(expressionType, type, isLiteral, isParameter);
+
+      if (!coerces) {
+        String message = String.format(
+            "Cannot coerce expression of type %s to type %s",
+            type, expressionType);
+        throw new RuntimeException(message);
+      }
+    }
+
+    private void applyVariableDeclaration(ASTVariableDeclaration declaration) {
+      Optional<Type> explicitType = Optional.ofNullable(declaration.getType())
+          .map(this::parseASTType);
+
+      Optional<ResolvedExpr> defaultValueExpr = Optional.ofNullable(declaration.getDefaultValue())
+          .map(expression -> AnalyzerExtensions.analyzeExpression(
+              query, expression, analyzerOptions, catalog.getZetaSQLCatalog()));
+
+      if (explicitType.isEmpty() && defaultValueExpr.isEmpty()) {
+        // Should not happen, since this is enforced by the parser
+        throw new IllegalArgumentException(
+            "Either the type or the default value must be present for variable declarations");
+      }
+
+      if (explicitType.isPresent() && defaultValueExpr.isPresent()) {
+        this.coerceExpressionToType(explicitType.get(), defaultValueExpr.get());
+      }
+
+      Type variableType = explicitType.orElseGet(() -> defaultValueExpr.get().getType());
+
+      List<Constant> constants = declaration.getVariableList()
+          .getIdentifierList()
+          .stream()
+          .map(ASTIdentifier::getIdString)
+          .map(variableName -> this.buildConstant(variableName, variableType))
+          .collect(Collectors.toList());
+
+      // TODO: Add constants to the catalog without breaking encapsulation
+      constants.forEach(catalog.getZetaSQLCatalog()::addConstant);
+    }
+
+    private void validateSingleAssignment(ASTSingleAssignment singleAssignment) {
+      String assignmentTarget = singleAssignment.getVariable().getIdString();
+      ASTExpression expression = singleAssignment.getExpression();
+
+      ResolvedExpr analyzedExpression = AnalyzerExtensions.analyzeExpression(
+          query, expression, analyzerOptions, catalog.getZetaSQLCatalog());
+
+      try {
+        Constant constant = catalog.getZetaSQLCatalog().findConstant(List.of(assignmentTarget));
+        this.coerceExpressionToType(constant.getType(), analyzedExpression);
+      } catch (NotFoundException e) {
+        throw new RuntimeException("Undeclared variable: " + assignmentTarget);
+      }
+    }
+
+    private void applyCatalogMutation(ResolvedStatement statement) {
+      statement.accept(catalogUpdaterVisitor);
+    }
+
+    @Override
+    public boolean hasNext() {
+      int inputLength = parseResumeLocation.getInput().getBytes().length;
+      int currentPosition = parseResumeLocation.getBytePosition();
+      return inputLength > currentPosition;
+    }
+
+    @Override
+    public AnalyzedStatement next() {
+      int startLocation = parseResumeLocation.getBytePosition();
+      LanguageOptions languageOptions = analyzerOptions.getLanguageOptions();
+
+      ASTStatement parsedStatement =
+          Parser.parseNextScriptStatement(parseResumeLocation, languageOptions);
+
+      // If the statement is a variable declaration, we need to validate it and create a Constant
+      // in the catalog
+      if (parsedStatement instanceof ASTVariableDeclaration) {
+        this.applyVariableDeclaration((ASTVariableDeclaration) parsedStatement);
+      }
+
+      // If the statement is an assignment (SET statement), we need to validate it
+      if (parsedStatement instanceof ASTSingleAssignment) {
+        this.validateSingleAssignment((ASTSingleAssignment) parsedStatement);
+      }
+
+      if(!this.isAnalyzableStatement(parsedStatement)) {
+        return new AnalyzedStatement(parsedStatement, Optional.empty());
+      }
+
+      parseResumeLocation.setBytePosition(startLocation);
+      ResolvedStatement resolvedStatement =
+          Analyzer.analyzeNextStatement(
+              parseResumeLocation, analyzerOptions, catalog.getZetaSQLCatalog());
+
+      this.applyCatalogMutation(resolvedStatement);
+
+      return new AnalyzedStatement(parsedStatement, Optional.of(resolvedStatement));
+    }
+
+  }
+
 }
