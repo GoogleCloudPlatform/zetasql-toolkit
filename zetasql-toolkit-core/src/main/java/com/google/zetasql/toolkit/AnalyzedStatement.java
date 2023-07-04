@@ -25,14 +25,10 @@ public class AnalyzedStatement {
   private final ASTStatement parsedStatement;
   private final Optional<ResolvedStatement> resolvedStatement;
 
-  public AnalyzedStatement(ASTStatement parsedStatement) {
+  public AnalyzedStatement(
+      ASTStatement parsedStatement, Optional<ResolvedStatement> resolvedStatement) {
     this.parsedStatement = parsedStatement;
-    this.resolvedStatement = Optional.empty();
-  }
-
-  public AnalyzedStatement(ASTStatement parsedStatement, ResolvedStatement resolvedStatement) {
-    this.parsedStatement = parsedStatement;
-    this.resolvedStatement = Optional.of(resolvedStatement);
+    this.resolvedStatement = resolvedStatement;
   }
 
   public ASTStatement getParsedStatement() {
