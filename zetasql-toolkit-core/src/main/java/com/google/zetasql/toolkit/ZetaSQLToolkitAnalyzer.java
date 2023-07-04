@@ -127,6 +127,7 @@ public class ZetaSQLToolkitAnalyzer {
     private final Coercer coercer;
     private final CatalogUpdaterVisitor catalogUpdaterVisitor;
     private final ParseResumeLocation parseResumeLocation;
+    private boolean reachedComplexScriptStatement = false;
 
     public StatementAnalyzer(String query, CatalogWrapper catalog,
         AnalyzerOptions analyzerOptions) {
@@ -140,6 +141,14 @@ public class ZetaSQLToolkitAnalyzer {
 
     private boolean isAnalyzableStatement(ASTStatement parsedStatement) {
       return !(parsedStatement instanceof ASTScriptStatement);
+    }
+
+    private boolean isComplexScriptStatement(ASTStatement parsedStatement) {
+      boolean isVariableDeclarationOrSet =
+          parsedStatement instanceof ASTVariableDeclaration
+          || parsedStatement instanceof ASTSingleAssignment;
+
+      return !this.isAnalyzableStatement(parsedStatement) && !isVariableDeclarationOrSet;
     }
 
     private Type parseASTType(ASTType astType) {
@@ -242,6 +251,9 @@ public class ZetaSQLToolkitAnalyzer {
       ASTStatement parsedStatement =
           Parser.parseNextScriptStatement(parseResumeLocation, languageOptions);
 
+      this.reachedComplexScriptStatement =
+          this.reachedComplexScriptStatement || isComplexScriptStatement(parsedStatement);
+
       // If the statement is a variable declaration, we need to validate it and create a Constant
       // in the catalog
       if (parsedStatement instanceof ASTVariableDeclaration) {
@@ -253,7 +265,7 @@ public class ZetaSQLToolkitAnalyzer {
         this.validateSingleAssignment((ASTSingleAssignment) parsedStatement);
       }
 
-      if(!this.isAnalyzableStatement(parsedStatement)) {
+      if(this.reachedComplexScriptStatement || !this.isAnalyzableStatement(parsedStatement)) {
         return new AnalyzedStatement(parsedStatement, Optional.empty());
       }
 
