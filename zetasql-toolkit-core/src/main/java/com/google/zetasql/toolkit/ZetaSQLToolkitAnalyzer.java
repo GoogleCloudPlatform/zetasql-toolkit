@@ -26,6 +26,7 @@ import com.google.zetasql.ParseResumeLocation;
 import com.google.zetasql.Parser;
 import com.google.zetasql.SimpleCatalog;
 import com.google.zetasql.SimpleConstantProtos.SimpleConstantProto;
+import com.google.zetasql.SqlException;
 import com.google.zetasql.Type;
 import com.google.zetasql.TypeFactory;
 import com.google.zetasql.parser.ASTNodes.ASTExpression;
@@ -79,7 +80,8 @@ public class ZetaSQLToolkitAnalyzer {
    * semantics of a particular SQL engine (e.g. BigQuery or Spanner),
    *
    * @param query The SQL query or script to analyze
-   * @return An iterator of the resulting {@link ResolvedStatement}s
+   * @return An iterator of the resulting {@link AnalyzedStatement}s. Consuming the iterator
+   * can throw an {@link AnalysisException} if analysis fails.
    */
   public Iterator<AnalyzedStatement> analyzeStatements(String query) {
     return this.analyzeStatements(query, new BasicCatalogWrapper());
@@ -91,7 +93,8 @@ public class ZetaSQLToolkitAnalyzer {
    *
    * @param query The SQL query or script to analyze
    * @param catalog The CatalogWrapper implementation to use when managing the catalog
-   * @return An iterator of the resulting {@link ResolvedStatement}s
+   * @return An iterator of the resulting {@link AnalyzedStatement}s. Consuming the iterator
+   * can throw an {@link AnalysisException} if analysis fails.
    */
   public Iterator<AnalyzedStatement> analyzeStatements(String query, CatalogWrapper catalog) {
     return this.analyzeStatements(query, catalog, false);
@@ -110,11 +113,11 @@ public class ZetaSQLToolkitAnalyzer {
    * @param inPlace Whether to apply catalog mutations in place. If true, catalog mutations from
    *     CREATE or DROP statements are applied to the provided catalog. If false, the provided
    *     catalog is copied and the copy is used.
-   * @return An iterator of the resulting {@link ResolvedStatement}s
+   * @return An iterator of the resulting {@link AnalyzedStatement}s. Consuming the iterator
+   * can throw an {@link AnalysisException} if analysis fails.
    */
   public Iterator<AnalyzedStatement> analyzeStatements(
       String query, CatalogWrapper catalog, boolean inPlace) {
-
     CatalogWrapper catalogForAnalysis = inPlace ? catalog : catalog.copy();
     return new StatementAnalyzer(query, catalogForAnalysis, analyzerOptions);
   }
@@ -139,8 +142,8 @@ public class ZetaSQLToolkitAnalyzer {
       this.parseResumeLocation = new ParseResumeLocation(query);
     }
 
-    private boolean isAnalyzableStatement(ASTStatement parsedStatement) {
-      return !(parsedStatement instanceof ASTScriptStatement);
+    private boolean isScriptStatement(ASTStatement parsedStatement) {
+      return parsedStatement instanceof ASTScriptStatement;
     }
 
     private boolean isComplexScriptStatement(ASTStatement parsedStatement) {
@@ -148,7 +151,7 @@ public class ZetaSQLToolkitAnalyzer {
           parsedStatement instanceof ASTVariableDeclaration
           || parsedStatement instanceof ASTSingleAssignment;
 
-      return !this.isAnalyzableStatement(parsedStatement) && !isVariableDeclarationOrSet;
+      return this.isScriptStatement(parsedStatement) && !isVariableDeclarationOrSet;
     }
 
     private Type parseASTType(ASTType astType) {
@@ -182,7 +185,7 @@ public class ZetaSQLToolkitAnalyzer {
         String message = String.format(
             "Cannot coerce expression of type %s to type %s",
             type, expressionType);
-        throw new RuntimeException(message);
+        throw new AnalysisException(message);
       }
     }
 
@@ -196,7 +199,7 @@ public class ZetaSQLToolkitAnalyzer {
 
       if (explicitType.isEmpty() && defaultValueExpr.isEmpty()) {
         // Should not happen, since this is enforced by the parser
-        throw new IllegalArgumentException(
+        throw new AnalysisException(
             "Either the type or the default value must be present for variable declarations");
       }
 
@@ -228,7 +231,7 @@ public class ZetaSQLToolkitAnalyzer {
         Constant constant = catalog.getZetaSQLCatalog().findConstant(List.of(assignmentTarget));
         this.coerceExpressionToType(constant.getType(), analyzedExpression);
       } catch (NotFoundException e) {
-        throw new RuntimeException("Undeclared variable: " + assignmentTarget);
+        throw new AnalysisException("Undeclared variable: " + assignmentTarget);
       }
     }
 
@@ -265,18 +268,24 @@ public class ZetaSQLToolkitAnalyzer {
         this.validateSingleAssignment((ASTSingleAssignment) parsedStatement);
       }
 
-      if(this.reachedComplexScriptStatement || !this.isAnalyzableStatement(parsedStatement)) {
+      if(this.reachedComplexScriptStatement || this.isScriptStatement(parsedStatement)) {
         return new AnalyzedStatement(parsedStatement, Optional.empty());
       }
 
       parseResumeLocation.setBytePosition(startLocation);
-      ResolvedStatement resolvedStatement =
-          Analyzer.analyzeNextStatement(
-              parseResumeLocation, analyzerOptions, catalog.getZetaSQLCatalog());
 
-      this.applyCatalogMutation(resolvedStatement);
+      try {
+        ResolvedStatement resolvedStatement =
+            Analyzer.analyzeNextStatement(
+                parseResumeLocation, analyzerOptions, catalog.getZetaSQLCatalog());
 
-      return new AnalyzedStatement(parsedStatement, Optional.of(resolvedStatement));
+        this.applyCatalogMutation(resolvedStatement);
+
+        return new AnalyzedStatement(parsedStatement, Optional.of(resolvedStatement));
+      } catch (SqlException err) {
+        throw new AnalysisException(err);
+      }
+
     }
 
   }
