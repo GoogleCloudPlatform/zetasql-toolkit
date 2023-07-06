@@ -20,8 +20,7 @@ This toolkit offers built-in support for:
 <dependency>
   <groupId>com.google.zetasql.toolkit</groupId>
   <artifactId>zetasql-toolkit-core</artifactId>
-  <scope>compile</scope>
-  <version>0.3.2</version>
+  <version>0.3.3</version>
 </dependency>
 ```
 
