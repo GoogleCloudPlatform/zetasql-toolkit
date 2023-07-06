@@ -24,6 +24,8 @@ import java.io.InputStream;
 import java.util.Properties;
 
 public class UsageTracking {
+
+  public static String CURRENT_REVISION = "UNSET";
   private static final String USER_AGENT_HEADER = "user-agent";
   private static final String USER_AGENT_VALUE;
 
@@ -40,7 +42,8 @@ public class UsageTracking {
     } catch (IOException ignored) {
     }
 
-    USER_AGENT_VALUE = String.format("google-pso-tool/zetasql-toolkit/%s", revision);
+    CURRENT_REVISION = revision;
+    USER_AGENT_VALUE = String.format("google-pso-tool/zetasql-helper/%s", revision);
   }
 
   public static final HeaderProvider HEADER_PROVIDER =
