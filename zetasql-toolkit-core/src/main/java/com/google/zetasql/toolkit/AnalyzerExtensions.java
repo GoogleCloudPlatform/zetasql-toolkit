@@ -17,17 +17,24 @@
 package com.google.zetasql.toolkit;
 
 import com.google.common.collect.ImmutableList;
+import com.google.zetasql.Analyzer;
+import com.google.zetasql.AnalyzerOptions;
 import com.google.zetasql.LanguageOptions;
+import com.google.zetasql.ParseLocationRange;
 import com.google.zetasql.ParseResumeLocation;
 import com.google.zetasql.Parser;
+import com.google.zetasql.SimpleCatalog;
+import com.google.zetasql.SqlException;
 import com.google.zetasql.parser.ASTNode;
 import com.google.zetasql.parser.ASTNodes.ASTCallStatement;
+import com.google.zetasql.parser.ASTNodes.ASTExpression;
 import com.google.zetasql.parser.ASTNodes.ASTFunctionCall;
 import com.google.zetasql.parser.ASTNodes.ASTIdentifier;
 import com.google.zetasql.parser.ASTNodes.ASTScript;
 import com.google.zetasql.parser.ASTNodes.ASTStatement;
 import com.google.zetasql.parser.ASTNodes.ASTTVF;
 import com.google.zetasql.parser.ParseTreeVisitor;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedExpr;
 import java.util.List;
 import org.antlr.v4.runtime.misc.OrderedHashSet;
 
@@ -258,6 +265,36 @@ public class AnalyzerExtensions {
     node.accept(extractProcedureNamesVisitor);
 
     return List.copyOf(result);
+  }
+
+  /**
+   * Analyzes a parsed ASTExpression given the original SQL it belongs to
+   *
+   * @param sql The original SQL string the ASTExpression was parsed from
+   * @param expression The ASTExpression that should be analyzed
+   * @param options The {@link AnalyzerOptions} to use for analysis
+   * @param catalog The {@link SimpleCatalog} to use for analysis
+   * @return The {@link ResolvedExpr} resulting from the analysis
+   *
+   * @throws SqlException if the analysis fails
+   * @throws IllegalArgumentException if the expression's parse location exceeds the SQL string
+   * length. It will not happen if the SQL string is the query the expression was parsed from.
+   */
+  public static ResolvedExpr analyzeExpression(
+      String sql, ASTExpression expression,
+      AnalyzerOptions options, SimpleCatalog catalog
+  ) {
+    ParseLocationRange expressionRange = expression.getParseLocationRange();
+
+    if (expressionRange.end() > sql.length()) {
+      String message = String.format(
+          "Expression parse location %d exceeds SQL query length of %d",
+          expressionRange.end(), sql.length());
+      throw new IllegalArgumentException(message);
+    }
+
+    String expressionSource = sql.substring(expressionRange.start(), expressionRange.end());
+    return Analyzer.analyzeExpression(expressionSource, options, catalog);
   }
 
   private AnalyzerExtensions() {}

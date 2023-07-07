@@ -18,6 +18,7 @@ package com.google.zetasql.toolkit.examples;
 
 import com.google.zetasql.AnalyzerOptions;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
+import com.google.zetasql.toolkit.AnalyzedStatement;
 import com.google.zetasql.toolkit.ZetaSQLToolkitAnalyzer;
 import com.google.zetasql.toolkit.catalog.bigquery.BigQueryCatalog;
 import com.google.zetasql.toolkit.options.BigQueryLanguageOptions;
@@ -43,8 +44,9 @@ public class LoadTablesUsedInQuery {
     catalog.addAllTablesUsedInQuery(query, options);
 
     ZetaSQLToolkitAnalyzer analyzer = new ZetaSQLToolkitAnalyzer(options);
-    Iterator<ResolvedStatement> statementIterator = analyzer.analyzeStatements(query, catalog);
+    Iterator<AnalyzedStatement> statementIterator = analyzer.analyzeStatements(query, catalog);
 
-    statementIterator.forEachRemaining(statement -> System.out.println(statement.debugString()));
+    statementIterator.forEachRemaining(statement ->
+        statement.getResolvedStatement().ifPresent(System.out::println));
   }
 }

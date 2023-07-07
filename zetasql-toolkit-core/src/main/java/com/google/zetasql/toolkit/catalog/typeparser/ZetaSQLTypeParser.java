@@ -25,10 +25,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import org.antlr.v4.runtime.BailErrorStrategy;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ConsoleErrorListener;
 import org.antlr.v4.runtime.Lexer;
+import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 /**
@@ -56,15 +58,24 @@ public class ZetaSQLTypeParser {
     ZetaSQLTypeGrammarParser parser = new ZetaSQLTypeGrammarParser(tokenStream);
     ZetaSQLTypeParserListener listener = new ZetaSQLTypeParserListener();
     parser.removeErrorListener(ConsoleErrorListener.INSTANCE);
-    TypeContext typeRule = parser.type();
-    ParseTreeWalker.DEFAULT.walk(listener, typeRule);
+    parser.setErrorHandler(new BailErrorStrategy());
 
-    if (typeRule.exception != null) {
+    try {
+      TypeContext typeRule = parser.type();
+
+      if (typeRule.exception != null) {
+        throw new ZetaSQLTypeParseError(
+            String.format("Invalid SQL type: %s", type), typeRule.exception);
+      }
+
+      ParseTreeWalker.DEFAULT.walk(listener, typeRule);
+
+      return listener.getResult();
+    } catch (ParseCancellationException err) {
       throw new ZetaSQLTypeParseError(
-          String.format("Invalid SQL type: %s", type), typeRule.exception);
+          String.format("Invalid SQL type: %s", type), err);
     }
 
-    return listener.getResult();
   }
 
   /**
@@ -80,7 +91,7 @@ public class ZetaSQLTypeParser {
             Map.entry("INT64", TypeKind.TYPE_INT64),
             Map.entry("UINT32", TypeKind.TYPE_UINT32),
             Map.entry("UINT64", TypeKind.TYPE_UINT64),
-            Map.entry("FLOAT64", TypeKind.TYPE_FLOAT),
+            Map.entry("FLOAT64", TypeKind.TYPE_DOUBLE),
             Map.entry("DECIMAL", TypeKind.TYPE_NUMERIC),
             Map.entry("NUMERIC", TypeKind.TYPE_NUMERIC),
             Map.entry("BIGNUMERIC", TypeKind.TYPE_BIGNUMERIC),
@@ -129,6 +140,10 @@ public class ZetaSQLTypeParser {
 
     @Override
     public void exitStructType(StructTypeContext ctx) {
+      if (this.structFieldStack.empty()) {
+        return;
+      }
+
       List<StructField> fields = this.structFieldStack.pop();
       Type type = TypeFactory.createStructType(fields);
       this.typeStack.push(type);

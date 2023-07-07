@@ -439,6 +439,33 @@ public class BigQueryCatalog implements CatalogWrapper {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @throws IllegalArgumentException if the constant name is qualified
+   * @throws CatalogResourceAlreadyExists if the constant already exits in this catalog
+   */
+  @Override
+  public void register(Constant constant) {
+    String fullName = constant.getFullName();
+
+    if (constant.getNamePath().size() > 1) {
+      throw new IllegalArgumentException(
+          "BigQuery constants cannot be qualified, was: " + fullName);
+    }
+
+    boolean constantExists = this.catalog.getConstantList()
+        .stream()
+        .anyMatch(existingConstant -> existingConstant.getFullName().equalsIgnoreCase(fullName));
+
+    if (constantExists) {
+      throw new CatalogResourceAlreadyExists(
+          fullName, "Constant " + fullName + "already exists");
+    }
+
+    this.catalog.addConstant(constant);
+  }
+
   @Override
   public void removeTable(String tableReference) {
     boolean isQualified = tableReference.split("\\.").length > 1;
@@ -789,6 +816,25 @@ public class BigQueryCatalog implements CatalogWrapper {
             .collect(Collectors.toSet());
 
     this.addProcedures(List.copyOf(procedures));
+  }
+
+  /**
+   * Adds all the resources used in the provided query to this catalog. Includes tables, functions,
+   * TVFs and procedures.
+   *
+   * <p> It calls {@link #addAllTablesUsedInQuery(String, AnalyzerOptions)},
+   * {@link #addAllFunctionsUsedInQuery(String)}, {@link #addAllTVFsUsedInQuery(String)}
+   * and {@link #addAllProceduresUsedInQuery(String)}.
+   *
+   * @param query The SQL query from which to get the resources that should be added to the catalog
+   * @param options The ZetaSQL AnalyzerOptions to use when extracting the resource names from the
+   *     query
+   */
+  public void addAllResourcesUsedInQuery(String query, AnalyzerOptions options) {
+    addAllTablesUsedInQuery(query, options);
+    addAllFunctionsUsedInQuery(query);
+    addAllTVFsUsedInQuery(query);
+    addAllProceduresUsedInQuery(query);
   }
 
   @Override
