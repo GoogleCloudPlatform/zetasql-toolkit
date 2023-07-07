@@ -439,6 +439,33 @@ public class BigQueryCatalog implements CatalogWrapper {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @throws IllegalArgumentException if the constant name is qualified
+   * @throws CatalogResourceAlreadyExists if the constant already exits in this catalog
+   */
+  @Override
+  public void register(Constant constant) {
+    String fullName = constant.getFullName();
+
+    if (constant.getNamePath().size() > 1) {
+      throw new IllegalArgumentException(
+          "BigQuery constants cannot be qualified, was: " + fullName);
+    }
+
+    boolean constantExists = this.catalog.getConstantList()
+        .stream()
+        .anyMatch(existingConstant -> existingConstant.getFullName().equalsIgnoreCase(fullName));
+
+    if (constantExists) {
+      throw new CatalogResourceAlreadyExists(
+          fullName, "Constant " + fullName + "already exists");
+    }
+
+    this.catalog.addConstant(constant);
+  }
+
   @Override
   public void removeTable(String tableReference) {
     boolean isQualified = tableReference.split("\\.").length > 1;
