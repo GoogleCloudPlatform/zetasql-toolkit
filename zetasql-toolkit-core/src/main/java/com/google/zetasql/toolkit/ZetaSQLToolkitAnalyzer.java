@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.zetasql.Analyzer;
 import com.google.zetasql.AnalyzerOptions;
 import com.google.zetasql.Constant;
-import com.google.zetasql.LanguageOptions;
 import com.google.zetasql.NotFoundException;
 import com.google.zetasql.ParseResumeLocation;
 import com.google.zetasql.Parser;
@@ -52,8 +51,8 @@ import java.util.stream.Collectors;
  * Primary class exposed by the ZetaSQL Toolkit to perform SQL analysis.
  *
  * <p>It exposes methods to analyze statements using an empty catalog, an existing {@link
- * SimpleCatalog} or a {@link CatalogWrapper} implementation (such as the BigQueryCatalog or
- * the SpannerCatalog).
+ * SimpleCatalog} or a {@link CatalogWrapper} implementation (such as the BigQueryCatalog or the
+ * SpannerCatalog).
  *
  * <p>When analyzing statements that create resources (e.g. a CREATE TEMP TABLE statement), this
  * class will also persist those resources to the catalog. This allows it to transparently support
@@ -80,8 +79,8 @@ public class ZetaSQLToolkitAnalyzer {
    * semantics of a particular SQL engine (e.g. BigQuery or Spanner),
    *
    * @param query The SQL query or script to analyze
-   * @return An iterator of the resulting {@link AnalyzedStatement}s. Consuming the iterator
-   * can throw an {@link AnalysisException} if analysis fails.
+   * @return An iterator of the resulting {@link AnalyzedStatement}s. Consuming the iterator can
+   *     throw an {@link AnalysisException} if analysis fails.
    */
   public Iterator<AnalyzedStatement> analyzeStatements(String query) {
     return this.analyzeStatements(query, new BasicCatalogWrapper());
@@ -93,28 +92,28 @@ public class ZetaSQLToolkitAnalyzer {
    *
    * @param query The SQL query or script to analyze
    * @param catalog The CatalogWrapper implementation to use when managing the catalog
-   * @return An iterator of the resulting {@link AnalyzedStatement}s. Consuming the iterator
-   * can throw an {@link AnalysisException} if analysis fails.
+   * @return An iterator of the resulting {@link AnalyzedStatement}s. Consuming the iterator can
+   *     throw an {@link AnalysisException} if analysis fails.
    */
   public Iterator<AnalyzedStatement> analyzeStatements(String query, CatalogWrapper catalog) {
     return this.analyzeStatements(query, catalog, false);
   }
 
   /**
-   * Analyze a SQL query or script, using the provided {@link CatalogWrapper} to manage the catalog.
+   * Analyze a SQL query or script, using the provided {@link CatalogWrapper} to manage the
+   * catalog.
    *
    * <p>This toolkit includes two implementations, the BigQueryCatalog and the SpannerCatalog;
-   * which can be used to run the analyzer following BigQuery or Spanner catalog
-   * semantics respectively. For other use-cases, you can provide your own CatalogWrapper
-   * implementation.
+   * which can be used to run the analyzer following BigQuery or Spanner catalog semantics
+   * respectively. For other use-cases, you can provide your own CatalogWrapper implementation.
    *
    * @param query The SQL query or script to analyze
    * @param catalog The CatalogWrapper implementation to use when managing the catalog
    * @param inPlace Whether to apply catalog mutations in place. If true, catalog mutations from
    *     CREATE or DROP statements are applied to the provided catalog. If false, the provided
    *     catalog is copied and the copy is used.
-   * @return An iterator of the resulting {@link AnalyzedStatement}s. Consuming the iterator
-   * can throw an {@link AnalysisException} if analysis fails.
+   * @return An iterator of the resulting {@link AnalyzedStatement}s. Consuming the iterator can
+   *     throw an {@link AnalysisException} if analysis fails.
    */
   public Iterator<AnalyzedStatement> analyzeStatements(
       String query, CatalogWrapper catalog, boolean inPlace) {
@@ -122,6 +121,27 @@ public class ZetaSQLToolkitAnalyzer {
     return new StatementAnalyzer(query, catalogForAnalysis, analyzerOptions);
   }
 
+  /**
+   * The {@link StatementAnalyzer} is the class that actually implements analysis for SQL in the
+   * ZetaSQL Toolkit. It implements Iterator&lt;{@link AnalyzedStatement}&gt;, and consuming the
+   * iterator will lazily perform SQL analysis statement by statement.
+   *
+   * <p> For each statement in the query, it will:
+   * <ol>
+   *   <li> Parse the statement using the {@link Parser}
+   *   <li> If it is a variable declaration or an assignment, validate it and update the catalog
+   *   <li> Resolve the statement if possible, using the {@link Analyzer}
+   *   <li> Return the corresponding {@link AnalyzedStatement} object; containing the parsed
+   *      {@link ASTStatement} and, optionally, the resolved {@link ResolvedStatement}
+   * </ol>
+   *
+   * <p> Resolution will only happen for a statement if it is supported by the Analyzer (i.e.
+   * it is not a script statement). If a complex script statement is encountered (e.g. IFs, LOOPs),
+   * statement resolution will stop altogether and not be performed for the rest of this query.
+   *
+   * <p> If parsing, resolution or validations fail while analyzing a statement,
+   * an {@link AnalysisException} will be thrown.
+   */
   private static class StatementAnalyzer implements Iterator<AnalyzedStatement> {
 
     private final String query;
@@ -142,6 +162,72 @@ public class ZetaSQLToolkitAnalyzer {
       this.parseResumeLocation = new ParseResumeLocation(query);
     }
 
+    @Override
+    public boolean hasNext() {
+      int inputLength = parseResumeLocation.getInput().getBytes().length;
+      int currentPosition = parseResumeLocation.getBytePosition();
+      return inputLength > currentPosition;
+    }
+
+    /**
+     * Analyze the next statement in the query, following the steps outlined in this class's
+     * javadoc.
+     *
+     * @return An {@link AnalyzedStatement} for the next statement of the query. It will include
+     * the parsed statement and, optionally, the resolved statement. See this class's javadoc
+     * to know when a statement is resolved.
+     */
+    @Override
+    public AnalyzedStatement next() {
+      int startLocation = parseResumeLocation.getBytePosition();
+
+      ASTStatement parsedStatement = parseNextStatement(parseResumeLocation);
+
+      this.reachedComplexScriptStatement =
+          this.reachedComplexScriptStatement || isComplexScriptStatement(parsedStatement);
+
+      // If the statement is a variable declaration, we need to validate it and create a Constant
+      // in the catalog
+      if (parsedStatement instanceof ASTVariableDeclaration) {
+        this.applyVariableDeclaration((ASTVariableDeclaration) parsedStatement);
+      }
+
+      // If the statement is an assignment (SET statement), we need to validate it
+      if (parsedStatement instanceof ASTSingleAssignment) {
+        this.validateSingleAssignment((ASTSingleAssignment) parsedStatement);
+      }
+
+      if (this.reachedComplexScriptStatement || this.isScriptStatement(parsedStatement)) {
+        return new AnalyzedStatement(parsedStatement, Optional.empty());
+      }
+
+      parseResumeLocation.setBytePosition(startLocation);
+
+      ResolvedStatement resolvedStatement = analyzeNextStatement(parseResumeLocation);
+
+      this.applyCatalogMutation(resolvedStatement);
+
+      return new AnalyzedStatement(parsedStatement, Optional.of(resolvedStatement));
+    }
+
+    private ASTStatement parseNextStatement(ParseResumeLocation parseResumeLocation) {
+      try {
+        return Parser.parseNextScriptStatement(
+            parseResumeLocation, analyzerOptions.getLanguageOptions());
+      } catch (SqlException err) {
+        throw new AnalysisException(err);
+      }
+    }
+
+    private ResolvedStatement analyzeNextStatement(ParseResumeLocation parseResumeLocation) {
+      try {
+        return Analyzer.analyzeNextStatement(
+            parseResumeLocation, analyzerOptions, catalog.getZetaSQLCatalog());
+      } catch (SqlException err) {
+        throw new AnalysisException(err);
+      }
+    }
+
     private boolean isScriptStatement(ASTStatement parsedStatement) {
       return parsedStatement instanceof ASTScriptStatement;
     }
@@ -149,7 +235,7 @@ public class ZetaSQLToolkitAnalyzer {
     private boolean isComplexScriptStatement(ASTStatement parsedStatement) {
       boolean isVariableDeclarationOrSet =
           parsedStatement instanceof ASTVariableDeclaration
-          || parsedStatement instanceof ASTSingleAssignment;
+              || parsedStatement instanceof ASTSingleAssignment;
 
       return this.isScriptStatement(parsedStatement) && !isVariableDeclarationOrSet;
     }
@@ -237,55 +323,6 @@ public class ZetaSQLToolkitAnalyzer {
 
     private void applyCatalogMutation(ResolvedStatement statement) {
       statement.accept(catalogUpdaterVisitor);
-    }
-
-    @Override
-    public boolean hasNext() {
-      int inputLength = parseResumeLocation.getInput().getBytes().length;
-      int currentPosition = parseResumeLocation.getBytePosition();
-      return inputLength > currentPosition;
-    }
-
-    @Override
-    public AnalyzedStatement next() {
-      int startLocation = parseResumeLocation.getBytePosition();
-      LanguageOptions languageOptions = analyzerOptions.getLanguageOptions();
-
-      ASTStatement parsedStatement =
-          Parser.parseNextScriptStatement(parseResumeLocation, languageOptions);
-
-      this.reachedComplexScriptStatement =
-          this.reachedComplexScriptStatement || isComplexScriptStatement(parsedStatement);
-
-      // If the statement is a variable declaration, we need to validate it and create a Constant
-      // in the catalog
-      if (parsedStatement instanceof ASTVariableDeclaration) {
-        this.applyVariableDeclaration((ASTVariableDeclaration) parsedStatement);
-      }
-
-      // If the statement is an assignment (SET statement), we need to validate it
-      if (parsedStatement instanceof ASTSingleAssignment) {
-        this.validateSingleAssignment((ASTSingleAssignment) parsedStatement);
-      }
-
-      if(this.reachedComplexScriptStatement || this.isScriptStatement(parsedStatement)) {
-        return new AnalyzedStatement(parsedStatement, Optional.empty());
-      }
-
-      parseResumeLocation.setBytePosition(startLocation);
-
-      try {
-        ResolvedStatement resolvedStatement =
-            Analyzer.analyzeNextStatement(
-                parseResumeLocation, analyzerOptions, catalog.getZetaSQLCatalog());
-
-        this.applyCatalogMutation(resolvedStatement);
-
-        return new AnalyzedStatement(parsedStatement, Optional.of(resolvedStatement));
-      } catch (SqlException err) {
-        throw new AnalysisException(err);
-      }
-
     }
 
   }
