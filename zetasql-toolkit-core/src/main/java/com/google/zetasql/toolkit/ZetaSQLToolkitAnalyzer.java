@@ -45,7 +45,6 @@ import com.google.zetasql.toolkit.catalog.typeparser.ZetaSQLTypeParser;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Primary class exposed by the ZetaSQL Toolkit to perform SQL analysis.
@@ -295,15 +294,12 @@ public class ZetaSQLToolkitAnalyzer {
 
       Type variableType = explicitType.orElseGet(() -> defaultValueExpr.get().getType());
 
-      List<Constant> constants = declaration.getVariableList()
+      declaration.getVariableList()
           .getIdentifierList()
           .stream()
           .map(ASTIdentifier::getIdString)
           .map(variableName -> this.buildConstant(variableName, variableType))
-          .collect(Collectors.toList());
-
-      // TODO: Add constants to the catalog without breaking encapsulation
-      constants.forEach(catalog.getZetaSQLCatalog()::addConstant);
+          .forEach(catalog::register);
     }
 
     private void validateSingleAssignment(ASTSingleAssignment singleAssignment) {

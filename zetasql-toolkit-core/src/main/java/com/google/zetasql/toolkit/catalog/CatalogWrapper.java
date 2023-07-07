@@ -16,6 +16,7 @@
 
 package com.google.zetasql.toolkit.catalog;
 
+import com.google.zetasql.Constant;
 import com.google.zetasql.SimpleCatalog;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
@@ -67,30 +68,37 @@ public interface CatalogWrapper {
   void register(ProcedureInfo procedureInfo, CreateMode createMode, CreateScope createScope);
 
   /**
+   * Registers a constant in this catalog.
+   *
+   * @param constant The {@link Constant} object representing the constant to register
+   */
+  void register(Constant constant);
+
+  /**
    * Removes a table to this catalog by name.
    *
-   * @param table The reference to the table to add
+   * @param table The reference to the table to remove
    */
   void removeTable(String table);
 
   /**
    * Removes a function to this catalog by name.
    *
-   * @param function The reference to the function to add
+   * @param function The reference to the function to remove
    */
   void removeFunction(String function);
 
   /**
    * Removes a TVF to this catalog by name.
    *
-   * @param function The reference to the TVF to add
+   * @param function The reference to the TVF to remove
    */
   void removeTVF(String function);
 
   /**
    * Removes a procedure to this catalog by name.
    *
-   * @param procedure The reference to the procedure to add
+   * @param procedure The reference to the procedure to remove
    */
   void removeProcedure(String procedure);
 
@@ -108,7 +116,7 @@ public interface CatalogWrapper {
   /**
    * Removes a set of functions to this catalog by name.
    *
-   * @param functions The list of function references to add
+   * @param functions The list of function references to remove
    */
   default void removeFunctions(List<String> functions) {
     for (String function : functions) {
@@ -119,7 +127,7 @@ public interface CatalogWrapper {
   /**
    * Removes a set of TVFs to this catalog by name.
    *
-   * @param functions The list of function references to add
+   * @param functions The list of function references to remove
    */
   default void removeTVFs(List<String> functions) {
     for (String function : functions) {
@@ -130,7 +138,7 @@ public interface CatalogWrapper {
   /**
    * Removes a set of procedures to this catalog by name.
    *
-   * @param procedures The list of procedure references to add
+   * @param procedures The list of procedure references to remove
    */
   default void removeProcedures(List<String> procedures) {
     for (String procedure : procedures) {

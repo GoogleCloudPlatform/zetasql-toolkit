@@ -20,6 +20,7 @@ import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.Spanner;
 import com.google.zetasql.Analyzer;
 import com.google.zetasql.AnalyzerOptions;
+import com.google.zetasql.Constant;
 import com.google.zetasql.SimpleCatalog;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.ZetaSQLBuiltinFunctionOptions;
@@ -169,6 +170,11 @@ public class SpannerCatalog implements CatalogWrapper {
   public void register(
       ProcedureInfo procedureInfo, CreateMode createMode, CreateScope createScope) {
     throw new UnsupportedOperationException("Cloud Spanner does not support procedures");
+  }
+
+  @Override
+  public void register(Constant constant) {
+    throw new UnsupportedOperationException("Cloud Spanner does not support constants");
   }
 
   @Override
