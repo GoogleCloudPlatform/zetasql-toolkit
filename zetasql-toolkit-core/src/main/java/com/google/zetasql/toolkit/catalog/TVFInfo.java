@@ -31,15 +31,15 @@ public class TVFInfo {
 
   private final FunctionSignature signature;
 
-  private final Optional<TVFRelation> outputSchema;
+  private final TVFRelation outputSchema;
 
-  private final Optional<String> body;
+  private final String body;
 
   private TVFInfo(Builder builder) {
     this.namePath = builder.getNamePath();
     this.signature = builder.getSignature();
-    this.outputSchema = builder.getOutputSchema();
-    this.body = builder.getBody();
+    this.outputSchema = builder.getOutputSchema().orElse(null);
+    this.body = builder.getBody().orElse(null);
   }
 
   public ImmutableList<String> getNamePath() {
@@ -51,19 +51,19 @@ public class TVFInfo {
   }
 
   public Optional<TVFRelation> getOutputSchema() {
-    return outputSchema;
+    return Optional.ofNullable(this.outputSchema);
   }
 
   public Optional<String> getBody() {
-    return body;
+    return Optional.ofNullable(this.body);
   }
 
   public Builder toBuilder() {
     return newBuilder()
         .setNamePath(this.namePath)
         .setSignature(this.signature)
-        .setOutputSchema(this.outputSchema)
-        .setBody(this.body);
+        .setOutputSchema(this.getOutputSchema())
+        .setBody(this.getBody());
   }
 
   public static Builder newBuilder() {
@@ -76,9 +76,9 @@ public class TVFInfo {
 
     private FunctionSignature signature;
 
-    private Optional<TVFRelation> outputSchema;
+    private Optional<TVFRelation> outputSchema = Optional.empty();
 
-    private Optional<String> body;
+    private Optional<String> body = Optional.empty();
 
     public Builder setNamePath(ImmutableList<String> namePath) {
       this.namePath = namePath;
@@ -91,7 +91,8 @@ public class TVFInfo {
     }
 
     public Builder setOutputSchema(TVFRelation outputSchema) {
-      this.outputSchema = Optional.ofNullable(outputSchema);
+      Preconditions.checkNotNull(outputSchema);
+      this.outputSchema = Optional.of(outputSchema);
       return this;
     }
 
@@ -101,7 +102,8 @@ public class TVFInfo {
     }
 
     public Builder setBody(String body) {
-      this.body = Optional.ofNullable(body);
+      Preconditions.checkNotNull(body);
+      this.body = Optional.of(body);
       return this;
     }
 
