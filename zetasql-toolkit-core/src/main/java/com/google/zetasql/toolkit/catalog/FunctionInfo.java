@@ -16,6 +16,7 @@
 
 package com.google.zetasql.toolkit.catalog;
 
+import com.google.common.base.Preconditions;
 import com.google.zetasql.FunctionSignature;
 import com.google.zetasql.ZetaSQLFunctions.FunctionEnums.Mode;
 import java.util.List;
@@ -43,17 +44,17 @@ public class FunctionInfo {
 
   private final List<FunctionSignature> signatures;
 
-  private final Optional<Language> language;
+  private final Language language;
 
-  private final Optional<String> body;
+  private final String body;
 
   private FunctionInfo(Builder builder) {
     this.namePath = builder.getNamePath();
     this.group = builder.getGroup();
     this.mode = builder.getMode();
     this.signatures = builder.getSignatures();
-    this.language = builder.getLanguage();
-    this.body = builder.getBody();
+    this.language = builder.getLanguage().orElse(null);
+    this.body = builder.getBody().orElse(null);
   }
 
   public List<String> getNamePath() {
@@ -73,11 +74,11 @@ public class FunctionInfo {
   }
 
   public Optional<Language> getLanguage() {
-    return language;
+    return Optional.ofNullable(this.language);
   }
 
   public Optional<String> getBody() {
-    return this.body;
+    return Optional.ofNullable(this.body);
   }
 
   public Builder toBuilder() {
@@ -86,8 +87,8 @@ public class FunctionInfo {
         .setGroup(this.group)
         .setMode(this.mode)
         .setSignatures(this.signatures)
-        .setLanguage(this.language)
-        .setBody(this.body);
+        .setLanguage(this.getLanguage())
+        .setBody(this.getBody());
   }
 
   public static Builder newBuilder() {
@@ -99,8 +100,8 @@ public class FunctionInfo {
     private String group;
     private Mode mode;
     private List<FunctionSignature> signatures;
-    private Optional<Language> language;
-    private Optional<String> body;
+    private Optional<Language> language = Optional.empty();
+    private Optional<String> body = Optional.empty();
 
     public Builder setNamePath(List<String> namePath) {
       this.namePath = namePath;
@@ -123,7 +124,8 @@ public class FunctionInfo {
     }
 
     public Builder setLanguage(Language language) {
-      this.language = Optional.ofNullable(language);
+      Preconditions.checkNotNull(language);
+      this.language = Optional.of(language);
       return this;
     }
 
@@ -133,7 +135,8 @@ public class FunctionInfo {
     }
 
     public Builder setBody(String body) {
-      this.body = Optional.ofNullable(body);
+      Preconditions.checkNotNull(body);
+      this.body = Optional.of(body);
       return this;
     }
 
