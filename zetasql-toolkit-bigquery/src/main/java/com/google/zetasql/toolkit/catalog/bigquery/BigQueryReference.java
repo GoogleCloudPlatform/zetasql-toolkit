@@ -24,6 +24,7 @@ import com.google.zetasql.toolkit.catalog.bigquery.exceptions.InvalidBigQueryRef
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 /** Dataclass representing a reference to a BigQuery resource. */
@@ -118,4 +119,26 @@ class BigQueryReference {
   public RoutineId toRoutineId() {
     return RoutineId.of(this.getProjectId(), this.getDatasetId(), this.getResourceName());
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+
+    if (!(o instanceof BigQueryReference)) {
+      return false;
+    }
+
+    BigQueryReference other = (BigQueryReference) o;
+    return projectId.equalsIgnoreCase(other.getProjectId())
+        && datasetId.equals(other.getDatasetId())
+        && resourceName.equals(other.getResourceName());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(projectId.toLowerCase(), datasetId, resourceName);
+  }
+
 }

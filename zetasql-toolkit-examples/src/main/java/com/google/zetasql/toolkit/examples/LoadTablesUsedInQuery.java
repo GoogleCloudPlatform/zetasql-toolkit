@@ -35,7 +35,7 @@ public class LoadTablesUsedInQuery {
         "INSERT INTO `bigquery-public-data.samples.wikipedia` (title) VALUES ('random title');\n"
             + "SELECT * FROM `bigquery-public-data.samples.wikipedia` WHERE title = 'random title';";
 
-    BigQueryCatalog catalog = new BigQueryCatalog("bigquery-public-data");
+    BigQueryCatalog catalog = BigQueryCatalog.usingBigQueryAPI("bigquery-public-data");
 
     AnalyzerOptions options = new AnalyzerOptions();
     options.setLanguageOptions(BigQueryLanguageOptions.get());
