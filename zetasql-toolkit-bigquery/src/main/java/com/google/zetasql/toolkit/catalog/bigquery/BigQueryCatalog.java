@@ -17,6 +17,7 @@
 package com.google.zetasql.toolkit.catalog.bigquery;
 
 import com.google.cloud.bigquery.BigQuery;
+import com.google.gson.JsonParseException;
 import com.google.zetasql.*;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateScope;
@@ -29,6 +30,7 @@ import com.google.zetasql.toolkit.catalog.TVFInfo;
 import com.google.zetasql.toolkit.catalog.bigquery.exceptions.BigQueryCreateError;
 import com.google.zetasql.toolkit.catalog.bigquery.exceptions.MissingFunctionResultType;
 import com.google.zetasql.toolkit.catalog.exceptions.CatalogResourceAlreadyExists;
+import com.google.zetasql.toolkit.catalog.io.CatalogResources;
 import com.google.zetasql.toolkit.options.BigQueryLanguageOptions;
 import java.util.Arrays;
 import java.util.List;
@@ -54,12 +56,12 @@ public class BigQueryCatalog implements CatalogWrapper {
    * Constructs a BigQueryCatalog that fetches resources from the BigQuery API using application
    * default credentials.
    *
-   * <p>A BigQueryCatalog constructed this way will use the default {@link
-   * BigQueryAPIResourceProvider} for accessing the API.
+   * @deprecated Use {@link BigQueryCatalog#usingBigQueryAPI(String)}
    *
    * @param defaultProjectId The BigQuery default project id, queries are assumed to be running on
    *     this project
    */
+  @Deprecated(since = "0.4.0", forRemoval = true)
   public BigQueryCatalog(String defaultProjectId) {
     this(defaultProjectId, BigQueryAPIResourceProvider.buildDefault());
   }
@@ -68,13 +70,13 @@ public class BigQueryCatalog implements CatalogWrapper {
    * Constructs a BigQueryCatalog that fetches resources from the BigQuery API using the provided
    * BigQuery Client.
    *
-   * <p>A BigQueryCatalog constructed this way will use the {@link BigQueryAPIResourceProvider} for
-   * accessing the API using the provided BigQuery client.
+   * @deprecated Use {@link BigQueryCatalog#usingBigQueryAPI(String, BigQuery)}
    *
    * @param defaultProjectId The BigQuery default project id, queries are assumed to be running on
    *     this project
    * @param bigQueryClient The BigQuery client to use for accessing the API
    */
+  @Deprecated(since = "0.4.0", forRemoval = true)
   public BigQueryCatalog(String defaultProjectId, BigQuery bigQueryClient) {
     this(defaultProjectId, BigQueryAPIResourceProvider.build(bigQueryClient));
   }
@@ -106,6 +108,51 @@ public class BigQueryCatalog implements CatalogWrapper {
     this.defaultProjectId = defaultProjectId;
     this.bigQueryResourceProvider = bigQueryResourceProvider;
     this.catalog = internalCatalog;
+  }
+
+  /**
+   * Constructs a BigQueryCatalog that fetches resources from the BigQuery API using application
+   * default credentials.
+   *
+   * <p>A BigQueryCatalog constructed this way will use the default {@link
+   * BigQueryAPIResourceProvider} for accessing the API.
+   *
+   * @param defaultProjectId The BigQuery default project id, queries are assumed to be running on
+   *     this project
+   */
+  public static BigQueryCatalog usingBigQueryAPI(String defaultProjectId) {
+    BigQueryResourceProvider resourceProvider = BigQueryAPIResourceProvider.buildDefault();
+    return new BigQueryCatalog(defaultProjectId, resourceProvider);
+  }
+
+  /**
+   * Constructs a BigQueryCatalog that fetches resources from the BigQuery API using the provided
+   * BigQuery Client.
+   *
+   * <p>A BigQueryCatalog constructed this way will use the {@link BigQueryAPIResourceProvider} for
+   * accessing the API using the provided BigQuery client.
+   *
+   * @param defaultProjectId The BigQuery default project id, queries are assumed to be running on
+   *     this project
+   * @param bigQueryClient The BigQuery client to use for accessing the API
+   */
+  public static BigQueryCatalog usingBigQueryAPI(String defaultProjectId, BigQuery bigQueryClient) {
+    BigQueryResourceProvider resourceProvider = BigQueryAPIResourceProvider.build(bigQueryClient);
+    return new BigQueryCatalog(defaultProjectId, resourceProvider);
+  }
+
+  /**
+   * Constructs a BigQueryCatalog that can use the resources in the provided
+   * {@link CatalogResources} object.
+   *
+   * @param defaultProjectId The BigQuery default project id, queries are assumed to be running on
+   *     this project
+   * @param resources The {@link CatalogResources} object from which this catalog will get resources
+   */
+  public static BigQueryCatalog usingResources(String defaultProjectId, CatalogResources resources)
+      throws JsonParseException {
+    LocalBigQueryResourceProvider resourceProvider = new LocalBigQueryResourceProvider(resources);
+    return new BigQueryCatalog(defaultProjectId, resourceProvider);
   }
 
   /**
