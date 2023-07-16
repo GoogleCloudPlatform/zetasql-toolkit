@@ -16,16 +16,7 @@
 
 package com.google.zetasql.toolkit.examples;
 
-import com.google.common.collect.ImmutableList;
 import com.google.zetasql.AnalyzerOptions;
-import com.google.zetasql.Constant;
-import com.google.zetasql.SimpleConstantProtos.SimpleConstantProto;
-import com.google.zetasql.TypeFactory;
-import com.google.zetasql.ZetaSQLType.TypeKind;
-import com.google.zetasql.ZetaSQLType.TypeProto;
-import com.google.zetasql.parser.ASTNodes.ASTStatement;
-import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedLiteral;
-import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
 import com.google.zetasql.toolkit.AnalyzedStatement;
 import com.google.zetasql.toolkit.ZetaSQLToolkitAnalyzer;
 import com.google.zetasql.toolkit.catalog.bigquery.BigQueryCatalog;
@@ -52,7 +43,7 @@ public class AnalyzeBigQuery {
     // resources.
     // You can also provide your own BigQuery API client or a custom implementation of
     // BigQueryResourceProvider.
-    BigQueryCatalog catalog = new BigQueryCatalog("bigquery-public-data");
+    BigQueryCatalog catalog = BigQueryCatalog.usingBigQueryAPI("bigquery-public-data");
 
     // Step 2: Add tables to the catalog before analyzing
     // BigQueryCatalog.addTable will fetch the table metadata and

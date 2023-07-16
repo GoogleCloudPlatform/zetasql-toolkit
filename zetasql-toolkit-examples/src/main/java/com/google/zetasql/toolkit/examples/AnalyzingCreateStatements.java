@@ -40,7 +40,7 @@ public class AnalyzingCreateStatements {
             + "CREATE PROCEDURE `dataset.procedure_name`()\nBEGIN\n\nEND;\n"
             + "CALL `dataset.procedure_name`();";
 
-    BigQueryCatalog catalog = new BigQueryCatalog("bigquery-public-data");
+    BigQueryCatalog catalog = BigQueryCatalog.usingBigQueryAPI("bigquery-public-data");
 
     AnalyzerOptions options = new AnalyzerOptions();
     options.setLanguageOptions(BigQueryLanguageOptions.get());

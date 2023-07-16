@@ -58,6 +58,10 @@ public class TVFInfo {
     return Optional.ofNullable(this.body);
   }
 
+  public String getFullName() {
+    return String.join(".", namePath);
+  }
+
   public Builder toBuilder() {
     return newBuilder()
         .setNamePath(this.namePath)

@@ -46,4 +46,9 @@ public class ProcedureInfo {
   public FunctionSignature getSignature() {
     return signature;
   }
+
+  public String getFullName() {
+    return String.join(".", namePath);
+  }
+
 }
