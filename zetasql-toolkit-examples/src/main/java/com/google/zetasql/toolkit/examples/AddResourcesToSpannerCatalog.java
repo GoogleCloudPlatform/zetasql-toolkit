@@ -22,7 +22,8 @@ import java.util.List;
 public class AddResourcesToSpannerCatalog {
 
   public static void main(String[] args) {
-    SpannerCatalog catalog = new SpannerCatalog("projectId", "instance", "database");
+    SpannerCatalog catalog = SpannerCatalog.usingSpannerClient(
+        "projectId", "instance", "database");
 
     // Add a table or a set of tables by name
     // Views are considered tables as well, so they can be added this way to the catalog

@@ -61,7 +61,7 @@ public class SpannerCatalogTest {
   @BeforeEach
   void init() {
     this.spannerCatalog =
-        new SpannerCatalog("project", "instance", "database", spannerResourceProviderMock);
+        new SpannerCatalog(spannerResourceProviderMock);
   }
 
   private Table assertTableExistsInCatalog(SpannerCatalog catalog, SimpleTable table) {
