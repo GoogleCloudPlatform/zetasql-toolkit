@@ -432,7 +432,7 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
         .setMode(Mode.SCALAR)
         .setSignatures(List.of(signature))
         .setLanguage(FunctionInfo.Language.valueOfOrUnspecified(routine.getLanguage()))
-        .setBody(routine.getBody())
+        .setBody(Optional.ofNullable(routine.getBody()))
         .build();
   }
 
@@ -468,7 +468,7 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
         .setNamePath(bigQueryReference.getNamePath())
         .setSignature(signature)
         .setOutputSchema(maybeOutputSchema)
-        .setBody(routine.getBody())
+        .setBody(Optional.ofNullable(routine.getBody()))
         .build();
   }
 

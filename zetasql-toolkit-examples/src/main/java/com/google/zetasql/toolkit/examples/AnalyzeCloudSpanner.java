@@ -39,8 +39,8 @@ public class AnalyzeCloudSpanner {
     // This will use application default credentials to create a Spanner DatabaseClient.
     // You can also provide your own DatabaseClient or a custom implementation
     // of SpannerResourceProvider.
-    SpannerCatalog catalog =
-        new SpannerCatalog(spannerProjectId, spannerInstanceName, spannerDatabaseName);
+    SpannerCatalog catalog = SpannerCatalog.usingSpannerClient(
+        spannerProjectId, spannerInstanceName, spannerDatabaseName);
 
     // Step 3: Add your tables to the catalog
     // In this case, we add all the tables in the database.
