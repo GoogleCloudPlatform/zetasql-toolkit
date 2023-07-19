@@ -83,6 +83,7 @@ public class BigQueryLanguageOptions {
             LanguageFeature.FEATURE_V_1_1_NULL_HANDLING_MODIFIER_IN_ANALYTIC,
             LanguageFeature.FEATURE_V_1_1_ORDER_BY_IN_AGGREGATE,
             LanguageFeature.FEATURE_V_1_1_SELECT_STAR_EXCEPT_REPLACE,
+            LanguageFeature.FEATURE_V_1_1_WITH_ON_SUBQUERY,
             LanguageFeature.FEATURE_V_1_2_CIVIL_TIME,
             LanguageFeature.FEATURE_V_1_2_SAFE_FUNCTION_CALL,
             LanguageFeature.FEATURE_V_1_2_WEEK_WITH_WEEKDAY,
