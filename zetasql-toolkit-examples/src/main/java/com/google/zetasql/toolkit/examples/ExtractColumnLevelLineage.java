@@ -6,9 +6,9 @@ import com.google.zetasql.toolkit.AnalyzedStatement;
 import com.google.zetasql.toolkit.ZetaSQLToolkitAnalyzer;
 import com.google.zetasql.toolkit.catalog.bigquery.BigQueryCatalog;
 import com.google.zetasql.toolkit.options.BigQueryLanguageOptions;
-import com.google.zetasql.toolkit.tools.ColumnLevelLineage;
-import com.google.zetasql.toolkit.tools.ColumnLevelLineage.ColumnEntity;
-import com.google.zetasql.toolkit.tools.ColumnLevelLineage.ColumnLineage;
+import com.google.zetasql.toolkit.tools.lineage.ColumnLineageExtractor;
+import com.google.zetasql.toolkit.tools.lineage.ColumnEntity;
+import com.google.zetasql.toolkit.tools.lineage.ColumnLineage;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -45,7 +45,7 @@ public class ExtractColumnLevelLineage {
     Iterator<AnalyzedStatement> statementIterator = analyzer.analyzeStatements(query, catalog);
     ResolvedStatement statement = statementIterator.next().getResolvedStatement().get();
 
-    Set<ColumnLineage> lineageEntries = ColumnLevelLineage.extractColumnLevelLineage(statement);
+    Set<ColumnLineage> lineageEntries = ColumnLineageExtractor.extractColumnLevelLineage(statement);
 
     System.out.println("Extracted column lineage from CREATE TABLE AS SELECT");
     outputLineage(query, lineageEntries);
@@ -69,7 +69,7 @@ public class ExtractColumnLevelLineage {
 
     ResolvedStatement statement = statementIterator.next().getResolvedStatement().get();
 
-    Set<ColumnLineage> lineageEntries = ColumnLevelLineage.extractColumnLevelLineage(statement);
+    Set<ColumnLineage> lineageEntries = ColumnLineageExtractor.extractColumnLevelLineage(statement);
 
     System.out.println("Extracted column lineage from INSERT");
     outputLineage(query, lineageEntries);
@@ -86,7 +86,7 @@ public class ExtractColumnLevelLineage {
 
     ResolvedStatement statement = statementIterator.next().getResolvedStatement().get();
 
-    Set<ColumnLineage> lineageEntries = ColumnLevelLineage.extractColumnLevelLineage(statement);
+    Set<ColumnLineage> lineageEntries = ColumnLineageExtractor.extractColumnLevelLineage(statement);
 
     System.out.println("Extracted column lineage from UPDATE");
     outputLineage(query, lineageEntries);
@@ -106,7 +106,7 @@ public class ExtractColumnLevelLineage {
 
     ResolvedStatement statement = statementIterator.next().getResolvedStatement().get();
 
-    Set<ColumnLineage> lineageEntries = ColumnLevelLineage.extractColumnLevelLineage(statement);
+    Set<ColumnLineage> lineageEntries = ColumnLineageExtractor.extractColumnLevelLineage(statement);
 
     System.out.println("Extracted column lineage from MERGE");
     outputLineage(query, lineageEntries);

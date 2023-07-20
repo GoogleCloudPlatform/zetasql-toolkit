@@ -1,11 +1,9 @@
-package com.google.zetasql.toolkit.tools;
+package com.google.zetasql.toolkit.tools.lineage;
 
 import com.google.protobuf.ExperimentalApi;
 import com.google.zetasql.Table;
 import com.google.zetasql.resolvedast.ResolvedColumn;
-import com.google.zetasql.resolvedast.ResolvedNode;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedColumnRef;
-import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedComputedColumn;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedCreateTableAsSelectStmt;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedExpr;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedInsertRow;
@@ -15,163 +13,17 @@ import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedMergeWhen;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedOutputColumn;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedScan;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
-import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedSubqueryExpr;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedUpdateItem;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedUpdateStmt;
-import com.google.zetasql.resolvedast.ResolvedNodes.Visitor;
-import com.google.zetasql.resolvedast.ResolvedSubqueryExprEnums.SubqueryType;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class ColumnLevelLineage {
-
-  public static class ColumnEntity {
-    public final String table;
-    public final String name;
-
-    public ColumnEntity(String table, String name) {
-      this.table = table;
-      this.name = name;
-    }
-
-    public static ColumnEntity forResolvedColumn(ResolvedColumn resolvedColumn) {
-      return new ColumnEntity(resolvedColumn.getTableName(), resolvedColumn.getName());
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-
-      if (!(o instanceof ColumnEntity)) {
-        return false;
-      }
-
-      ColumnEntity other = (ColumnEntity) o;
-      return table.equals(other.table)
-          && name.equalsIgnoreCase(other.name);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(table, name.toLowerCase());
-    }
-  }
-
-  public static class ColumnLineage {
-    public final ColumnEntity target;
-    public final Set<ColumnEntity> parents;
-
-    public ColumnLineage(ColumnEntity target, Set<ColumnEntity> parents) {
-      this.target = target;
-      this.parents = parents;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-
-      if (!(o instanceof ColumnLineage)) {
-        return false;
-      }
-
-      ColumnLineage other = (ColumnLineage) o;
-      return target.equals(other.target)
-          && parents.equals(other.parents);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(target, parents);
-    }
-  }
-
-  private static <T> List<T> findDescendantSubtreesWithKind(ResolvedNode node, Class<T> cls) {
-    ArrayList<T> result = new ArrayList<>();
-
-    node.accept(new Visitor() {
-      @Override
-      protected void defaultVisit(ResolvedNode node) {
-        if (cls.isAssignableFrom(node.getClass())) {
-          result.add(cls.cast(node));
-        }
-        super.defaultVisit(node);
-      }
-    });
-
-    return result;
-  }
-
-  private static Map<String, ResolvedComputedColumn> getComputedColumnsMap(ResolvedNode node) {
-    List<ResolvedComputedColumn> computedColumnList =
-        findDescendantSubtreesWithKind(node, ResolvedComputedColumn.class);
-
-    return computedColumnList
-        .stream()
-        .collect(Collectors.toMap(
-            computedColumn -> computedColumn.getColumn().shortDebugString(),
-            Function.identity()
-        ));
-  }
-
-  private static List<ResolvedColumnRef> extractParentsFromExpression(ResolvedExpr expression) {
-    // TODO: Handle different types of expressions. E.g. special cases for functions,
-    //  subqueries, etc. Probably use a visitor.
-
-    if (
-        expression instanceof ResolvedSubqueryExpr
-        && ((ResolvedSubqueryExpr) expression).getSubqueryType().equals(SubqueryType.SCALAR)
-    ) {
-      // TODO: Implement
-    }
-
-    return findDescendantSubtreesWithKind(expression, ResolvedColumnRef.class);
-  }
-
-  private static List<ResolvedColumn> findTerminalParentsForColumn(
-      ResolvedColumn column, Map<String, ResolvedComputedColumn> computedColumns) {
-
-    ArrayList<ResolvedColumn> result = new ArrayList<>();
-    Queue<ResolvedColumn> resolutionQueue = new ArrayDeque<>(List.of(column));
-
-    while (resolutionQueue.peek() != null) {
-      ResolvedColumn next = resolutionQueue.remove();
-      ResolvedComputedColumn computationForColumn = computedColumns.get(next.shortDebugString());
-
-      if (computationForColumn == null) {
-        // If it is not computed, then it is terminal
-        result.add(next);
-      } else {
-        List<ResolvedColumnRef> parentsReferenced =
-            extractParentsFromExpression(computationForColumn.getExpr());
-        parentsReferenced.forEach(parent -> resolutionQueue.add(parent.getColumn()));
-      }
-    }
-
-    return result;
-  }
-
-  private static List<ResolvedColumn> findTerminalParentsForExpression(
-      ResolvedExpr expression, Map<String, ResolvedComputedColumn> computedColumns) {
-    List<ResolvedColumnRef> parentsReferenced = extractParentsFromExpression(expression);
-
-    return parentsReferenced.stream()
-        .map(ResolvedColumnRef::getColumn)
-        .flatMap(parent -> findTerminalParentsForColumn(parent, computedColumns).stream())
-        .collect(Collectors.toList());
-  }
+public class ColumnLineageExtractor {
 
   private static Set<ColumnLineage> extractColumnLevelLineage(
       ResolvedCreateTableAsSelectStmt createTableAsSelectStmt) {
@@ -180,14 +32,11 @@ public class ColumnLevelLineage {
 
     List<ResolvedOutputColumn> outputColumns = createTableAsSelectStmt.getOutputColumnList();
 
-    Map<String, ResolvedComputedColumn> computedColumnsMap =
-        getComputedColumnsMap(createTableAsSelectStmt);
-
     Map<String, List<ResolvedColumn>> outputColumnToParentColumns = outputColumns.stream()
         .collect(Collectors.toMap(
             ResolvedOutputColumn::getName,
             outputColumn ->
-                findTerminalParentsForColumn(outputColumn.getColumn(), computedColumnsMap)
+                ParentColumnFinder.find(createTableAsSelectStmt, outputColumn.getColumn())
         ));
 
     return outputColumnToParentColumns.entrySet()
@@ -214,15 +63,12 @@ public class ColumnLevelLineage {
     List<ResolvedColumn> insertedColumns = insertStmt.getInsertColumnList();
     ResolvedScan query = insertStmt.getQuery();
 
-    Map<String, ResolvedComputedColumn> computedColumnsMap = getComputedColumnsMap(query);
-
     Set<ColumnLineage> result = new HashSet<>(insertedColumns.size());
 
     for (int i = 0; i < insertedColumns.size(); i++) {
       ResolvedColumn insertedColumn = insertedColumns.get(i);
       ResolvedColumn matchingColumnInQuery = query.getColumnList().get(i);
-      List<ResolvedColumn> parents = findTerminalParentsForColumn(
-          matchingColumnInQuery, computedColumnsMap);
+      List<ResolvedColumn> parents = ParentColumnFinder.find(insertStmt, matchingColumnInQuery);
 
       ColumnEntity target = new ColumnEntity(targetTable.getFullName(), insertedColumn.getName());
       Set<ColumnEntity> parentEntities = parents
@@ -237,7 +83,7 @@ public class ColumnLevelLineage {
 
   private static Optional<ColumnLineage> extractColumnLevelLineage(
       Table targetTable,
-      Map<String, ResolvedComputedColumn> computedColumns,
+      ResolvedStatement originalStatement,
       ResolvedUpdateItem updateItem) {
 
     ResolvedExpr target = updateItem.getTarget();
@@ -250,8 +96,7 @@ public class ColumnLevelLineage {
     }
 
     ResolvedColumnRef targetColumnRef = (ResolvedColumnRef) target;
-    List<ResolvedColumn> parents =
-        findTerminalParentsForExpression(updateExpression, computedColumns);
+    List<ResolvedColumn> parents = ParentColumnFinder.find(originalStatement, updateExpression);
 
     ColumnEntity targetColumnEntity =
         new ColumnEntity(targetTable.getFullName(), targetColumnRef.getColumn().getName());
@@ -266,11 +111,10 @@ public class ColumnLevelLineage {
 
   private static Set<ColumnLineage> extractColumnLevelLineage(ResolvedUpdateStmt updateStmt) {
     Table targetTable = updateStmt.getTableScan().getTable();
-    Map<String, ResolvedComputedColumn> computedColumnsMap = getComputedColumnsMap(updateStmt);
     List<ResolvedUpdateItem> updateItems = updateStmt.getUpdateItemList();
 
     return updateItems.stream()
-        .map(updateItem -> extractColumnLevelLineage(targetTable, computedColumnsMap, updateItem))
+        .map(updateItem -> extractColumnLevelLineage(targetTable, updateStmt, updateItem))
         .filter(Optional::isPresent)
         .map(Optional::get)
         .collect(Collectors.toSet());
@@ -278,7 +122,7 @@ public class ColumnLevelLineage {
 
   private static Set<ColumnLineage> extractColumnLevelLineage(
       Table targetTable,
-      Map<String, ResolvedComputedColumn> computedColumns,
+      ResolvedStatement originalStatement,
       ResolvedMergeWhen mergeWhen) {
 
     List<ResolvedColumn> insertedColumns = mergeWhen.getInsertColumnList();
@@ -292,7 +136,7 @@ public class ColumnLevelLineage {
       for (int i = 0; i < insertedColumns.size(); i++) {
         ResolvedColumn insertedColumn = insertedColumns.get(i);
         ResolvedExpr rowColumn = insertRow.getValueList().get(i).getValue();
-        List<ResolvedColumn> parents = findTerminalParentsForExpression(rowColumn, computedColumns);
+        List<ResolvedColumn> parents = ParentColumnFinder.find(originalStatement, rowColumn);
 
         ColumnEntity target = new ColumnEntity(targetTable.getFullName(), insertedColumn.getName());
         Set<ColumnEntity> parentEntities = parents
@@ -306,7 +150,7 @@ public class ColumnLevelLineage {
     } else if (Objects.nonNull(updateItems)) {
       // WHEN ... THEN UPDATE
       return updateItems.stream()
-          .map(updateItem -> extractColumnLevelLineage(targetTable, computedColumns, updateItem))
+          .map(updateItem -> extractColumnLevelLineage(targetTable, originalStatement, updateItem))
           .filter(Optional::isPresent)
           .map(Optional::get)
           .collect(Collectors.toSet());
@@ -317,11 +161,10 @@ public class ColumnLevelLineage {
 
   private static Set<ColumnLineage> extractColumnLevelLineage(ResolvedMergeStmt mergeStmt) {
     Table targetTable = mergeStmt.getTableScan().getTable();
-    Map<String, ResolvedComputedColumn> computedColumnsMap = getComputedColumnsMap(mergeStmt);
 
     return mergeStmt.getWhenClauseList()
         .stream()
-        .map(mergeWhen -> extractColumnLevelLineage(targetTable, computedColumnsMap, mergeWhen))
+        .map(mergeWhen -> extractColumnLevelLineage(targetTable, mergeStmt, mergeWhen))
         .flatMap(Set::stream)
         .collect(Collectors.toSet());
   }
@@ -338,8 +181,7 @@ public class ColumnLevelLineage {
       return extractColumnLevelLineage((ResolvedMergeStmt) statement);
     }
 
-    throw new IllegalArgumentException(
-        "Cannot extract column lineage from statement of type " + statement.getClass().getName());
+    return Set.of();
   }
 
 }
