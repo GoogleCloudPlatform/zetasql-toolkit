@@ -17,7 +17,7 @@
 package com.google.zetasql.toolkit.examples;
 
 import com.google.zetasql.AnalyzerOptions;
-import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
+import com.google.zetasql.toolkit.AnalyzedStatement;
 import com.google.zetasql.toolkit.ZetaSQLToolkitAnalyzer;
 import com.google.zetasql.toolkit.catalog.bigquery.BigQueryCatalog;
 import com.google.zetasql.toolkit.options.BigQueryLanguageOptions;
@@ -32,6 +32,8 @@ public class AnalyzeBigQuery {
   public static void main(String[] args) {
     // Analyzing a query that uses bigquery-public-data tables
     String query =
+        "DECLARE x STRING DEFAULT 'ASD';" +
+        "SET x = 'ASD2';" +
         "INSERT INTO `bigquery-public-data.samples.wikipedia` (title) VALUES ('random title');\n"
             + "SELECT title, language FROM `bigquery-public-data.samples.wikipedia` WHERE title = 'random title';";
 
@@ -41,7 +43,7 @@ public class AnalyzeBigQuery {
     // resources.
     // You can also provide your own BigQuery API client or a custom implementation of
     // BigQueryResourceProvider.
-    BigQueryCatalog catalog = new BigQueryCatalog("bigquery-public-data");
+    BigQueryCatalog catalog = BigQueryCatalog.usingBigQueryAPI("bigquery-public-data");
 
     // Step 2: Add tables to the catalog before analyzing
     // BigQueryCatalog.addTable will fetch the table metadata and
@@ -66,9 +68,10 @@ public class AnalyzeBigQuery {
     // Step 4: Use the ZetaSQLToolkitAnalyzer to get an iterator of the ResolvedStatements
     // that result from running the analysis
     ZetaSQLToolkitAnalyzer analyzer = new ZetaSQLToolkitAnalyzer(options);
-    Iterator<ResolvedStatement> statementIterator = analyzer.analyzeStatements(query, catalog);
+    Iterator<AnalyzedStatement> statementIterator = analyzer.analyzeStatements(query, catalog);
 
     // Step 5: Consume the previous iterator and use the ResolvedStatements however you need
-    statementIterator.forEachRemaining(statement -> System.out.println(statement.debugString()));
+    statementIterator.forEachRemaining(statement ->
+        statement.getResolvedStatement().ifPresent(System.out::println));
   }
 }

@@ -16,6 +16,7 @@
 
 package com.google.zetasql.toolkit.catalog.basic;
 
+import com.google.zetasql.Constant;
 import com.google.zetasql.SimpleCatalog;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.ZetaSQLBuiltinFunctionOptions;
@@ -23,10 +24,11 @@ import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateScope;
 import com.google.zetasql.toolkit.catalog.CatalogOperations;
 import com.google.zetasql.toolkit.catalog.CatalogWrapper;
-import com.google.zetasql.toolkit.catalog.bigquery.FunctionInfo;
-import com.google.zetasql.toolkit.catalog.bigquery.ProcedureInfo;
-import com.google.zetasql.toolkit.catalog.bigquery.TVFInfo;
+import com.google.zetasql.toolkit.catalog.FunctionInfo;
+import com.google.zetasql.toolkit.catalog.ProcedureInfo;
+import com.google.zetasql.toolkit.catalog.TVFInfo;
 import com.google.zetasql.toolkit.catalog.exceptions.CatalogException;
+import com.google.zetasql.toolkit.catalog.exceptions.CatalogResourceAlreadyExists;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -102,6 +104,27 @@ public class BasicCatalogWrapper implements CatalogWrapper {
 
     CatalogOperations.createProcedureInCatalog(
         this.catalog, procedurePaths, procedureInfo, createMode);
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * @throws CatalogResourceAlreadyExists if the constant already exits in this catalog
+   */
+  @Override
+  public void register(Constant constant) {
+    String fullName = constant.getFullName();
+
+    boolean constantExists = this.catalog.getConstantList()
+        .stream()
+        .anyMatch(existingConstant -> existingConstant.getFullName().equalsIgnoreCase(fullName));
+
+    if (constantExists) {
+      throw new CatalogResourceAlreadyExists(
+          fullName, "Constant " + fullName + "already exists");
+    }
+
+    this.catalog.addConstant(constant);
   }
 
   @Override

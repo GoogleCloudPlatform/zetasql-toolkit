@@ -22,7 +22,7 @@ import java.util.List;
 public class AddResourcesToBigQueryCatalog {
 
   public static void main(String[] args) {
-    BigQueryCatalog catalog = new BigQueryCatalog("bigquery-public-data");
+    BigQueryCatalog catalog = BigQueryCatalog.usingBigQueryAPI("bigquery-public-data");
 
     // Add a table or a set of tables by name
     // Views are considered tables as well, so they can be added this way to the catalog

@@ -11,20 +11,11 @@ This toolkit offers built-in support for:
 * Analyzing queries and scripts using the BigQuery or Cloud Spanner feature
   sets.
 * Analyzing scripts that perform DDL.
+* Analyzing scripts that declare and use variables.
 
-## Quickstart
+It also includes tooling to understand column-level lineage in analyzed queries.
 
-### Using Maven
-
-``` xml
-<dependency>
-  <groupId>com.google.zetasql.toolkit</groupId>
-  <artifactId>zetasql-toolkit-core</artifactId>
-  <version>0.3.3</version>
-</dependency>
-```
-
-### Analyzing BigQuery Jobs
+## Quickstart for BigQuery
 
 When analyzing queries using BigQuery semantics, you need to:
 
@@ -32,6 +23,18 @@ When analyzing queries using BigQuery semantics, you need to:
    supports tables, views, functions, table-valued functions and procedures. Connections and models coming soon.
 2. Configure the ZetaSQL `AnalyzerOptions` using the BigQuery feature set.
 3. Use `ZetaSQLToolkit.analyzeStatements()` to perform analysis.
+
+### BigQuery dependency
+
+``` xml
+<dependency>
+  <groupId>com.google.zetasql.toolkit</groupId>
+  <artifactId>zetasql-toolkit-bigquery</artifactId>
+  <version>0.4.0</version>
+</dependency>
+```
+
+### Example
 
 ``` java
 String query =
@@ -52,14 +55,14 @@ AnalyzerOptions options = new AnalyzerOptions();
 options.setLanguageOptions(BigQueryLanguageOptions.get());
 
 // Use the ZetaSQLToolkitAnalyzer to run the analyzer
-// It results an iterator over the resulting ResolvedStatements
+// It results an iterator over the resulting AnalyzedStatements
 ZetaSQLToolkitAnalyzer analyzer = new ZetaSQLToolkitAnalyzer(options);
-Iterator<ResolvedStatement> statementIterator = analyzer.analyzeStatements(query, catalog);
+Iterator<AnalyzedStatement> statementIterator = analyzer.analyzeStatements(query, catalog);
 
-// Use the resulting ResolvedStatements
-statementIterator.forEachRemaining(
-    statement -> System.out.println(statement.debugString())
-);
+// Use the resulting AnalyzedStatements
+statementIterator.forEachRemaining(analyzedStatement -> {
+    analyzedStatement.getResolvedStatement().ifPresent(System.out::println);
+});
 ```
 
 #### Output
@@ -95,7 +98,7 @@ QueryStmt
             +-Literal(type=STRING, value=string_value: "random title")
 ```
 
-## Analyzing Cloud Spanner jobs
+## Quickstart for Cloud Spanner
 
 Similarly, when analyzing queries using Spanner semantics, you need to:
 
@@ -103,6 +106,18 @@ Similarly, when analyzing queries using Spanner semantics, you need to:
    supports tables and views.
 2. Configure the ZetaSQL `AnalyzerOptions` using the Spanner feature set.
 3. Use `ZetaSQLToolkit.analyzeStatements()` to perform analysis
+
+### Spanner dependency
+
+``` xml
+<dependency>
+  <groupId>com.google.zetasql.toolkit</groupId>
+  <artifactId>zetasql-toolkit-spanner</artifactId>
+  <version>0.4.0</version>
+</dependency>
+```
+
+### Example
 
 ``` java
 String query = "UPDATE MyTable SET column2 = 5 WHERE column1 = ''; SELECT * FROM MyTable;";
@@ -128,15 +143,14 @@ AnalyzerOptions options = new AnalyzerOptions();
 options.setLanguageOptions(SpannerLanguageOptions.get());
 
 // Use the ZetaSQLToolkitAnalyzer to run the analyzer
-// It results an iterator over the resulting ResolvedStatements
+// It results an iterator over the resulting AnalyzedStatements
 ZetaSQLToolkitAnalyzer analyzer = new ZetaSQLToolkitAnalyzer(options);
-Iterator<ResolvedStatement> statementIterator = analyzer.analyzeStatements(query, catalog);
+Iterator<AnalyzedStatement> statementIterator = analyzer.analyzeStatements(query, catalog);
 
-
-// Use the resulting ResolvedStatements
-statementIterator.forEachRemaining(
-    statement -> System.out.println(statement.debugString())
-);
+// Use the resulting AnalyzedStatements
+statementIterator.forEachRemaining(analyzedStatement -> {
+    analyzedStatement.getResolvedStatement().ifPresent(System.out::println);
+});
 ```
 
 #### Output

@@ -18,6 +18,7 @@ package com.google.zetasql.toolkit.examples;
 
 import com.google.zetasql.AnalyzerOptions;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
+import com.google.zetasql.toolkit.AnalyzedStatement;
 import com.google.zetasql.toolkit.ZetaSQLToolkitAnalyzer;
 import com.google.zetasql.toolkit.catalog.bigquery.BigQueryCatalog;
 import com.google.zetasql.toolkit.options.BigQueryLanguageOptions;
@@ -39,14 +40,15 @@ public class AnalyzingCreateStatements {
             + "CREATE PROCEDURE `dataset.procedure_name`()\nBEGIN\n\nEND;\n"
             + "CALL `dataset.procedure_name`();";
 
-    BigQueryCatalog catalog = new BigQueryCatalog("bigquery-public-data");
+    BigQueryCatalog catalog = BigQueryCatalog.usingBigQueryAPI("bigquery-public-data");
 
     AnalyzerOptions options = new AnalyzerOptions();
     options.setLanguageOptions(BigQueryLanguageOptions.get());
 
     ZetaSQLToolkitAnalyzer analyzer = new ZetaSQLToolkitAnalyzer(options);
-    Iterator<ResolvedStatement> statementIterator = analyzer.analyzeStatements(query, catalog);
+    Iterator<AnalyzedStatement> statementIterator = analyzer.analyzeStatements(query, catalog);
 
-    statementIterator.forEachRemaining(statement -> System.out.println(statement.debugString()));
+    statementIterator.forEachRemaining(statement ->
+        statement.getResolvedStatement().ifPresent(System.out::println));
   }
 }

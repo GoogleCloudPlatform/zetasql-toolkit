@@ -19,8 +19,13 @@ package com.google.zetasql.toolkit;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.zetasql.AnalyzerOptions;
+import com.google.zetasql.SimpleCatalog;
+import com.google.zetasql.SimpleTable;
+import com.google.zetasql.parser.ASTNodes.ASTSimpleType;
+import com.google.zetasql.parser.ASTNodes.ASTVariableDeclaration;
 import com.google.zetasql.resolvedast.ResolvedNodes.*;
-import com.google.zetasql.toolkit.options.BigQueryLanguageOptions;
+import com.google.zetasql.toolkit.catalog.basic.BasicCatalogWrapper;
+import java.util.Iterator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +36,8 @@ public class ZetaSQLToolkitTest {
   @BeforeEach
   void init() {
     AnalyzerOptions analyzerOptions = new AnalyzerOptions();
-    analyzerOptions.setLanguageOptions(BigQueryLanguageOptions.get());
+    analyzerOptions.getLanguageOptions().enableMaximumLanguageFeatures();
+    analyzerOptions.getLanguageOptions().setSupportsAllStatementKinds();
 
     this.analyzer = new ZetaSQLToolkitAnalyzer(analyzerOptions);
   }
@@ -40,9 +46,11 @@ public class ZetaSQLToolkitTest {
   void testSimpleSelectStmt() {
     String stmt = "SELECT 1 AS col";
 
-    ResolvedStatement analyzedStmt = this.analyzer.analyzeStatements(stmt).next();
+    AnalyzedStatement analyzedStmt = this.analyzer.analyzeStatements(stmt).next();
 
-    ResolvedQueryStmt queryStmt = assertInstanceOf(ResolvedQueryStmt.class, analyzedStmt);
+    assertTrue(analyzedStmt.getResolvedStatement().isPresent());
+    ResolvedQueryStmt queryStmt =
+        assertInstanceOf(ResolvedQueryStmt.class, analyzedStmt.getResolvedStatement().get());
 
     ResolvedProjectScan projectScan =
         assertInstanceOf(ResolvedProjectScan.class, queryStmt.getQuery());
@@ -57,4 +65,77 @@ public class ZetaSQLToolkitTest {
         assertInstanceOf(ResolvedLiteral.class, projectScan.getExprList().get(0).getExpr());
     assertEquals(1, literal.getValue().getInt64Value());
   }
+
+  @Test
+  void testTableDDL() {
+    String query = "CREATE TEMP TABLE t AS (SELECT 1 AS column);\n"
+        + "SELECT * FROM t;";
+    SimpleCatalog catalog = new SimpleCatalog("catalog");
+
+    Iterator<AnalyzedStatement> statementIterator =
+        this.analyzer.analyzeStatements(query, new BasicCatalogWrapper(catalog), true);
+
+    AnalyzedStatement first = statementIterator.next();
+    assertTrue(first.getResolvedStatement().isPresent());
+    assertInstanceOf(ResolvedCreateTableAsSelectStmt.class, first.getResolvedStatement().get());
+    assertNotNull(catalog.getTable("t", null));
+    SimpleTable table = catalog.getTable("t", null);
+    assertAll(
+        () -> assertEquals("t", table.getName()),
+        () -> assertEquals(1, table.getColumnList().size()),
+        () -> assertEquals("column", table.getColumnList().get(0).getName())
+    );
+
+    // Just check that the second statement was analyzed successfully
+    AnalyzedStatement second = statementIterator.next();
+    assertTrue(second.getResolvedStatement().isPresent());
+    assertInstanceOf(ResolvedQueryStmt.class, second.getResolvedStatement().get());
+  }
+
+  @Test
+  void testVariableDeclaration() {
+    String query = "DECLARE x INT64 DEFAULT 1;\n"
+        + "SELECT x;";
+    SimpleCatalog catalog = new SimpleCatalog("catalog");
+
+    Iterator<AnalyzedStatement> statementIterator =
+        this.analyzer.analyzeStatements(query, new BasicCatalogWrapper(catalog), true);
+
+    AnalyzedStatement first = statementIterator.next();
+    ASTVariableDeclaration variableDeclaration =
+        assertInstanceOf(ASTVariableDeclaration.class, first.getParsedStatement());
+    ASTSimpleType type = assertInstanceOf(ASTSimpleType.class, variableDeclaration.getType());
+    assertEquals("INT64", type.getTypeName().getNames().get(0).getIdString());
+    assertEquals(1, catalog.getConstantList().size());
+    assertEquals("x", catalog.getConstantList().get(0).getFullName());
+    assertTrue(catalog.getConstantList().get(0).getType().isInt64());
+
+    AnalyzedStatement second = statementIterator.next();
+    assertTrue(second.getResolvedStatement().isPresent());
+    ResolvedQueryStmt queryStmt =
+        assertInstanceOf(ResolvedQueryStmt.class, second.getResolvedStatement().get());
+    ResolvedProjectScan projectScan =
+        assertInstanceOf(ResolvedProjectScan.class, queryStmt.getQuery());
+    assertEquals(1, projectScan.getColumnList().size());
+    ResolvedConstant resolvedConstant =
+        assertInstanceOf(ResolvedConstant.class, projectScan.getExprList().get(0).getExpr());
+    assertEquals("x", resolvedConstant.getConstant().getFullName());
+    assertTrue(resolvedConstant.getConstant().getType().isInt64());
+  }
+
+  @Test
+  void testTypeCoercion() {
+    // Invalid type for the default value
+    String query = "DECLARE x INT64 DEFAULT 'ASD';";
+    Iterator<AnalyzedStatement> statementIterator = this.analyzer.analyzeStatements(query);
+    assertThrows(AnalysisException.class, statementIterator::next);
+
+    // Invalid type for SET statement
+    query = "DECLARE x INT64;\n"
+      + "SET x = 'ASD';";
+    statementIterator = this.analyzer.analyzeStatements(query);
+    statementIterator.next();
+    assertThrows(AnalysisException.class, statementIterator::next);
+  }
+
 }
