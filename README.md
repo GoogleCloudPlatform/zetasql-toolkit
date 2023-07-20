@@ -11,6 +11,9 @@ This toolkit offers built-in support for:
 * Analyzing queries and scripts using the BigQuery or Cloud Spanner feature
   sets.
 * Analyzing scripts that perform DDL.
+* Analyzing scripts that declare and use variables.
+
+It also includes tooling to understand column-level lineage in analyzed queries.
 
 ## Quickstart for BigQuery
 
@@ -27,7 +30,7 @@ When analyzing queries using BigQuery semantics, you need to:
 <dependency>
   <groupId>com.google.zetasql.toolkit</groupId>
   <artifactId>zetasql-toolkit-bigquery</artifactId>
-  <version>0.4.0-SNAPSHOT</version>
+  <version>0.4.0</version>
 </dependency>
 ```
 
@@ -52,14 +55,14 @@ AnalyzerOptions options = new AnalyzerOptions();
 options.setLanguageOptions(BigQueryLanguageOptions.get());
 
 // Use the ZetaSQLToolkitAnalyzer to run the analyzer
-// It results an iterator over the resulting ResolvedStatements
+// It results an iterator over the resulting AnalyzedStatements
 ZetaSQLToolkitAnalyzer analyzer = new ZetaSQLToolkitAnalyzer(options);
-Iterator<ResolvedStatement> statementIterator = analyzer.analyzeStatements(query, catalog);
+Iterator<AnalyzedStatement> statementIterator = analyzer.analyzeStatements(query, catalog);
 
-// Use the resulting ResolvedStatements
-statementIterator.forEachRemaining(
-    statement -> System.out.println(statement.debugString())
-);
+// Use the resulting AnalyzedStatements
+statementIterator.forEachRemaining(analyzedStatement -> {
+    analyzedStatement.getResolvedStatement().ifPresent(System.out::println);
+});
 ```
 
 #### Output
@@ -110,7 +113,7 @@ Similarly, when analyzing queries using Spanner semantics, you need to:
 <dependency>
   <groupId>com.google.zetasql.toolkit</groupId>
   <artifactId>zetasql-toolkit-spanner</artifactId>
-  <version>0.4.0-SNAPSHOT</version>
+  <version>0.4.0</version>
 </dependency>
 ```
 
@@ -140,15 +143,14 @@ AnalyzerOptions options = new AnalyzerOptions();
 options.setLanguageOptions(SpannerLanguageOptions.get());
 
 // Use the ZetaSQLToolkitAnalyzer to run the analyzer
-// It results an iterator over the resulting ResolvedStatements
+// It results an iterator over the resulting AnalyzedStatements
 ZetaSQLToolkitAnalyzer analyzer = new ZetaSQLToolkitAnalyzer(options);
-Iterator<ResolvedStatement> statementIterator = analyzer.analyzeStatements(query, catalog);
+Iterator<AnalyzedStatement> statementIterator = analyzer.analyzeStatements(query, catalog);
 
-
-// Use the resulting ResolvedStatements
-statementIterator.forEachRemaining(
-    statement -> System.out.println(statement.debugString())
-);
+// Use the resulting AnalyzedStatements
+statementIterator.forEachRemaining(analyzedStatement -> {
+    analyzedStatement.getResolvedStatement().ifPresent(System.out::println);
+});
 ```
 
 #### Output

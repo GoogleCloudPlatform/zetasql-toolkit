@@ -7,6 +7,7 @@
 * [Add resources to the SpannerCatalog](src/main/java/com/google/zetasql/toolkit/examples/AddResourcesToSpannerCatalog.java)
 * [Add tables used in a query to the catalog](src/main/java/com/google/zetasql/toolkit/examples/LoadTablesUsedInQuery.java)
 * [Analyze CREATE statements](src/main/java/com/google/zetasql/toolkit/examples/AnalyzingCreateStatements.java)
+* [Analyze column-level lineage](src/main/java/com/google/zetasql/toolkit/examples/ExtractColumnLevelLineage.java)
 
 ### Packaging examples into containers
 
