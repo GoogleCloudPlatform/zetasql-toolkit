@@ -82,7 +82,7 @@ public class ColumnLineageExtractor {
         // Find the parent columns for each output column
         .map(outputColumn -> new SimpleEntry<>(
             outputColumn,
-            ParentColumnFinder.find(statement, outputColumn.getColumn())))
+            ParentColumnFinder.forColumn(statement, outputColumn.getColumn())))
         // Build lineage entries using the columns and their parents
         .map(columnWithParents -> buildColumnLineage(
             targetTableName, columnWithParents.getKey().getName(), columnWithParents.getValue()))
@@ -143,7 +143,7 @@ public class ColumnLineageExtractor {
     return IntStream.range(0, insertedColumns.size())
         .mapToObj(index -> new SimpleEntry<>(
             insertedColumns.get(index),
-            ParentColumnFinder.find(insertStmt, matchingColumnsInQuery.get(index))))
+            ParentColumnFinder.forColumn(insertStmt, matchingColumnsInQuery.get(index))))
         .map(entry -> buildColumnLineage(
             targetTable.getFullName(), entry.getKey().getName(), entry.getValue()))
         .collect(Collectors.toSet());
@@ -176,7 +176,7 @@ public class ColumnLineageExtractor {
 
     ResolvedColumnRef targetColumnRef = (ResolvedColumnRef) target;
     List<ResolvedColumn> parents =
-        ParentColumnFinder.find(originalStatement, updateExpression);
+        ParentColumnFinder.forExpression(originalStatement, updateExpression);
 
     ColumnLineage result = buildColumnLineage(
         targetTable.getFullName(), targetColumnRef.getColumn().getName(), parents);
@@ -229,7 +229,7 @@ public class ColumnLineageExtractor {
               insertRow.getValueList().get(index).getValue()))
           .map(entry -> new SimpleEntry<>(
               entry.getKey(),
-              ParentColumnFinder.find(originalStatement, entry.getValue())))
+              ParentColumnFinder.forExpression(originalStatement, entry.getValue())))
           .map(entry -> buildColumnLineage(
               targetTable.getFullName(), entry.getKey().getName(), entry.getValue()))
           .collect(Collectors.toSet());
