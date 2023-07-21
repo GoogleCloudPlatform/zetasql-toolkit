@@ -23,7 +23,8 @@ import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedArrayScan;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedComputedColumn;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedExpr;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
-import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedSubqueryExpr;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedTVFScan;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedTableScan;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedWithEntry;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedWithRefScan;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedWithScan;
@@ -31,9 +32,11 @@ import com.google.zetasql.resolvedast.ResolvedNodes.Visitor;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
@@ -68,6 +71,7 @@ import java.util.stream.Collectors;
 class ParentColumnFinder extends Visitor {
 
   private final HashMap<String, List<ResolvedColumn>> columnsToParents = new HashMap<>();
+  private final Set<String> terminalColumns = new HashSet<>();
   private final Stack<List<ResolvedWithEntry>> withEntryScopes = new Stack<>();
 
   private ParentColumnFinder() {}
@@ -81,18 +85,6 @@ class ParentColumnFinder extends Visitor {
    */
   public static List<ResolvedColumn> forColumn(ResolvedStatement statement, ResolvedColumn column) {
     return new ParentColumnFinder().findImpl(statement, column);
-  }
-
-  /**
-   * Finds the parents for a particular {@link ResolvedColumn} in a {@link ResolvedSubqueryExpr}.
-   *
-   * @param subqueryExpr The ResolvedSubqueryExpr the column belongs to.
-   * @param column The ResolvedColumn to find parents for.
-   * @return A list of ResolvedColumns containing the parents on the provided column.
-   */
-  public static List<ResolvedColumn> forColumn(
-      ResolvedSubqueryExpr subqueryExpr, ResolvedColumn column) {
-    return new ParentColumnFinder().findImpl(subqueryExpr, column);
   }
 
   /**
@@ -127,14 +119,12 @@ class ParentColumnFinder extends Visitor {
     Queue<ResolvedColumn> resolutionQueue = new ArrayDeque<>(ImmutableList.of(column));
 
     while (resolutionQueue.peek() != null) {
-      ResolvedColumn current = resolutionQueue.remove();
-      List<ResolvedColumn> parents = getParentsOfColumn(current);
+      ResolvedColumn currentColumn = resolutionQueue.remove();
+      String currentColumnKey = makeColumnKey(currentColumn);
+      List<ResolvedColumn> parents = getParentsOfColumn(currentColumn);
 
-      // TODO: instead of relying on this null, visit TableScans and validate all parents belong
-      //  to one
-      if (parents == null) {
-        // If it does not have any parents, it is a terminal column
-        result.add(current);
+      if (parents.isEmpty() && terminalColumns.contains(currentColumnKey)) {
+        result.add(currentColumn);
       } else {
         resolutionQueue.addAll(parents);
       }
@@ -149,12 +139,11 @@ class ParentColumnFinder extends Visitor {
 
   private List<ResolvedColumn> getParentsOfColumn(ResolvedColumn column) {
     String key = makeColumnKey(column);
-    return columnsToParents.get(key);
+    return columnsToParents.computeIfAbsent(key, k -> new ArrayList<>());
   }
 
   private void addParentsToColumn(ResolvedColumn column, List<ResolvedColumn> newParents) {
-    String key = makeColumnKey(column);
-    List<ResolvedColumn> parents = columnsToParents.computeIfAbsent(key, k -> new ArrayList<>());
+    List<ResolvedColumn> parents = getParentsOfColumn(column);
     parents.addAll(newParents);
   }
 
@@ -173,6 +162,20 @@ class ParentColumnFinder extends Visitor {
     addParentsToColumn(column, expressionParents);
 
     expression.accept(this);
+  }
+
+  public void visit(ResolvedTableScan tableScan) {
+    tableScan.getColumnList()
+        .stream()
+        .map(this::makeColumnKey)
+        .forEach(terminalColumns::add);
+  }
+
+  public void visit(ResolvedTVFScan tvfScan) {
+    tvfScan.getColumnList()
+        .stream()
+        .map(this::makeColumnKey)
+        .forEach(terminalColumns::add);
   }
 
   public void visit(ResolvedWithScan withScan) {
