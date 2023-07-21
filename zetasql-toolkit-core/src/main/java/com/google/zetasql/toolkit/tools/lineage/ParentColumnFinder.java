@@ -18,9 +18,11 @@ package com.google.zetasql.toolkit.tools.lineage;
 
 import com.google.common.collect.ImmutableList;
 import com.google.zetasql.resolvedast.ResolvedColumn;
+import com.google.zetasql.resolvedast.ResolvedNode;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedComputedColumn;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedExpr;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedSubqueryExpr;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedWithEntry;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedWithRefScan;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedWithScan;
@@ -81,6 +83,18 @@ class ParentColumnFinder extends Visitor {
   }
 
   /**
+   * Finds the parents for a particular {@link ResolvedColumn} in a {@link ResolvedSubqueryExpr}.
+   *
+   * @param subqueryExpr The ResolvedSubqueryExpr the column belongs to.
+   * @param column The ResolvedColumn to find parents for.
+   * @return A list of ResolvedColumns containing the parents on the provided column.
+   */
+  public static List<ResolvedColumn> forColumn(
+      ResolvedSubqueryExpr subqueryExpr, ResolvedColumn column) {
+    return new ParentColumnFinder().findImpl(subqueryExpr, column);
+  }
+
+  /**
    * Finds the parents for a particular {@link ResolvedExpr}.
    *
    * @param statement The {@link ResolvedStatement} the expression belongs to.
@@ -90,7 +104,7 @@ class ParentColumnFinder extends Visitor {
   public static List<ResolvedColumn> forExpression(
       ResolvedStatement statement, ResolvedExpr expression) {
     List<ResolvedColumn> parentsReferenced =
-        ColumnReferenceExtractor.extractFromExpression(expression);
+        OutputColumnExtractor.fromExpression(expression);
 
     return parentsReferenced.stream()
         .map(parent -> ParentColumnFinder.forColumn(statement, parent))
@@ -98,13 +112,13 @@ class ParentColumnFinder extends Visitor {
         .collect(Collectors.toList());
   }
 
-  public List<ResolvedColumn> findImpl(ResolvedStatement statement, ResolvedColumn column) {
-    // 1. Traverse the statement.
-    // This will populate this.columnsToParents with the ResolvedColumns in the statement and
+  public List<ResolvedColumn> findImpl(ResolvedNode containerNode, ResolvedColumn column) {
+    // 1. Traverse the containerNode.
+    // This will populate this.columnsToParents with the ResolvedColumns in the containerNode and
     // the direct parents for each of them.
     // columnsToParents can be thought of as a tree where the root node is the original
     // ResolvedColumn and the leaves are its terminal parents.
-    statement.accept(this);
+    containerNode.accept(this);
 
     // 2. Use this.columnsToParents to find the terminal parents for the desired column.
     // Traverses the tree-like structured mentioned above using breadth-first search.
@@ -144,11 +158,13 @@ class ParentColumnFinder extends Visitor {
     // When visiting a resolved column, register it in the columnsToParents Map together with
     // its direct parents.
     ResolvedColumn column = computedColumn.getColumn();
+    ResolvedExpr expression = computedColumn.getExpr();
 
-    List<ResolvedColumn> expressionParents =
-        ColumnReferenceExtractor.extractFromExpression(computedColumn.getExpr());
+    List<ResolvedColumn> expressionParents = OutputColumnExtractor.fromExpression(expression);
 
     addParentsToColumn(column, expressionParents);
+
+    expression.accept(this);
   }
 
   public void visit(ResolvedWithScan withScan) {
