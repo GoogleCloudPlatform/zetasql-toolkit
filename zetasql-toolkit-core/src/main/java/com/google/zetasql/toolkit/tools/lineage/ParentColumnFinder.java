@@ -19,6 +19,7 @@ package com.google.zetasql.toolkit.tools.lineage;
 import com.google.common.collect.ImmutableList;
 import com.google.zetasql.resolvedast.ResolvedColumn;
 import com.google.zetasql.resolvedast.ResolvedNode;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedArrayScan;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedComputedColumn;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedExpr;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
@@ -129,7 +130,9 @@ class ParentColumnFinder extends Visitor {
       ResolvedColumn current = resolutionQueue.remove();
       List<ResolvedColumn> parents = getParentsOfColumn(current);
 
-      if (parents.isEmpty()) {
+      // TODO: instead of relying on this null, visit TableScans and validate all parents belong
+      //  to one
+      if (parents == null) {
         // If it does not have any parents, it is a terminal column
         result.add(current);
       } else {
@@ -140,13 +143,18 @@ class ParentColumnFinder extends Visitor {
     return result;
   }
 
+  private String makeColumnKey(ResolvedColumn column) {
+    return String.format("%s.%s#%d", column.getTableName(), column.getName(), column.getId());
+  }
+
   private List<ResolvedColumn> getParentsOfColumn(ResolvedColumn column) {
-    String key = String.format("%s.%s#%d", column.getTableName(), column.getName(), column.getId());
-    return columnsToParents.computeIfAbsent(key, k -> new ArrayList<>());
+    String key = makeColumnKey(column);
+    return columnsToParents.get(key);
   }
 
   private void addParentsToColumn(ResolvedColumn column, List<ResolvedColumn> newParents) {
-    List<ResolvedColumn> parents = getParentsOfColumn(column);
+    String key = makeColumnKey(column);
+    List<ResolvedColumn> parents = columnsToParents.computeIfAbsent(key, k -> new ArrayList<>());
     parents.addAll(newParents);
   }
 
@@ -214,6 +222,16 @@ class ParentColumnFinder extends Visitor {
       addParentToColumn(withRefScanColumn, matchingWithEntryColumn);
     }
 
+  }
+
+  public void visit(ResolvedArrayScan arrayScan) {
+    ResolvedColumn elementColumn = arrayScan.getElementColumn();
+    List<ResolvedColumn> parents = OutputColumnExtractor.fromExpression(arrayScan.getArrayExpr());
+    addParentsToColumn(elementColumn, parents);
+
+    if (arrayScan.getInputScan() != null) {
+      arrayScan.getInputScan().accept(this);
+    }
   }
 
 }
