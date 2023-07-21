@@ -122,36 +122,12 @@ class OutputColumnExtractor extends Visitor {
     visitResolvedFunctionCallBase(analyticFunctionCall);
   }
 
-  public void visit(ResolvedFlattenedArg flattenedArg) {
-    // TODO: Do we need this?
-  }
-
-  public void visit(ResolvedFlatten flatten) {
-    // TODO: Do we need this?
-  }
-
   public void visit(ResolvedMakeStruct makeStruct) {
-    // TODO: Do we need this?
+    makeStruct.getFieldList().forEach(fieldExpr -> fieldExpr.accept(this));
   }
 
   public void visit(ResolvedCast cast) {
     cast.getExpr().accept(this);
-  }
-
-  private <T> List<T> findDescendantSubtreesWithKind(ResolvedNode node, Class<T> cls) {
-    ArrayList<T> result = new ArrayList<>();
-
-    node.accept(new Visitor() {
-
-      public void defaultVisit(ResolvedNode node) {
-        if (node.getClass().isAssignableFrom(cls)) {
-          result.add(cls.cast(node));
-        }
-      }
-
-    });
-
-    return result;
   }
 
   private OutputColumnExtractor() {}
