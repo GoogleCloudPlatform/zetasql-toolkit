@@ -17,11 +17,14 @@
 package com.google.zetasql.toolkit.tools.lineage;
 
 import com.google.common.collect.ImmutableList;
+import com.google.zetasql.StructType;
+import com.google.zetasql.Type;
 import com.google.zetasql.resolvedast.ResolvedColumn;
 import com.google.zetasql.resolvedast.ResolvedNode;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedArrayScan;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedComputedColumn;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedExpr;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedMakeStruct;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedTVFScan;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedTableScan;
@@ -73,34 +76,36 @@ class ParentColumnFinder extends Visitor {
   private final HashMap<String, List<ResolvedColumn>> columnsToParents = new HashMap<>();
   private final Set<String> terminalColumns = new HashSet<>();
   private final Stack<List<ResolvedWithEntry>> withEntryScopes = new Stack<>();
+  private final Stack<ResolvedColumn> columnsBeingComputed = new Stack<>();
 
   private ParentColumnFinder() {}
 
   /**
-   * Finds the parents for a particular {@link ResolvedColumn}.
+   * Finds the terminal parents for a particular {@link ResolvedColumn}.
    *
    * @param statement The {@link ResolvedStatement} the column belongs to.
    * @param column The ResolvedColumn to find parents for.
-   * @return A list of ResolvedColumns containing the parents on the provided column.
+   * @return A list of ResolvedColumns containing the terminal parents on the provided column.
    */
-  public static List<ResolvedColumn> forColumn(ResolvedStatement statement, ResolvedColumn column) {
+  public static List<ResolvedColumn> findParentsForColumn(
+      ResolvedStatement statement, ResolvedColumn column) {
     return new ParentColumnFinder().findImpl(statement, column);
   }
 
   /**
-   * Finds the parents for a particular {@link ResolvedExpr}.
+   * Finds the terminal parents for a particular {@link ResolvedExpr}.
    *
    * @param statement The {@link ResolvedStatement} the expression belongs to.
    * @param expression The ResolvedExpr to find parents for.
-   * @return A list of ResolvedColumns containing the parents on the provided expression.
+   * @return A list of ResolvedColumns containing the terminal parents on the provided expression.
    */
-  public static List<ResolvedColumn> forExpression(
+  public static List<ResolvedColumn> findParentsForExpression(
       ResolvedStatement statement, ResolvedExpr expression) {
     List<ResolvedColumn> parentsReferenced =
-        OutputColumnExtractor.fromExpression(expression);
+        ExpressionParentFinder.findDirectParentsForExpression(expression);
 
     return parentsReferenced.stream()
-        .map(parent -> ParentColumnFinder.forColumn(statement, parent))
+        .map(parent -> ParentColumnFinder.findParentsForColumn(statement, parent))
         .flatMap(List::stream)
         .collect(Collectors.toList());
   }
@@ -151,31 +156,89 @@ class ParentColumnFinder extends Visitor {
     addParentsToColumn(column, ImmutableList.of(newParent));
   }
 
+  private ResolvedColumn buildColumnSubfield(
+      ResolvedColumn column, String fieldName, Type fieldType) {
+    return new ResolvedColumn(
+        column.getId(),
+        column.getTableName(),
+        column.getName() + "." + fieldName,
+        fieldType);
+  }
+
+  private List<ResolvedColumn> expandColumn(ResolvedColumn column) {
+    ArrayList<ResolvedColumn> result = new ArrayList<>();
+    result.add(column);
+
+    Type type = column.getType();
+
+    if (type.isStruct()) {
+      type.asStruct().getFieldList()
+          .stream()
+          .map(field -> buildColumnSubfield(column, field.getName(), field.getType()))
+          .flatMap(subColumn -> expandColumn(subColumn).stream())
+          .forEachOrdered(result::add);
+    }
+
+    return result;
+  }
+
   public void visit(ResolvedComputedColumn computedColumn) {
     // When visiting a resolved column, register it in the columnsToParents Map together with
     // its direct parents.
+
     ResolvedColumn column = computedColumn.getColumn();
     ResolvedExpr expression = computedColumn.getExpr();
 
-    List<ResolvedColumn> expressionParents = OutputColumnExtractor.fromExpression(expression);
+    columnsBeingComputed.push(column);
 
-    addParentsToColumn(column, expressionParents);
+    if (expression instanceof ResolvedMakeStruct) {
+      expandMakeStruct(column, (ResolvedMakeStruct) expression);
+    } else {
+      List<ResolvedColumn> expressionParents = ExpressionParentFinder.findDirectParentsForExpression(expression);
+      columnsBeingComputed.forEach(columnBeingComputed ->
+          addParentsToColumn(columnBeingComputed, expressionParents));
+    }
 
-    expression.accept(this);
+    columnsBeingComputed.pop();
+  }
+
+  public void expandMakeStruct(ResolvedColumn targetColumn, ResolvedMakeStruct makeStruct) {
+    StructType structType = makeStruct.getType().asStruct();
+    int numberOfFields = structType.getFieldCount();
+
+    for (int i = 0; i < numberOfFields; i++) {
+      String fieldName = structType.getField(i).getName();
+      ResolvedExpr fieldExpression = makeStruct.getFieldList().get(i);
+      ResolvedColumn fieldColumn =
+          buildColumnSubfield(targetColumn, fieldName, fieldExpression.getType());
+
+      columnsBeingComputed.push(fieldColumn);
+      List<ResolvedColumn> expressionParents =
+          ExpressionParentFinder.findDirectParentsForExpression(fieldExpression);
+      columnsBeingComputed.forEach(columnBeingComputed ->
+          addParentsToColumn(columnBeingComputed, expressionParents));
+      columnsBeingComputed.pop();
+
+      if (fieldExpression instanceof ResolvedMakeStruct) {
+        expandMakeStruct(fieldColumn, (ResolvedMakeStruct) fieldExpression);
+      }
+    }
+  }
+
+  private void registerTerminalColumns(List<ResolvedColumn> newTerminalColumns) {
+    newTerminalColumns.stream()
+        .map(this::expandColumn)
+        .flatMap(List::stream)
+        .map(this::makeColumnKey)
+        .forEach(terminalColumns::add);
   }
 
   public void visit(ResolvedTableScan tableScan) {
-    tableScan.getColumnList()
-        .stream()
-        .map(this::makeColumnKey)
-        .forEach(terminalColumns::add);
+    registerTerminalColumns(tableScan.getColumnList());
   }
 
   public void visit(ResolvedTVFScan tvfScan) {
-    tvfScan.getColumnList()
-        .stream()
-        .map(this::makeColumnKey)
-        .forEach(terminalColumns::add);
+    registerTerminalColumns(tvfScan.getColumnList());
   }
 
   public void visit(ResolvedWithScan withScan) {
@@ -189,11 +252,7 @@ class ParentColumnFinder extends Visitor {
     withEntryScopes.pop();
   }
 
-  public void visit(ResolvedWithRefScan withRefScan) {
-    // WithRefScans create new ResolvedColumns for each column in the WITH entry instead
-    // of referencing the WITH entry directly.
-    // Here we find the corresponding with entry which is in scope and register the original
-    // WITH entry columns a parents of their corresponding columns in the WithRefScan.
+  private Optional<ResolvedWithEntry> findInScopeWithEntryByName(String name) {
     Optional<ResolvedWithEntry> maybeWithEntry = Optional.empty();
 
     // Traverse the scopes stack top-to-bottom and use the first matching WITH in scope
@@ -201,13 +260,24 @@ class ParentColumnFinder extends Visitor {
       List<ResolvedWithEntry> inScopeWithEntries = withEntryScopes.get(i);
 
       maybeWithEntry = inScopeWithEntries.stream()
-          .filter(withEntry -> withEntry.getWithQueryName().equals(withRefScan.getWithQueryName()))
+          .filter(withEntry -> withEntry.getWithQueryName().equalsIgnoreCase(name))
           .findFirst();
 
       if (maybeWithEntry.isPresent()) {
         break;
       }
     }
+
+    return maybeWithEntry;
+  }
+
+  public void visit(ResolvedWithRefScan withRefScan) {
+    // WithRefScans create new ResolvedColumns for each column in the WITH entry instead
+    // of referencing the WITH entry directly.
+    // Here we find the corresponding with entry which is in scope and register the original
+    // WITH entry columns a parents of their corresponding columns in the WithRefScan.
+    Optional<ResolvedWithEntry> maybeWithEntry =
+        findInScopeWithEntryByName(withRefScan.getWithQueryName());
 
     if (!maybeWithEntry.isPresent()) {
       // Should never happen, since the query would be invalid.
@@ -219,18 +289,27 @@ class ParentColumnFinder extends Visitor {
     // Columns in the WITH entry and the WithRefScan map 1:1.
     // Register each column in the WITH entry as a parent of its corresponding column in this
     // WithRefScan
+    // If a column is a STRUCT, also register the 1:1 parent relationship between fields
     for (int i = 0; i < withRefScan.getColumnList().size(); i++) {
       ResolvedColumn withRefScanColumn = withRefScan.getColumnList().get(i);
       ResolvedColumn matchingWithEntryColumn = withEntry.getWithSubquery().getColumnList().get(i);
-      addParentToColumn(withRefScanColumn, matchingWithEntryColumn);
+
+      List<ResolvedColumn> expandedRefScanColumn = expandColumn(withRefScanColumn);
+      List<ResolvedColumn> expandedMatchingWithEntryColumn = expandColumn(matchingWithEntryColumn);
+
+      for (int j = 0; j < expandedRefScanColumn.size(); j++) {
+        addParentToColumn(expandedRefScanColumn.get(j), expandedMatchingWithEntryColumn.get(j));
+      }
+
     }
 
   }
 
   public void visit(ResolvedArrayScan arrayScan) {
     ResolvedColumn elementColumn = arrayScan.getElementColumn();
-    List<ResolvedColumn> parents = OutputColumnExtractor.fromExpression(arrayScan.getArrayExpr());
-    addParentsToColumn(elementColumn, parents);
+    columnsBeingComputed.push(elementColumn);
+    arrayScan.getArrayExpr().accept(this);
+    columnsBeingComputed.pop();
 
     if (arrayScan.getInputScan() != null) {
       arrayScan.getInputScan().accept(this);

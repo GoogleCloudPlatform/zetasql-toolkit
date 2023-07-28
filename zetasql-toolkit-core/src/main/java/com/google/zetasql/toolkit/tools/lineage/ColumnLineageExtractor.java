@@ -16,13 +16,16 @@
 
 package com.google.zetasql.toolkit.tools.lineage;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.zetasql.Table;
+import com.google.zetasql.Type;
 import com.google.zetasql.resolvedast.ResolvedColumn;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedColumnRef;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedCreateTableAsSelectStmt;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedCreateViewBase;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedExpr;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedGetStructField;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedInsertRow;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedInsertStmt;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedMergeStmt;
@@ -34,6 +37,7 @@ import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedUpdateItem;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedUpdateStmt;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -64,6 +68,22 @@ public class ColumnLineageExtractor {
     return new ColumnLineage(target, parents);
   }
 
+  // TODO: expandColumns() is also defined in ParentColumnFinder. Generalize.
+  private static List<ResolvedColumn> expandColumn(ResolvedColumn column) {
+    Type type = column.getType();
+
+    if (type.isStruct()) {
+      return type.asStruct().getFieldList()
+          .stream()
+          .map(field -> buildColumnSubfield(column, field.getName(), field.getType()))
+          .map(ColumnLineageExtractor::expandColumn)
+          .flatMap(List::stream)
+          .collect(Collectors.toList());
+    }
+
+    return ImmutableList.of(column);
+  }
+
   /**
    * Extracts the column-level lineage entries for a set of {@link ResolvedOutputColumn}s,
    * given the {@link ResolvedStatement} they belong to.
@@ -78,15 +98,22 @@ public class ColumnLineageExtractor {
       List<ResolvedOutputColumn> outputColumns,
       ResolvedStatement statement) {
 
-    return outputColumns.stream()
-        // Find the parent columns for each output column
-        .map(outputColumn -> new SimpleEntry<>(
-            outputColumn,
-            ParentColumnFinder.forColumn(statement, outputColumn.getColumn())))
-        // Build lineage entries using the columns and their parents
-        .map(columnWithParents -> buildColumnLineage(
-            targetTableName, columnWithParents.getKey().getName(), columnWithParents.getValue()))
-        .collect(Collectors.toSet());
+    HashSet<ColumnLineage> result = new HashSet<>();
+
+    for (ResolvedOutputColumn outputColumn : outputColumns) {
+      List<ResolvedColumn> expandedResolvedColumns = expandColumn(outputColumn.getColumn());
+
+      for (ResolvedColumn expandedResolvedColumn : expandedResolvedColumns) {
+        List<ResolvedColumn> parentColumns =
+            ParentColumnFinder.findParentsForColumn(statement, expandedResolvedColumn);
+        ColumnLineage lineageEntry =
+            buildColumnLineage(targetTableName, outputColumn.getName(), parentColumns);
+        result.add(lineageEntry);
+      }
+    }
+
+    return result;
+
   }
 
   /**
@@ -137,16 +164,53 @@ public class ColumnLineageExtractor {
 
     Table targetTable = insertStmt.getTableScan().getTable();
     ResolvedScan query = insertStmt.getQuery();
-    List<ResolvedColumn> insertedColumns = insertStmt.getInsertColumnList();
-    List<ResolvedColumn> matchingColumnsInQuery = query.getColumnList();
+    List<ResolvedColumn> insertedColumns = insertStmt.getInsertColumnList()
+        .stream()
+        .map(ColumnLineageExtractor::expandColumn)
+        .flatMap(List::stream)
+        .collect(Collectors.toList());
+    List<ResolvedColumn> matchingColumnsInQuery = query.getColumnList()
+        .stream()
+        .map(ColumnLineageExtractor::expandColumn)
+        .flatMap(List::stream)
+        .collect(Collectors.toList());
 
     return IntStream.range(0, insertedColumns.size())
         .mapToObj(index -> new SimpleEntry<>(
             insertedColumns.get(index),
-            ParentColumnFinder.forColumn(insertStmt, matchingColumnsInQuery.get(index))))
+            ParentColumnFinder.findParentsForColumn(insertStmt, matchingColumnsInQuery.get(index))))
         .map(entry -> buildColumnLineage(
             targetTable.getFullName(), entry.getKey().getName(), entry.getValue()))
         .collect(Collectors.toSet());
+  }
+
+  // TODO: buildColumnSubfield() is also defined in ParentColumnFinder. Generalize.
+  private static ResolvedColumn buildColumnSubfield(
+      ResolvedColumn column, String fieldName, Type fieldType) {
+    return new ResolvedColumn(
+        column.getId(),
+        column.getTableName(),
+        column.getName() + "." + fieldName,
+        fieldType);
+  }
+
+  private static Optional<ResolvedColumn> resolveUpdateItemTarget(ResolvedExpr updateTarget) {
+    if (updateTarget instanceof ResolvedColumnRef) {
+      ResolvedColumnRef columnRef = (ResolvedColumnRef) updateTarget;
+      return Optional.of(columnRef.getColumn());
+    } else if (updateTarget instanceof ResolvedGetStructField) {
+      ResolvedGetStructField getStructField = (ResolvedGetStructField) updateTarget;
+      int structFieldIdx = (int) getStructField.getFieldIdx();
+      String fieldName = getStructField.getExpr()
+          .getType()
+          .asStruct()
+          .getField(structFieldIdx)
+          .getName();
+      return resolveUpdateItemTarget(getStructField.getExpr())
+          .map(target -> buildColumnSubfield(target, fieldName, getStructField.getType()));
+    }
+
+    return Optional.empty();
   }
 
   /**
@@ -165,21 +229,22 @@ public class ColumnLineageExtractor {
       ResolvedUpdateItem updateItem,
       ResolvedStatement originalStatement) {
 
-    ResolvedExpr target = updateItem.getTarget();
+    ResolvedExpr targetExpression = updateItem.getTarget();
     ResolvedExpr updateExpression = updateItem.getSetValue().getValue();
 
-    if (!(target instanceof ResolvedColumnRef)) {
-      // TODO: Do we need to handle other types of inserts?
-      //  See: https://github.com/google/zetasql/blob/5133c6e373a3f67f7f40b0619a2913c3fcab8171/zetasql/resolved_ast/gen_resolved_ast.py#L5564
+    Optional<ResolvedColumn> maybeTargetColumn = resolveUpdateItemTarget(targetExpression);
+
+    if (!maybeTargetColumn.isPresent()) {
       return Optional.empty();
     }
 
-    ResolvedColumnRef targetColumnRef = (ResolvedColumnRef) target;
+    ResolvedColumn targetColumn = maybeTargetColumn.get();
+
     List<ResolvedColumn> parents =
-        ParentColumnFinder.forExpression(originalStatement, updateExpression);
+        ParentColumnFinder.findParentsForExpression(originalStatement, updateExpression);
 
     ColumnLineage result = buildColumnLineage(
-        targetTable.getFullName(), targetColumnRef.getColumn().getName(), parents);
+        targetTable.getFullName(), targetColumn.getName(), parents);
 
     return Optional.of(result);
   }
@@ -229,7 +294,7 @@ public class ColumnLineageExtractor {
               insertRow.getValueList().get(index).getValue()))
           .map(entry -> new SimpleEntry<>(
               entry.getKey(),
-              ParentColumnFinder.forExpression(originalStatement, entry.getValue())))
+              ParentColumnFinder.findParentsForExpression(originalStatement, entry.getValue())))
           .map(entry -> buildColumnLineage(
               targetTable.getFullName(), entry.getKey().getName(), entry.getValue()))
           .collect(Collectors.toSet());
