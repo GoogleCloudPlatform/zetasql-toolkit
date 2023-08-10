@@ -135,6 +135,8 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
         return TypeKind.TYPE_DATETIME;
       case GEOGRAPHY:
         return TypeKind.TYPE_GEOGRAPHY;
+      case JSON:
+        return TypeKind.TYPE_JSON;
       default:
         return TypeKind.TYPE_UNKNOWN;
     }
