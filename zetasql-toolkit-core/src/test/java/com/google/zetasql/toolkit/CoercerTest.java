@@ -18,13 +18,13 @@ package com.google.zetasql.toolkit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.google.common.collect.ImmutableList;
 import com.google.zetasql.LanguageOptions;
 import com.google.zetasql.StructType.StructField;
 import com.google.zetasql.Type;
 import com.google.zetasql.TypeFactory;
 import com.google.zetasql.ZetaSQLOptions.LanguageFeature;
 import com.google.zetasql.ZetaSQLType.TypeKind;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
 public class CoercerTest {
@@ -100,10 +100,10 @@ public class CoercerTest {
 
   @Test
   void testStructCoercions() {
-    Type structWithInt32Field = TypeFactory.createStructType(List.of(
+    Type structWithInt32Field = TypeFactory.createStructType(ImmutableList.of(
         new StructField("field", TypeFactory.createSimpleType(TypeKind.TYPE_INT32))
     ));
-    Type structWithInt64Field = TypeFactory.createStructType(List.of(
+    Type structWithInt64Field = TypeFactory.createStructType(ImmutableList.of(
         new StructField("field", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))
     ));
 
@@ -120,12 +120,12 @@ public class CoercerTest {
   @Test
   void testComplexCoercions() {
     Type int32StructArray = TypeFactory.createArrayType(
-        TypeFactory.createStructType(List.of(
+        TypeFactory.createStructType(ImmutableList.of(
           new StructField("field", TypeFactory.createSimpleType(TypeKind.TYPE_INT32))
         ))
     );
     Type int64StructArray = TypeFactory.createArrayType(
-        TypeFactory.createStructType(List.of(
+        TypeFactory.createStructType(ImmutableList.of(
             new StructField("field", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))
         ))
     );

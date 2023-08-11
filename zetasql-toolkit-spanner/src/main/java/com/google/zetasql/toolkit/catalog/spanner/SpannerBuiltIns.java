@@ -16,6 +16,7 @@
 
 package com.google.zetasql.toolkit.catalog.spanner;
 
+import com.google.common.collect.ImmutableList;
 import com.google.zetasql.Function;
 import com.google.zetasql.FunctionArgumentType;
 import com.google.zetasql.FunctionSignature;
@@ -35,17 +36,17 @@ class SpannerBuiltIns {
   private static final String SPANNER_FUNCTION_GROUP = "CloudSpanner";
 
   public static final List<Function> FUNCTIONS =
-      List.of(
+      ImmutableList.of(
           // PENDING_COMMIT_TIMESTAMP() -> TIMESTAMP
           new Function(
               "PENDING_COMMIT_TIMESTAMP",
               SPANNER_FUNCTION_GROUP,
               Mode.SCALAR,
-              List.of(
+              ImmutableList.of(
                   new FunctionSignature(
                       new FunctionArgumentType(
                           TypeFactory.createSimpleType(TypeKind.TYPE_TIMESTAMP)),
-                      List.of(),
+                      ImmutableList.of(),
                       -1))));
 
   /**

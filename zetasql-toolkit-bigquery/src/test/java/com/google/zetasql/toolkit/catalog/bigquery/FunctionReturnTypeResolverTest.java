@@ -33,7 +33,6 @@ import com.google.zetasql.ZetaSQLType.TypeKind;
 import com.google.zetasql.toolkit.catalog.FunctionInfo;
 import com.google.zetasql.toolkit.catalog.TVFInfo;
 import com.google.zetasql.toolkit.options.BigQueryLanguageOptions;
-import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,15 +52,15 @@ public class FunctionReturnTypeResolverTest {
   void testInferFunctionReturnType() {
     FunctionInfo functionInfo =
         FunctionInfo.newBuilder()
-            .setNamePath(List.of("f"))
+            .setNamePath(ImmutableList.of("f"))
             .setGroup("UDF")
             .setMode(Mode.SCALAR)
             .setSignatures(
-                List.of(
+                ImmutableList.of(
                     new FunctionSignature(
                         new FunctionArgumentType(
                             TypeFactory.createSimpleType(TypeKind.TYPE_UNKNOWN)),
-                        List.of(),
+                        ImmutableList.of(),
                         -1)))
             .setLanguage(FunctionInfo.Language.SQL)
             .setBody("CAST(FLOOR(5.5) AS INT64) + 1")
@@ -90,7 +89,7 @@ public class FunctionReturnTypeResolverTest {
             .setSignature(
                 new FunctionSignature(
                     new FunctionArgumentType(SignatureArgumentKind.ARG_TYPE_RELATION),
-                    List.of(),
+                    ImmutableList.of(),
                     -1))
             .setOutputSchema(Optional.empty())
             .setBody("SELECT 1 AS column1, CONCAT('a', 'b') AS column2")

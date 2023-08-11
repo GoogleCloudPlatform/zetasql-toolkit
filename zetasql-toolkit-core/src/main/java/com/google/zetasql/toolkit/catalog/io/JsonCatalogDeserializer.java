@@ -167,7 +167,7 @@ class JsonCatalogDeserializer {
 
     JsonPrimitive primitive = field.getAsJsonPrimitive();
     boolean isTrueOrFalseString = primitive.isString()
-        && List.of("true", "false").contains(primitive.getAsString().toLowerCase());
+        && ImmutableList.of("true", "false").contains(primitive.getAsString().toLowerCase());
 
     if (!primitive.isBoolean() && !isTrueOrFalseString) {
       throw new JsonParseException(errorMessage);
@@ -272,7 +272,7 @@ class JsonCatalogDeserializer {
               "Invalid JSON function: " + jsonElement + ". Signatures missing."));
 
       return FunctionInfo.newBuilder()
-          .setNamePath(List.of(functionName))
+          .setNamePath(ImmutableList.of(functionName))
           .setGroup("UDF")
           .setMode(Mode.SCALAR)
           .setSignatures(Arrays.asList(signatures))

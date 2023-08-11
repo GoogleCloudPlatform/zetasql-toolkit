@@ -16,6 +16,7 @@
 
 package com.google.zetasql.toolkit.tools.lineage;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.protobuf.ExperimentalApi;
 import com.google.zetasql.Table;
 import com.google.zetasql.resolvedast.ResolvedColumn;
@@ -72,7 +73,7 @@ public class ColumnLineageExtractor {
     if (Objects.isNull(insertStmt.getQuery())) {
       // The statement is inserting rows manually using "INSERT INTO ... VALUES ..."
       // Since it does not query any tables, it does not produce lineage
-      return Set.of();
+      return ImmutableSet.of();
     }
 
     Table targetTable = insertStmt.getTableScan().getTable();
@@ -172,7 +173,7 @@ public class ColumnLineageExtractor {
           .collect(Collectors.toSet());
     }
 
-    return Set.of();
+    return ImmutableSet.of();
   }
 
   private static Set<ColumnLineage> extractColumnLevelLineage(ResolvedMergeStmt mergeStmt) {
@@ -197,7 +198,7 @@ public class ColumnLineageExtractor {
       return extractColumnLevelLineage((ResolvedMergeStmt) statement);
     }
 
-    return Set.of();
+    return ImmutableSet.of();
   }
 
 }

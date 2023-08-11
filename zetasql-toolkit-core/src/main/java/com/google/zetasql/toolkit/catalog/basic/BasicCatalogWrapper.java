@@ -16,6 +16,7 @@
 
 package com.google.zetasql.toolkit.catalog.basic;
 
+import com.google.common.collect.ImmutableList;
 import com.google.zetasql.Constant;
 import com.google.zetasql.SimpleCatalog;
 import com.google.zetasql.SimpleTable;
@@ -60,7 +61,7 @@ public class BasicCatalogWrapper implements CatalogWrapper {
   public void register(SimpleTable table, CreateMode createMode, CreateScope createScope) {
     CatalogOperations.createTableInCatalog(
         this.catalog,
-        List.of(List.of(table.getFullName())),
+        ImmutableList.of(ImmutableList.of(table.getFullName())),
         table.getFullName(),
         table.getColumnList(),
         createMode);
@@ -69,13 +70,13 @@ public class BasicCatalogWrapper implements CatalogWrapper {
   @Override
   public void register(FunctionInfo function, CreateMode createMode, CreateScope createScope) {
     CatalogOperations.createFunctionInCatalog(
-        this.catalog, List.of(function.getNamePath()), function, createMode);
+        this.catalog, ImmutableList.of(function.getNamePath()), function, createMode);
   }
 
   @Override
   public void register(TVFInfo tvfInfo, CreateMode createMode, CreateScope createScope) {
     CatalogOperations.createTVFInCatalog(
-        this.catalog, List.of(tvfInfo.getNamePath()), tvfInfo, createMode);
+        this.catalog, ImmutableList.of(tvfInfo.getNamePath()), tvfInfo, createMode);
   }
 
   /**
@@ -99,7 +100,7 @@ public class BasicCatalogWrapper implements CatalogWrapper {
     List<List<String>> procedurePaths = new ArrayList<>();
     procedurePaths.add(namePath);
     if (namePath.size() > 1) {
-      procedurePaths.add(List.of(fullName));
+      procedurePaths.add(ImmutableList.of(fullName));
     }
 
     CatalogOperations.createProcedureInCatalog(
@@ -129,22 +130,22 @@ public class BasicCatalogWrapper implements CatalogWrapper {
 
   @Override
   public void removeTable(String fullTableName) {
-    CatalogOperations.deleteTableFromCatalog(this.catalog, List.of(List.of(fullTableName)));
+    CatalogOperations.deleteTableFromCatalog(this.catalog, ImmutableList.of(ImmutableList.of(fullTableName)));
   }
 
   @Override
   public void removeFunction(String function) {
-    CatalogOperations.deleteFunctionFromCatalog(this.catalog, List.of(List.of(function)));
+    CatalogOperations.deleteFunctionFromCatalog(this.catalog, ImmutableList.of(ImmutableList.of(function)));
   }
 
   @Override
   public void removeTVF(String function) {
-    CatalogOperations.deleteTVFFromCatalog(this.catalog, List.of(List.of(function)));
+    CatalogOperations.deleteTVFFromCatalog(this.catalog, ImmutableList.of(ImmutableList.of(function)));
   }
 
   @Override
   public void removeProcedure(String procedure) {
-    CatalogOperations.deleteProcedureFromCatalog(this.catalog, List.of(List.of(procedure)));
+    CatalogOperations.deleteProcedureFromCatalog(this.catalog, ImmutableList.of(ImmutableList.of(procedure)));
   }
 
   @Override

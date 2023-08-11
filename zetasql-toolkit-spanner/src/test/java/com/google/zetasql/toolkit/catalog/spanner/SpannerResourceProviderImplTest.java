@@ -22,6 +22,7 @@ import static org.mockito.Mockito.*;
 import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.ResultSet;
 import com.google.cloud.spanner.Spanner;
+import com.google.common.collect.ImmutableList;
 import com.google.zetasql.SimpleColumn;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.TypeFactory;
@@ -49,7 +50,7 @@ public class SpannerResourceProviderImplTest {
   SimpleTable exampleTable =
       new SimpleTable(
           "table",
-          List.of(
+          ImmutableList.of(
               new SimpleColumn(
                   "table", "column", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
 
@@ -74,7 +75,7 @@ public class SpannerResourceProviderImplTest {
     ResultSet resultSetForExampleTable = resultSetForExampleTable();
     when(dbClient.singleUse().executeQuery(any())).thenReturn(resultSetForExampleTable);
 
-    List<SimpleTable> tables = spannerResourceProvider.getTables(List.of("table"));
+    List<SimpleTable> tables = spannerResourceProvider.getTables(ImmutableList.of("table"));
 
     assertEquals(1, tables.size());
     assertTrue(CatalogTestUtils.tableEquals(exampleTable, tables.get(0)));
@@ -87,6 +88,6 @@ public class SpannerResourceProviderImplTest {
     when(dbClient.singleUse().executeQuery(any())).thenReturn(resultSet);
 
     assertThrows(
-        SpannerTablesNotFound.class, () -> spannerResourceProvider.getTables(List.of("table")));
+        SpannerTablesNotFound.class, () -> spannerResourceProvider.getTables(ImmutableList.of("table")));
   }
 }

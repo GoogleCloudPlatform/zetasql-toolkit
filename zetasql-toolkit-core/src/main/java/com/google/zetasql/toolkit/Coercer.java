@@ -356,7 +356,7 @@ class Coercer {
         .map(typeCoercion -> typeCoercion.coercionMode)
         .findFirst();
 
-    if(maybeCoercionMode.isEmpty()) {
+    if(!maybeCoercionMode.isPresent()) {
       return false;
     }
 
