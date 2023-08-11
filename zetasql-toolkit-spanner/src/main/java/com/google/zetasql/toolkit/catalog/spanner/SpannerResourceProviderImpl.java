@@ -24,8 +24,11 @@ import com.google.zetasql.toolkit.catalog.CatalogOperations;
 import com.google.zetasql.toolkit.catalog.spanner.exceptions.SpannerTablesNotFound;
 import com.google.zetasql.toolkit.catalog.typeparser.ZetaSQLTypeParser;
 import com.google.zetasql.toolkit.usage.UsageTracking;
-import java.util.*;
-import java.util.function.Predicate;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -106,7 +109,7 @@ public class SpannerResourceProviderImpl implements SpannerResourceProvider {
 
       List<String> notFoundTables =
           tableNames.stream()
-              .filter(Predicate.not(namesOfFetchedTables::contains))
+              .filter(tableName -> !namesOfFetchedTables.contains(tableName))
               .collect(Collectors.toList());
 
       throw new SpannerTablesNotFound(notFoundTables);

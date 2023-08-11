@@ -58,14 +58,14 @@ public class BigQueryCatalogTest {
 
   FunctionInfo exampleFunction =
       FunctionInfo.newBuilder()
-          .setNamePath(List.of(testProjectId, "dataset", "examplefunction"))
+          .setNamePath(ImmutableList.of(testProjectId, "dataset", "examplefunction"))
           .setGroup("UDF")
           .setMode(Mode.SCALAR)
           .setSignatures(
-              List.of(
+              ImmutableList.of(
                   new FunctionSignature(
                       new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
-                      List.of(),
+                      ImmutableList.of(),
                       -1)))
           .build();
 
@@ -74,7 +74,7 @@ public class BigQueryCatalogTest {
           .setNamePath(ImmutableList.of(testProjectId, "dataset", "exampletvf"))
           .setSignature(
               new FunctionSignature(
-                  new FunctionArgumentType(SignatureArgumentKind.ARG_TYPE_RELATION), List.of(), -1))
+                  new FunctionArgumentType(SignatureArgumentKind.ARG_TYPE_RELATION), ImmutableList.of(), -1))
           .setOutputSchema(
               TVFRelation.createValueTableBased(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)))
           .build();
@@ -84,7 +84,7 @@ public class BigQueryCatalogTest {
           ImmutableList.of(testProjectId, "dataset", "exampleprocedure"),
           new FunctionSignature(
               new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
-              List.of(),
+              ImmutableList.of(),
               -1));
 
   @BeforeEach
@@ -99,7 +99,7 @@ public class BigQueryCatalogTest {
     exampleTableInDefaultProject =
         new SimpleTable(
             exampleTableName,
-            List.of(
+            ImmutableList.of(
                 new SimpleColumn(
                     exampleTableName, "col1", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
     exampleTableInDefaultProject.setFullName(
@@ -114,7 +114,7 @@ public class BigQueryCatalogTest {
     replacementTableInDefaultProject =
         new SimpleTable(
             exampleTableName,
-            List.of(
+            ImmutableList.of(
                 new SimpleColumn(
                     exampleTableName, "col1", TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
                 new SimpleColumn(
@@ -127,19 +127,19 @@ public class BigQueryCatalogTest {
     BigQueryReference ref = BigQueryReference.from(this.testProjectId, resourceReference);
 
     List<List<String>> fullyQualifiedPaths =
-        List.of(
-            List.of(ref.getProjectId() + "." + ref.getDatasetId() + "." + ref.getResourceName()),
-            List.of(ref.getProjectId(), ref.getDatasetId() + "." + ref.getResourceName()),
-            List.of(ref.getProjectId() + "." + ref.getDatasetId(), ref.getResourceName()),
-            List.of(ref.getProjectId(), ref.getDatasetId(), ref.getResourceName()));
+        ImmutableList.of(
+            ImmutableList.of(ref.getProjectId() + "." + ref.getDatasetId() + "." + ref.getResourceName()),
+            ImmutableList.of(ref.getProjectId(), ref.getDatasetId() + "." + ref.getResourceName()),
+            ImmutableList.of(ref.getProjectId() + "." + ref.getDatasetId(), ref.getResourceName()),
+            ImmutableList.of(ref.getProjectId(), ref.getDatasetId(), ref.getResourceName()));
 
     List<List<String>> result = new ArrayList<>(fullyQualifiedPaths);
 
     if (ref.getProjectId().equals(this.testProjectId)) {
       List<List<String>> implicitProjectPaths =
-          List.of(
-              List.of(ref.getDatasetId() + "." + ref.getResourceName()),
-              List.of(ref.getDatasetId(), ref.getResourceName()));
+          ImmutableList.of(
+              ImmutableList.of(ref.getDatasetId() + "." + ref.getResourceName()),
+              ImmutableList.of(ref.getDatasetId(), ref.getResourceName()));
       result.addAll(implicitProjectPaths);
     }
 
@@ -199,11 +199,11 @@ public class BigQueryCatalogTest {
 
     Type integerType =
         assertDoesNotThrow(
-            () -> underlyingCatalog.findType(List.of("INTEGER")),
+            () -> underlyingCatalog.findType(ImmutableList.of("INTEGER")),
             "BigQuery catalogs should support the INTEGER type name");
     Type decimalType =
         assertDoesNotThrow(
-            () -> underlyingCatalog.findType(List.of("DECIMAL")),
+            () -> underlyingCatalog.findType(ImmutableList.of("DECIMAL")),
             "BigQuery catalogs should support the DECIMAL type name");
 
     assertEquals(
@@ -224,13 +224,13 @@ public class BigQueryCatalogTest {
     SimpleTable table =
         new SimpleTable(
             tableName,
-            List.of(
+            ImmutableList.of(
                 new SimpleColumn(
                     tableName, "column", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
     table.setFullName(invalidFullName);
 
     when(this.bigQueryResourceProviderMock.getTables(anyString(), anyList()))
-        .thenReturn(List.of(table));
+        .thenReturn(ImmutableList.of(table));
 
     assertThrows(
         InvalidBigQueryReference.class,
@@ -274,7 +274,7 @@ public class BigQueryCatalogTest {
 
     BigQueryReference ref =
         BigQueryReference.from(this.testProjectId, exampleTableInNonDefaultProject.getFullName());
-    List<String> pathWhereTableShouldNotBe = List.of(ref.getDatasetId(), ref.getResourceName());
+    List<String> pathWhereTableShouldNotBe = ImmutableList.of(ref.getDatasetId(), ref.getResourceName());
 
     assertThrows(
         NotFoundException.class,
@@ -338,10 +338,10 @@ public class BigQueryCatalogTest {
   void testAddTablesByName() {
     // When BigQueryResourceProvider.getTables() is called, return the test table
     when(bigQueryResourceProviderMock.getTables(anyString(), anyList()))
-        .thenReturn(List.of(exampleTableInDefaultProject));
+        .thenReturn(ImmutableList.of(exampleTableInDefaultProject));
 
     // Add the tables by name
-    bigQueryCatalog.addTables(List.of(exampleTableInDefaultProject.getFullName()));
+    bigQueryCatalog.addTables(ImmutableList.of(exampleTableInDefaultProject.getFullName()));
 
     // Verify the BigQueryCatalog got the tables from the BigQueryResourceProvider
     verify(bigQueryResourceProviderMock, times(1)).getTables(anyString(), anyList());
@@ -355,7 +355,7 @@ public class BigQueryCatalogTest {
   @Test
   void testAddAllTablesInDataset() {
     when(bigQueryResourceProviderMock.getAllTablesInDataset(anyString(), anyString()))
-        .thenReturn(List.of(exampleTableInDefaultProject));
+        .thenReturn(ImmutableList.of(exampleTableInDefaultProject));
 
     bigQueryCatalog.addAllTablesInDataset(testProjectId, "dataset");
 
@@ -369,7 +369,7 @@ public class BigQueryCatalogTest {
   @Test
   void testAddAllTablesInProject() {
     when(bigQueryResourceProviderMock.getAllTablesInProject(anyString()))
-        .thenReturn(List.of(exampleTableInDefaultProject));
+        .thenReturn(ImmutableList.of(exampleTableInDefaultProject));
 
     bigQueryCatalog.addAllTablesInProject(testProjectId);
 
@@ -397,15 +397,15 @@ public class BigQueryCatalogTest {
   void testInferFunctionReturnType() {
     FunctionInfo functionWithUnknownReturnType =
         FunctionInfo.newBuilder()
-            .setNamePath(List.of(testProjectId, "dataset", "function"))
+            .setNamePath(ImmutableList.of(testProjectId, "dataset", "function"))
             .setGroup("UDF")
             .setMode(Mode.SCALAR)
             .setSignatures(
-                List.of(
+                ImmutableList.of(
                     new FunctionSignature(
                         new FunctionArgumentType(
                             TypeFactory.createSimpleType(TypeKind.TYPE_UNKNOWN)),
-                        List.of(),
+                        ImmutableList.of(),
                         -1)))
             .setLanguage(FunctionInfo.Language.SQL)
             .setBody("5.6 + 5")

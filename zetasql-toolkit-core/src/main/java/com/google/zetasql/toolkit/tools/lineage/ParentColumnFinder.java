@@ -16,6 +16,7 @@
 
 package com.google.zetasql.toolkit.tools.lineage;
 
+import com.google.common.collect.ImmutableList;
 import com.google.zetasql.resolvedast.ResolvedColumn;
 import com.google.zetasql.resolvedast.ResolvedNode;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedAggregateScan;
@@ -61,7 +62,7 @@ class ParentColumnFinder extends Visitor {
     containingNode.accept(this);
 
     ArrayList<ResolvedColumn> result = new ArrayList<>();
-    Queue<ResolvedColumn> resolutionQueue = new ArrayDeque<>(List.of(column));
+    Queue<ResolvedColumn> resolutionQueue = new ArrayDeque<>(ImmutableList.of(column));
 
     while (resolutionQueue.peek() != null) {
       ResolvedColumn current = resolutionQueue.remove();
@@ -107,7 +108,7 @@ class ParentColumnFinder extends Visitor {
         .filter(withEntry -> withEntry.getWithQueryName().equals(withRefScan.getWithQueryName()))
         .findFirst();
 
-    if (maybeWithEntry.isEmpty()) {
+    if (!maybeWithEntry.isPresent()) {
       return;
     }
 

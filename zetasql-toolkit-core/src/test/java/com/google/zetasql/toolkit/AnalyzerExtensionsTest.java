@@ -18,6 +18,7 @@ package com.google.zetasql.toolkit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.google.common.collect.ImmutableList;
 import com.google.zetasql.LanguageOptions;
 import com.google.zetasql.ParseResumeLocation;
 import java.util.List;
@@ -36,7 +37,7 @@ public class AnalyzerExtensionsTest {
   void testExtractFunctionNamesFromStatement() {
     String query = "SELECT f1(), c.f2(), `c.f3`();";
 
-    List<List<String>> expected = List.of(List.of("f1"), List.of("c", "f2"), List.of("c.f3"));
+    List<List<String>> expected = ImmutableList.of(ImmutableList.of("f1"), ImmutableList.of("c", "f2"), ImmutableList.of("c.f3"));
 
     List<List<String>> extractedFunctions =
         AnalyzerExtensions.extractFunctionNamesFromStatement(query, languageOptions);
@@ -48,7 +49,7 @@ public class AnalyzerExtensionsTest {
   void testExtractFunctionNamesFromScript() {
     String script = "INSERT INTO t(column) VALUES (f1(1));\n" + "SELECT c.f2(column) FROM t;\n";
 
-    List<List<String>> expected = List.of(List.of("f1"), List.of("c", "f2"));
+    List<List<String>> expected = ImmutableList.of(ImmutableList.of("f1"), ImmutableList.of("c", "f2"));
 
     List<List<String>> extractedFunctions =
         AnalyzerExtensions.extractFunctionNamesFromScript(script, languageOptions);
@@ -62,7 +63,7 @@ public class AnalyzerExtensionsTest {
 
     ParseResumeLocation parseResumeLocation = new ParseResumeLocation(script);
 
-    List<List<String>> expected = List.of(List.of("f1"));
+    List<List<String>> expected = ImmutableList.of(ImmutableList.of("f1"));
 
     List<List<String>> extractedFunctions =
         AnalyzerExtensions.extractFunctionNamesFromNextStatement(
@@ -75,7 +76,7 @@ public class AnalyzerExtensionsTest {
   void testExtractTVFNamesFromStatement() {
     String query = "SELECT * FROM f1(), c.f2(), `c.f3`();";
 
-    List<List<String>> expected = List.of(List.of("f1"), List.of("c", "f2"), List.of("c.f3"));
+    List<List<String>> expected = ImmutableList.of(ImmutableList.of("f1"), ImmutableList.of("c", "f2"), ImmutableList.of("c.f3"));
 
     List<List<String>> extractedFunctions =
         AnalyzerExtensions.extractTVFNamesFromStatement(query, languageOptions);
@@ -88,7 +89,7 @@ public class AnalyzerExtensionsTest {
     String script =
         "INSERT INTO t(column) SELECT column FROM f1(1);\n" + "SELECT * FROM c.f2(column);\n";
 
-    List<List<String>> expected = List.of(List.of("f1"), List.of("c", "f2"));
+    List<List<String>> expected = ImmutableList.of(ImmutableList.of("f1"), ImmutableList.of("c", "f2"));
 
     List<List<String>> extractedFunctions =
         AnalyzerExtensions.extractTVFNamesFromScript(script, languageOptions);
@@ -103,7 +104,7 @@ public class AnalyzerExtensionsTest {
 
     ParseResumeLocation parseResumeLocation = new ParseResumeLocation(script);
 
-    List<List<String>> expected = List.of(List.of("f1"));
+    List<List<String>> expected = ImmutableList.of(ImmutableList.of("f1"));
 
     List<List<String>> extractedFunctions =
         AnalyzerExtensions.extractTVFNamesFromNextStatement(parseResumeLocation, languageOptions);
@@ -115,7 +116,7 @@ public class AnalyzerExtensionsTest {
   void testExtractProcedureNamesFromStatement() {
     String query = "CALL p1();";
 
-    List<List<String>> expected = List.of(List.of("p1"));
+    List<List<String>> expected = ImmutableList.of(ImmutableList.of("p1"));
 
     List<List<String>> extractedProcedures =
         AnalyzerExtensions.extractProcedureNamesFromStatement(query, languageOptions);
@@ -127,7 +128,7 @@ public class AnalyzerExtensionsTest {
   void testExtractProcedureNamesFromScript() {
     String script = "CALL c.p1(); CALL `c.p2`();";
 
-    List<List<String>> expected = List.of(List.of("c", "p1"), List.of("c.p2"));
+    List<List<String>> expected = ImmutableList.of(ImmutableList.of("c", "p1"), ImmutableList.of("c.p2"));
 
     List<List<String>> extractedProcedures =
         AnalyzerExtensions.extractProcedureNamesFromScript(script, languageOptions);
@@ -141,7 +142,7 @@ public class AnalyzerExtensionsTest {
 
     ParseResumeLocation parseResumeLocation = new ParseResumeLocation(query);
 
-    List<List<String>> expected = List.of(List.of("p1"));
+    List<List<String>> expected = ImmutableList.of(ImmutableList.of("p1"));
 
     List<List<String>> extractedProcedures =
         AnalyzerExtensions.extractProcedureNamesFromNextStatement(

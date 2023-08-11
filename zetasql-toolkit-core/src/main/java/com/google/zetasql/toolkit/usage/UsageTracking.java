@@ -21,6 +21,7 @@ import com.google.api.gax.rpc.HeaderProvider;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 import java.util.Properties;
 
 public class UsageTracking {
@@ -32,15 +33,15 @@ public class UsageTracking {
   static {
     String revision = "UNSET";
 
-    InputStream propertiesInputStream =
-        UsageTracking.class.getResourceAsStream("/zetasql-toolkit-core.properties");
+    try (InputStream propertiesInputStream =
+        UsageTracking.class.getResourceAsStream("/zetasql-toolkit-core.properties")) {
 
-    try (propertiesInputStream) {
-      Properties properties = new Properties();
-      properties.load(propertiesInputStream);
-      revision = properties.getProperty("zetasql.toolkit.version", "UNSET");
-    } catch (IOException ignored) {
-    }
+      if (Objects.nonNull(propertiesInputStream)) {
+        Properties properties = new Properties();
+        properties.load(propertiesInputStream);
+        revision = properties.getProperty("zetasql.toolkit.version", "UNSET");
+      }
+    } catch (IOException ignored) {}
 
     CURRENT_REVISION = revision;
     USER_AGENT_VALUE = String.format("google-pso-tool/zetasql-helper/%s", revision);

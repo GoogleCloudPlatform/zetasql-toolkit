@@ -18,6 +18,7 @@ package com.google.zetasql.toolkit.catalog.spanner;
 
 import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.Spanner;
+import com.google.common.collect.ImmutableList;
 import com.google.zetasql.Analyzer;
 import com.google.zetasql.AnalyzerOptions;
 import com.google.zetasql.Constant;
@@ -70,7 +71,7 @@ public class SpannerCatalog implements CatalogWrapper {
    * @param instance The Spanner instance name
    * @param database The Spanner database name
    */
-  @Deprecated(since = "0.4.0", forRemoval = true)
+  @Deprecated
   public SpannerCatalog(String projectId, String instance, String database) {
     this(SpannerResourceProviderImpl.buildDefault(projectId, instance, database));
   }
@@ -86,7 +87,7 @@ public class SpannerCatalog implements CatalogWrapper {
    * @param database The Spanner database name
    * @param spannerClient The Spanner client to use
    */
-  @Deprecated(since = "0.4.0", forRemoval = true)
+  @Deprecated
   public SpannerCatalog(String projectId, String instance, String database, Spanner spannerClient) {
     this(SpannerResourceProviderImpl.build(projectId, instance, database, spannerClient));
   }
@@ -158,7 +159,7 @@ public class SpannerCatalog implements CatalogWrapper {
 
     CatalogOperations.createTableInCatalog(
         this.catalog,
-        List.of(List.of(table.getName())),
+        ImmutableList.of(ImmutableList.of(table.getName())),
         table.getName(),
         table.getColumnList(),
         createMode);
@@ -189,8 +190,8 @@ public class SpannerCatalog implements CatalogWrapper {
 
   @Override
   public void removeTable(String table) {
-    this.validateSpannerTableNames(List.of(table));
-    CatalogOperations.deleteTableFromCatalog(this.catalog, List.of(List.of(table)));
+    this.validateSpannerTableNames(ImmutableList.of(table));
+    CatalogOperations.deleteTableFromCatalog(this.catalog, ImmutableList.of(ImmutableList.of(table)));
   }
 
   @Override
@@ -265,7 +266,7 @@ public class SpannerCatalog implements CatalogWrapper {
         Analyzer.extractTableNamesFromScript(query, options).stream()
             .map(tablePath -> String.join(".", tablePath))
             .collect(Collectors.toSet());
-    this.addTables(List.copyOf(tables));
+    this.addTables(ImmutableList.copyOf(tables));
   }
 
   @Override

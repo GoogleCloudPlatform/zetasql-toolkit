@@ -36,26 +36,26 @@ class CatalogOperationsTest {
     SimpleTable sampleTable =
         new SimpleTable(
             "sample",
-            List.of(
+            ImmutableList.of(
                 new SimpleColumn(
                     "sample", "column", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
     catalog.addSimpleTable(sampleTable);
 
     Function function =
         new Function(
-            List.of("function"),
+            ImmutableList.of("function"),
             "UDF",
             ZetaSQLFunctions.FunctionEnums.Mode.SCALAR,
-            List.of(
+            ImmutableList.of(
                 new FunctionSignature(
                     new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
-                    List.of(),
+                    ImmutableList.of(),
                     -1)));
     catalog.addFunction(function);
 
     TVFRelation tvfOutputSchema =
         TVFRelation.createColumnBased(
-            List.of(
+            ImmutableList.of(
                 TVFRelation.Column.create(
                     "output", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
     TableValuedFunction tvf =
@@ -68,17 +68,17 @@ class CatalogOperationsTest {
                         .setRelationInputSchema(tvfOutputSchema)
                         .build(),
                     1),
-                List.of(),
+                ImmutableList.of(),
                 -1),
             tvfOutputSchema);
     catalog.addTableValuedFunction(tvf);
 
     Procedure procedure =
         new Procedure(
-            List.of("procedure"),
+            ImmutableList.of("procedure"),
             new FunctionSignature(
                 new FunctionArgumentType(ZetaSQLFunctions.SignatureArgumentKind.ARG_TYPE_VOID),
-                List.of(),
+                ImmutableList.of(),
                 -1));
     catalog.addProcedure(procedure);
 
@@ -107,14 +107,14 @@ class CatalogOperationsTest {
     SimpleTable newTable =
         new SimpleTable(
             tableName,
-            List.of(
+            ImmutableList.of(
                 new SimpleColumn(
                     tableName, "column", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
     newTable.setFullName(fullTableName);
 
-    List<String> newTablePath1 = List.of("newTable");
-    List<String> newTablePath2 = List.of("qualified", "newTable");
-    List<List<String>> newTablePaths = List.of(newTablePath1, newTablePath2);
+    List<String> newTablePath1 = ImmutableList.of("newTable");
+    List<String> newTablePath2 = ImmutableList.of("qualified", "newTable");
+    List<List<String>> newTablePaths = ImmutableList.of(newTablePath1, newTablePath2);
 
     CatalogOperations.createTableInCatalog(
         this.testCatalog,
@@ -131,10 +131,10 @@ class CatalogOperationsTest {
 
   @Test
   void testDeleteTableFromCatalog() {
-    List<String> sampleTablePath = List.of("sample");
-    List<String> nestedSampleTablePath = List.of("nested", "sample");
+    List<String> sampleTablePath = ImmutableList.of("sample");
+    List<String> nestedSampleTablePath = ImmutableList.of("nested", "sample");
 
-    List<List<String>> tablePathsToDelete = List.of(sampleTablePath, nestedSampleTablePath);
+    List<List<String>> tablePathsToDelete = ImmutableList.of(sampleTablePath, nestedSampleTablePath);
     CatalogOperations.deleteTableFromCatalog(this.testCatalog, tablePathsToDelete);
 
     assertAll(
@@ -152,18 +152,18 @@ class CatalogOperationsTest {
     SimpleTable newTable =
         new SimpleTable(
             tableName,
-            List.of(
+            ImmutableList.of(
                 new SimpleColumn(
                     tableName, "column", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))));
 
-    List<String> tablePath = List.of("sample");
+    List<String> tablePath = ImmutableList.of("sample");
 
     assertThrows(
         CatalogResourceAlreadyExists.class,
         () ->
             CatalogOperations.createTableInCatalog(
                 this.testCatalog,
-                List.of(tablePath),
+                ImmutableList.of(tablePath),
                 "sample",
                 newTable.getColumnList(),
                 CreateMode.CREATE_DEFAULT));
@@ -175,15 +175,15 @@ class CatalogOperationsTest {
     SimpleTable newTable =
         new SimpleTable(
             tableName,
-            List.of(
+            ImmutableList.of(
                 new SimpleColumn(
                     tableName, "column", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))));
 
-    List<String> tablePath = List.of("sample");
+    List<String> tablePath = ImmutableList.of("sample");
 
     CatalogOperations.createTableInCatalog(
         this.testCatalog,
-        List.of(tablePath),
+        ImmutableList.of(tablePath),
         "sample",
         newTable.getColumnList(),
         CreateMode.CREATE_OR_REPLACE);
@@ -203,17 +203,17 @@ class CatalogOperationsTest {
     SimpleTable newTable =
         new SimpleTable(
             tableName,
-            List.of(
+            ImmutableList.of(
                 new SimpleColumn(
                     tableName, "column", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))));
 
-    List<String> sampleTablePath = List.of("sample");
+    List<String> sampleTablePath = ImmutableList.of("sample");
 
     Table originalTable = this.testCatalog.findTable(sampleTablePath);
 
     CatalogOperations.createTableInCatalog(
         this.testCatalog,
-        List.of(sampleTablePath),
+        ImmutableList.of(sampleTablePath),
         "sample",
         newTable.getColumnList(),
         CreateMode.CREATE_IF_NOT_EXISTS);
@@ -236,15 +236,15 @@ class CatalogOperationsTest {
     SimpleTable newTable =
         new SimpleTable(
             tableName,
-            List.of(
+            ImmutableList.of(
                 new SimpleColumn(
                     tableName, "column", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))));
 
-    List<String> newTablePath = List.of("newTable");
+    List<String> newTablePath = ImmutableList.of("newTable");
 
     CatalogOperations.createTableInCatalog(
         this.testCatalog,
-        List.of(newTablePath),
+        ImmutableList.of(newTablePath),
         "newTable",
         newTable.getColumnList(),
         CreateMode.CREATE_IF_NOT_EXISTS);
@@ -268,21 +268,21 @@ class CatalogOperationsTest {
   void testCreateFunctionInCatalog() {
     FunctionInfo newFunction =
         FunctionInfo.newBuilder()
-            .setNamePath(List.of("newFunction"))
+            .setNamePath(ImmutableList.of("newFunction"))
             .setGroup("UDF")
             .setMode(ZetaSQLFunctions.FunctionEnums.Mode.SCALAR)
             .setSignatures(
-                List.of(
+                ImmutableList.of(
                     new FunctionSignature(
                         new FunctionArgumentType(
                             TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
-                        List.of(),
+                        ImmutableList.of(),
                         -1)))
             .build();
 
-    List<String> newFunctionPath1 = List.of("newFunction");
-    List<String> newFunctionPath2 = List.of("qualified", "newFunction");
-    List<List<String>> newFunctionPaths = List.of(newFunctionPath1, newFunctionPath2);
+    List<String> newFunctionPath1 = ImmutableList.of("newFunction");
+    List<String> newFunctionPath2 = ImmutableList.of("qualified", "newFunction");
+    List<List<String>> newFunctionPaths = ImmutableList.of(newFunctionPath1, newFunctionPath2);
 
     CatalogOperations.createFunctionInCatalog(
         this.testCatalog, newFunctionPaths, newFunction, CreateMode.CREATE_DEFAULT);
@@ -304,11 +304,11 @@ class CatalogOperationsTest {
 
   @Test
   void testDeleteFunctionFromCatalog() {
-    List<String> sampleFunctionPath = List.of("function");
-    List<String> nestedSampleFunctionPath = List.of("nested", "function");
+    List<String> sampleFunctionPath = ImmutableList.of("function");
+    List<String> nestedSampleFunctionPath = ImmutableList.of("nested", "function");
 
     List<List<String>> functionPathsToDelete =
-        List.of(sampleFunctionPath, nestedSampleFunctionPath);
+        ImmutableList.of(sampleFunctionPath, nestedSampleFunctionPath);
     CatalogOperations.deleteFunctionFromCatalog(this.testCatalog, functionPathsToDelete);
 
     assertAll(
@@ -343,16 +343,16 @@ class CatalogOperationsTest {
                 new FunctionSignature(
                     new FunctionArgumentType(
                         ZetaSQLFunctions.SignatureArgumentKind.ARG_TYPE_RELATION),
-                    List.of(),
+                    ImmutableList.of(),
                     -1))
             .setOutputSchema(
                 TVFRelation.createValueTableBased(
                     TypeFactory.createSimpleType(TypeKind.TYPE_STRING)))
             .build();
 
-    List<String> newFunctionPath1 = List.of("newTVF");
-    List<String> newFunctionPath2 = List.of("qualified", "newTVF");
-    List<List<String>> newFunctionPaths = List.of(newFunctionPath1, newFunctionPath2);
+    List<String> newFunctionPath1 = ImmutableList.of("newTVF");
+    List<String> newFunctionPath2 = ImmutableList.of("qualified", "newTVF");
+    List<List<String>> newFunctionPaths = ImmutableList.of(newFunctionPath1, newFunctionPath2);
 
     CatalogOperations.createTVFInCatalog(
         this.testCatalog, newFunctionPaths, newTVF, CreateMode.CREATE_DEFAULT);
@@ -372,11 +372,11 @@ class CatalogOperationsTest {
 
   @Test
   void testDeleteTVFFromCatalog() {
-    List<String> sampleFunctionPath = List.of("tvf");
-    List<String> nestedSampleFunctionPath = List.of("nested", "tvf");
+    List<String> sampleFunctionPath = ImmutableList.of("tvf");
+    List<String> nestedSampleFunctionPath = ImmutableList.of("nested", "tvf");
 
     List<List<String>> functionPathsToDelete =
-        List.of(sampleFunctionPath, nestedSampleFunctionPath);
+        ImmutableList.of(sampleFunctionPath, nestedSampleFunctionPath);
     CatalogOperations.deleteTVFFromCatalog(this.testCatalog, functionPathsToDelete);
 
     assertAll(
@@ -407,12 +407,12 @@ class CatalogOperationsTest {
             ImmutableList.of("newProcedure"),
             new FunctionSignature(
                 new FunctionArgumentType(ZetaSQLFunctions.SignatureArgumentKind.ARG_TYPE_VOID),
-                List.of(),
+                ImmutableList.of(),
                 -1));
 
-    List<String> newProcedurePath1 = List.of("newProcedure");
-    List<String> newProcedurePath2 = List.of("qualified", "newProcedure");
-    List<List<String>> newProcedurePaths = List.of(newProcedurePath1, newProcedurePath2);
+    List<String> newProcedurePath1 = ImmutableList.of("newProcedure");
+    List<String> newProcedurePath2 = ImmutableList.of("qualified", "newProcedure");
+    List<List<String>> newProcedurePaths = ImmutableList.of(newProcedurePath1, newProcedurePath2);
 
     CatalogOperations.createProcedureInCatalog(
         this.testCatalog, newProcedurePaths, newProcedure, CreateMode.CREATE_DEFAULT);
@@ -428,10 +428,10 @@ class CatalogOperationsTest {
 
   @Test
   void testDeleteProcedureFromCatalog() {
-    List<String> sampleProcedurePath = List.of("procedure");
-    List<String> nestedSampleProcedurePath = List.of("nested", "procedure");
+    List<String> sampleProcedurePath = ImmutableList.of("procedure");
+    List<String> nestedSampleProcedurePath = ImmutableList.of("nested", "procedure");
 
-    List<List<String>> pathsToDelete = List.of(sampleProcedurePath, nestedSampleProcedurePath);
+    List<List<String>> pathsToDelete = ImmutableList.of(sampleProcedurePath, nestedSampleProcedurePath);
     CatalogOperations.deleteProcedureFromCatalog(this.testCatalog, pathsToDelete);
 
     assertAll(
@@ -449,8 +449,8 @@ class CatalogOperationsTest {
   void testCopyCatalog() {
     SimpleCatalog copiedCatalog = CatalogOperations.copyCatalog(this.testCatalog);
 
-    List<String> sampleTablePath = List.of("sample");
-    List<String> nestedTablePath = List.of("nested", "sample");
+    List<String> sampleTablePath = ImmutableList.of("sample");
+    List<String> nestedTablePath = ImmutableList.of("nested", "sample");
 
     Table copiedTable =
         assertTableExists(

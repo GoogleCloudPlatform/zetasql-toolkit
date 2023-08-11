@@ -21,6 +21,7 @@ import static org.mockito.Mockito.*;
 
 import com.google.api.gax.paging.Page;
 import com.google.cloud.bigquery.*;
+import com.google.common.collect.ImmutableList;
 import com.google.zetasql.toolkit.catalog.bigquery.BigQueryService.Result;
 import com.google.zetasql.toolkit.catalog.bigquery.exceptions.BigQueryAPIError;
 import java.util.List;
@@ -64,7 +65,7 @@ public class BigQueryServiceTest {
     Dataset mockDataset = mock(Dataset.class);
     when(mockDataset.getDatasetId()).thenReturn(datasetId);
 
-    Page<Dataset> mockPage = createMockPage(List.of(mockDataset));
+    Page<Dataset> mockPage = createMockPage(ImmutableList.of(mockDataset));
     when(bigqueryClientMock.listDatasets(anyString(), any())).thenReturn(mockPage);
 
     Result<List<DatasetId>> listDatasetsResult = bigQueryService.listDatasets(projectId);
@@ -73,7 +74,7 @@ public class BigQueryServiceTest {
 
     List<DatasetId> listedDatasetIds = listDatasetsResult.get();
 
-    assertIterableEquals(List.of(datasetId), listedDatasetIds);
+    assertIterableEquals(ImmutableList.of(datasetId), listedDatasetIds);
   }
 
   @Test
@@ -86,7 +87,7 @@ public class BigQueryServiceTest {
     Table mockTable = mock(Table.class);
     when(mockTable.getTableId()).thenReturn(tableId);
 
-    Page<Table> mockPage = createMockPage(List.of(mockTable));
+    Page<Table> mockPage = createMockPage(ImmutableList.of(mockTable));
     when(bigqueryClientMock.listTables(any(DatasetId.class), any())).thenReturn(mockPage);
 
     Result<List<TableId>> listTablesResult = bigQueryService.listTables(projectId, datasetName);
@@ -95,7 +96,7 @@ public class BigQueryServiceTest {
 
     List<TableId> listedTableIds = listTablesResult.get();
 
-    assertIterableEquals(List.of(tableId), listedTableIds);
+    assertIterableEquals(ImmutableList.of(tableId), listedTableIds);
   }
 
   @Test
@@ -108,7 +109,7 @@ public class BigQueryServiceTest {
     Routine mockRoutine = mock(Routine.class);
     when(mockRoutine.getRoutineId()).thenReturn(routineId);
 
-    Page<Routine> mockPage = createMockPage(List.of(mockRoutine));
+    Page<Routine> mockPage = createMockPage(ImmutableList.of(mockRoutine));
     when(bigqueryClientMock.listRoutines(any(DatasetId.class), any())).thenReturn(mockPage);
 
     Result<List<RoutineId>> listRoutinesResult =
@@ -118,7 +119,7 @@ public class BigQueryServiceTest {
 
     List<RoutineId> listedRoutineIds = listRoutinesResult.get();
 
-    assertIterableEquals(List.of(routineId), listedRoutineIds);
+    assertIterableEquals(ImmutableList.of(routineId), listedRoutineIds);
   }
 
   @Test

@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.zetasql.toolkit.catalog.bigquery.exceptions.InvalidBigQueryReference;
 import java.util.Arrays;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -70,7 +69,7 @@ class BigQueryReference {
     LinkedList<String> elements = new LinkedList<>(Arrays.asList(referenceString.split("\\.")));
     int numberOfElements = elements.size();
 
-    if (!List.of(2, 3).contains(numberOfElements)) {
+    if (!ImmutableList.of(2, 3).contains(numberOfElements)) {
       throw new InvalidBigQueryReference(referenceString);
     }
 

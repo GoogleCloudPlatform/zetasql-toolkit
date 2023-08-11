@@ -16,6 +16,7 @@
 
 package com.google.zetasql.toolkit.examples;
 
+import com.google.common.collect.ImmutableList;
 import com.google.zetasql.AnalyzerOptions;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
 import com.google.zetasql.toolkit.AnalyzedStatement;
@@ -26,7 +27,6 @@ import com.google.zetasql.toolkit.tools.lineage.ColumnLineageExtractor;
 import com.google.zetasql.toolkit.tools.lineage.ColumnEntity;
 import com.google.zetasql.toolkit.tools.lineage.ColumnLineage;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
 public class ExtractColumnLevelLineage {
@@ -130,7 +130,7 @@ public class ExtractColumnLevelLineage {
 
   public static void main(String[] args) {
     BigQueryCatalog catalog = BigQueryCatalog.usingBigQueryAPI("bigquery-public-data");
-    catalog.addTables(List.of(
+    catalog.addTables(ImmutableList.of(
         "bigquery-public-data.samples.wikipedia",
         "bigquery-public-data.samples.shakespeare"
     ));

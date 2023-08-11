@@ -85,7 +85,7 @@ public class CatalogOperations {
 
   /** Returns true if a table named tableName exists in the SimpleCatalog */
   private static boolean tableExists(SimpleCatalog catalog, String tableName) {
-    return tableExists(catalog, List.of(tableName));
+    return tableExists(catalog, ImmutableList.of(tableName));
   }
 
   private static String removeGroupFromFunctionName(String functionName) {
@@ -312,7 +312,7 @@ public class CatalogOperations {
 
       Function finalFunction =
           new Function(
-              List.of(functionName),
+              ImmutableList.of(functionName),
               functionInfo.getGroup(),
               functionInfo.getMode(),
               functionInfo.getSignatures());
