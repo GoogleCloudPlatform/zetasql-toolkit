@@ -150,7 +150,6 @@ public class BigQueryLanguageOptions {
             ResolvedNodeKind.RESOLVED_DROP_FUNCTION_STMT,
             ResolvedNodeKind.RESOLVED_DROP_MATERIALIZED_VIEW_STMT,
             ResolvedNodeKind.RESOLVED_DROP_ROW_ACCESS_POLICY_STMT,
-            ResolvedNodeKind.RESOLVED_DROP_SEARCH_INDEX_STMT,
             ResolvedNodeKind.RESOLVED_DROP_SNAPSHOT_TABLE_STMT,
             ResolvedNodeKind.RESOLVED_DROP_STMT,
             ResolvedNodeKind.RESOLVED_DROP_TABLE_FUNCTION_STMT,
