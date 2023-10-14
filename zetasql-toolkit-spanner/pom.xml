@@ -88,13 +88,6 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>com.google.zetasql.toolkit</groupId>
-      <artifactId>zetasql-toolkit-core</artifactId>
-      <version>${zetasql.toolkit.version}</version>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
       <scope>test</scope>
@@ -131,5 +124,26 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>default</id>
+      <dependencies>
+        <dependency>
+          <groupId>com.google.zetasql.toolkit</groupId>
+          <artifactId>zetasql-toolkit-core</artifactId>
+          <version>${zetasql.toolkit.version}</version>
+          <type>test-jar</type>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+    </profile>
+    <profile>
+      <id>release</id>
+    </profile>
+  </profiles>
 
 </project>
