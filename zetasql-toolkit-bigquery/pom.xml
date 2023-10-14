@@ -24,12 +24,12 @@
   <parent>
     <groupId>com.google.zetasql.toolkit</groupId>
     <artifactId>zetasql-toolkit</artifactId>
-    <version>0.4.1-SNAPSHOT</version>
+    <version>0.4.1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>zetasql-toolkit-bigquery</artifactId>
-  <version>0.4.1-SNAPSHOT</version>
+  <version>0.4.1</version>
 
   <name>${project.groupId}:${project.artifactId}</name>
 
