@@ -16,6 +16,7 @@
 
 package com.google.zetasql.toolkit.catalog;
 
+import com.google.common.collect.ImmutableList;
 import com.google.zetasql.Constant;
 import com.google.zetasql.SimpleCatalog;
 import com.google.zetasql.SimpleTable;
@@ -180,7 +181,7 @@ public interface CatalogWrapper {
    * @param table The reference to the table to add
    */
   default void addTable(String table) {
-    this.addTables(List.of(table));
+    this.addTables(ImmutableList.of(table));
   }
 
   /**
@@ -189,7 +190,7 @@ public interface CatalogWrapper {
    * @param function The reference to the function to add
    */
   default void addFunction(String function) {
-    this.addFunctions(List.of(function));
+    this.addFunctions(ImmutableList.of(function));
   }
 
   /**
@@ -198,7 +199,7 @@ public interface CatalogWrapper {
    * @param function The reference to the TVF to add
    */
   default void addTVF(String function) {
-    this.addTVFs(List.of(function));
+    this.addTVFs(ImmutableList.of(function));
   }
 
   /**
@@ -207,7 +208,7 @@ public interface CatalogWrapper {
    * @param procedure The reference to the procedure to add
    */
   default void addProcedure(String procedure) {
-    this.addProcedures(List.of(procedure));
+    this.addProcedures(ImmutableList.of(procedure));
   }
 
   /**

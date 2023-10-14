@@ -16,12 +16,12 @@
 
 package com.google.zetasql.toolkit.options;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.zetasql.LanguageOptions;
 import com.google.zetasql.ZetaSQLOptions.LanguageFeature;
 import com.google.zetasql.ZetaSQLOptions.NameResolutionMode;
 import com.google.zetasql.ZetaSQLOptions.ProductMode;
 import com.google.zetasql.ZetaSQLResolvedNodeKind.ResolvedNodeKind;
-import java.util.Set;
 
 public class SpannerLanguageOptions {
 
@@ -32,7 +32,7 @@ public class SpannerLanguageOptions {
     languageOptions.setProductMode(ProductMode.PRODUCT_EXTERNAL);
 
     languageOptions.setEnabledLanguageFeatures(
-        Set.of(
+        ImmutableSet.of(
             LanguageFeature.FEATURE_ANALYTIC_FUNCTIONS,
             LanguageFeature.FEATURE_NUMERIC_TYPE,
             LanguageFeature.FEATURE_TABLESAMPLE,
@@ -56,7 +56,7 @@ public class SpannerLanguageOptions {
             LanguageFeature.FEATURE_V_1_3_DML_RETURNING));
 
     languageOptions.setSupportedStatementKinds(
-        Set.of(
+        ImmutableSet.of(
             ResolvedNodeKind.RESOLVED_QUERY_STMT,
             ResolvedNodeKind.RESOLVED_INSERT_STMT,
             ResolvedNodeKind.RESOLVED_UPDATE_STMT,

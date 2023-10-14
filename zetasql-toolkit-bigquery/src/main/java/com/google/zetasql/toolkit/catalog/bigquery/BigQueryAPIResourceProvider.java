@@ -135,6 +135,8 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
         return TypeKind.TYPE_DATETIME;
       case GEOGRAPHY:
         return TypeKind.TYPE_GEOGRAPHY;
+      case JSON:
+        return TypeKind.TYPE_JSON;
       default:
         return TypeKind.TYPE_UNKNOWN;
     }
@@ -201,7 +203,7 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
     if (table.getDefinition().getSchema() == null) {
       // BigQuery tables can have no columns, in which case the schema is null
       // One such table is bigquery-public-data.america_health_rankings.america_health_rankings
-      return List.of();
+      return ImmutableList.of();
     }
 
     ArrayList<SimpleColumn> columns =
@@ -216,7 +218,7 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
 
     if (this.tableHasTimePartitioningPseudoColumns(table)) {
       columns.addAll(
-          List.of(
+          ImmutableList.of(
               new SimpleColumn(
                   tableId.getTable(),
                   "_PARTITIONTIME",
@@ -380,7 +382,7 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
    */
   private List<FunctionArgumentType> parseRoutineArguments(List<RoutineArgument> arguments) {
     if (arguments == null) {
-      return List.of();
+      return ImmutableList.of();
     }
 
     return arguments.stream().map(this::parseRoutineArgument).collect(Collectors.toList());
@@ -430,7 +432,7 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
         .setNamePath(bigQueryReference.getNamePath())
         .setGroup("UDF")
         .setMode(Mode.SCALAR)
-        .setSignatures(List.of(signature))
+        .setSignatures(ImmutableList.of(signature))
         .setLanguage(FunctionInfo.Language.valueOfOrUnspecified(routine.getLanguage()))
         .setBody(Optional.ofNullable(routine.getBody()))
         .build();

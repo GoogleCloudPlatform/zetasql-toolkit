@@ -33,6 +33,7 @@ import com.google.zetasql.ZetaSQLType.TypeKind;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.toolkit.catalog.CatalogOperations;
 import com.google.zetasql.toolkit.catalog.ProcedureInfo;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -44,30 +45,33 @@ import java.util.Map;
  */
 class BigQueryBuiltIns {
 
-  public static final Map<String, Type> TYPE_ALIASES =
-      Map.of(
-          "INT", TypeFactory.createSimpleType(ZetaSQLType.TypeKind.TYPE_INT64),
-          "SMALLINT", TypeFactory.createSimpleType(ZetaSQLType.TypeKind.TYPE_INT64),
-          "INTEGER", TypeFactory.createSimpleType(ZetaSQLType.TypeKind.TYPE_INT64),
-          "BIGINT", TypeFactory.createSimpleType(ZetaSQLType.TypeKind.TYPE_INT64),
-          "TINYINT", TypeFactory.createSimpleType(ZetaSQLType.TypeKind.TYPE_INT64),
-          "BYTEINT", TypeFactory.createSimpleType(ZetaSQLType.TypeKind.TYPE_INT64),
-          "DECIMAL", TypeFactory.createSimpleType(ZetaSQLType.TypeKind.TYPE_NUMERIC),
-          "BIGDECIMAL", TypeFactory.createSimpleType(ZetaSQLType.TypeKind.TYPE_BIGNUMERIC));
+  public static final Map<String, Type> TYPE_ALIASES = new HashMap<>();
+
+  static {
+    TYPE_ALIASES.put("INT", TypeFactory.createSimpleType(ZetaSQLType.TypeKind.TYPE_INT64));
+    TYPE_ALIASES.put("SMALLINT", TypeFactory.createSimpleType(ZetaSQLType.TypeKind.TYPE_INT64));
+    TYPE_ALIASES.put("INTEGER", TypeFactory.createSimpleType(ZetaSQLType.TypeKind.TYPE_INT64));
+    TYPE_ALIASES.put("BIGINT", TypeFactory.createSimpleType(ZetaSQLType.TypeKind.TYPE_INT64));
+    TYPE_ALIASES.put("TINYINT", TypeFactory.createSimpleType(ZetaSQLType.TypeKind.TYPE_INT64));
+    TYPE_ALIASES.put("BYTEINT", TypeFactory.createSimpleType(ZetaSQLType.TypeKind.TYPE_INT64));
+    TYPE_ALIASES.put("DECIMAL", TypeFactory.createSimpleType(ZetaSQLType.TypeKind.TYPE_NUMERIC));
+    TYPE_ALIASES.put(
+        "BIGDECIMAL", TypeFactory.createSimpleType(ZetaSQLType.TypeKind.TYPE_BIGNUMERIC));
+  }
 
   private static final String BIGQUERY_FUNCTION_GROUP = "BigQuery";
 
   public static final List<Function> FUNCTIONS =
-      List.of(
+      ImmutableList.of(
           // CONTAINS_SUBSTR(STRING, ANY, [STRING]) -> BOOL
           new Function(
               "CONTAINS_SUBSTR",
               BIGQUERY_FUNCTION_GROUP,
               Mode.SCALAR,
-              List.of(
+              ImmutableList.of(
                   new FunctionSignature(
                       new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_BOOL)),
-                      List.of(
+                      ImmutableList.of(
                           new FunctionArgumentType(
                               TypeFactory.createSimpleType(TypeKind.TYPE_STRING),
                               FunctionArgumentTypeOptions.builder()
@@ -94,10 +98,10 @@ class BigQueryBuiltIns {
               "SEARCH",
               BIGQUERY_FUNCTION_GROUP,
               Mode.SCALAR,
-              List.of(
+              ImmutableList.of(
                   new FunctionSignature(
                       new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_BOOL)),
-                      List.of(
+                      ImmutableList.of(
                           new FunctionArgumentType(
                               SignatureArgumentKind.ARG_TYPE_ANY_1,
                               FunctionArgumentTypeOptions.builder()
@@ -128,13 +132,13 @@ class BigQueryBuiltIns {
                       -1))));
 
   public static final List<ProcedureInfo> PROCEDURES =
-      List.of(
+      ImmutableList.of(
           // BQ.ABORT_SESSION([STRING])
           new ProcedureInfo(
               ImmutableList.of("BQ", "ABORT_SESSION"),
               new FunctionSignature(
                   new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
-                  List.of(
+                  ImmutableList.of(
                       new FunctionArgumentType(
                           TypeFactory.createSimpleType(TypeKind.TYPE_STRING),
                           FunctionArgumentTypeOptions.builder()
@@ -148,7 +152,7 @@ class BigQueryBuiltIns {
               ImmutableList.of("BQ", "JOBS", "CANCEL"),
               new FunctionSignature(
                   new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
-                  List.of(
+                  ImmutableList.of(
                       new FunctionArgumentType(
                           TypeFactory.createSimpleType(TypeKind.TYPE_STRING),
                           FunctionArgumentTypeOptions.builder()
@@ -162,7 +166,7 @@ class BigQueryBuiltIns {
               ImmutableList.of("BQ", "REFRESH_EXTERNAL_METADATA_CACHE"),
               new FunctionSignature(
                   new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
-                  List.of(
+                  ImmutableList.of(
                       new FunctionArgumentType(
                           TypeFactory.createSimpleType(TypeKind.TYPE_STRING),
                           FunctionArgumentTypeOptions.builder()
@@ -176,7 +180,7 @@ class BigQueryBuiltIns {
               ImmutableList.of("BQ", "REFRESH_MATERIALIZED_VIEW"),
               new FunctionSignature(
                   new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
-                  List.of(
+                  ImmutableList.of(
                       new FunctionArgumentType(
                           TypeFactory.createSimpleType(TypeKind.TYPE_STRING),
                           FunctionArgumentTypeOptions.builder()
@@ -200,7 +204,7 @@ class BigQueryBuiltIns {
       List<String> namePath = procedureInfo.getNamePath();
       String procedureName = namePath.get(namePath.size() - 1);
       List<List<String>> procedurePaths =
-          List.of(namePath, List.of(procedureName), List.of(String.join(".", namePath)));
+          ImmutableList.of(namePath, ImmutableList.of(procedureName), ImmutableList.of(String.join(".", namePath)));
       CatalogOperations.createProcedureInCatalog(
           catalog, procedurePaths, procedureInfo, CreateMode.CREATE_OR_REPLACE);
     }

@@ -35,8 +35,9 @@ import com.google.zetasql.parser.ASTNodes.ASTStatement;
 import com.google.zetasql.parser.ASTNodes.ASTTVF;
 import com.google.zetasql.parser.ParseTreeVisitor;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedExpr;
+import java.util.LinkedHashSet;
 import java.util.List;
-import org.antlr.v4.runtime.misc.OrderedHashSet;
+import java.util.Set;
 
 /** Implements extensions to ZetaSQL's built-in {@link com.google.zetasql.Analyzer} */
 public class AnalyzerExtensions {
@@ -96,7 +97,7 @@ public class AnalyzerExtensions {
    *     will be returned multiple times.
    */
   private static List<List<String>> extractFunctionNamesFromASTNode(ASTNode node) {
-    OrderedHashSet<ImmutableList<String>> result = new OrderedHashSet<>();
+    Set<ImmutableList<String>> result = new LinkedHashSet<>();
 
     ParseTreeVisitor extractFunctionNamesVisitor =
         new ParseTreeVisitor() {
@@ -113,7 +114,7 @@ public class AnalyzerExtensions {
 
     node.accept(extractFunctionNamesVisitor);
 
-    return List.copyOf(result);
+    return ImmutableList.copyOf(result);
   }
 
   /**
@@ -170,7 +171,7 @@ public class AnalyzerExtensions {
    *     will be returned multiple times.
    */
   private static List<List<String>> extractTVFNamesFromASTNode(ASTNode node) {
-    OrderedHashSet<ImmutableList<String>> result = new OrderedHashSet<>();
+    Set<ImmutableList<String>> result = new LinkedHashSet<>();
 
     ParseTreeVisitor extractFunctionNamesVisitor =
         new ParseTreeVisitor() {
@@ -187,7 +188,7 @@ public class AnalyzerExtensions {
 
     node.accept(extractFunctionNamesVisitor);
 
-    return List.copyOf(result);
+    return ImmutableList.copyOf(result);
   }
 
   /**
@@ -247,7 +248,7 @@ public class AnalyzerExtensions {
    *     it will be returned multiple times.
    */
   private static List<List<String>> extractProcedureNamesFromASTNode(ASTNode node) {
-    OrderedHashSet<ImmutableList<String>> result = new OrderedHashSet<>();
+    Set<ImmutableList<String>> result = new LinkedHashSet<>();
 
     ParseTreeVisitor extractProcedureNamesVisitor =
         new ParseTreeVisitor() {
@@ -264,7 +265,7 @@ public class AnalyzerExtensions {
 
     node.accept(extractProcedureNamesVisitor);
 
-    return List.copyOf(result);
+    return ImmutableList.copyOf(result);
   }
 
   /**

@@ -16,8 +16,8 @@
 
 package com.google.zetasql.toolkit.examples;
 
+import com.google.common.collect.ImmutableList;
 import com.google.zetasql.toolkit.catalog.spanner.SpannerCatalog;
-import java.util.List;
 
 public class AddResourcesToSpannerCatalog {
 
@@ -29,7 +29,7 @@ public class AddResourcesToSpannerCatalog {
     // Views are considered tables as well, so they can be added this way to the catalog
     catalog.addTable("bigquery-public-data.samples.wikipedia");
     catalog.addTables(
-        List.of(
+        ImmutableList.of(
             "bigquery-public-data.samples.wikipedia",
             "bigquery-public-data.samples.github_nested"));
 

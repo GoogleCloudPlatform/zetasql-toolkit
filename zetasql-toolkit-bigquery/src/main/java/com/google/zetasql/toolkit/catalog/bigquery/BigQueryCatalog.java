@@ -17,6 +17,7 @@
 package com.google.zetasql.toolkit.catalog.bigquery;
 
 import com.google.cloud.bigquery.BigQuery;
+import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonParseException;
 import com.google.zetasql.*;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
@@ -37,7 +38,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -61,7 +61,7 @@ public class BigQueryCatalog implements CatalogWrapper {
    * @param defaultProjectId The BigQuery default project id, queries are assumed to be running on
    *     this project
    */
-  @Deprecated(since = "0.4.0", forRemoval = true)
+  @Deprecated
   public BigQueryCatalog(String defaultProjectId) {
     this(defaultProjectId, BigQueryAPIResourceProvider.buildDefault());
   }
@@ -76,7 +76,7 @@ public class BigQueryCatalog implements CatalogWrapper {
    *     this project
    * @param bigQueryClient The BigQuery client to use for accessing the API
    */
-  @Deprecated(since = "0.4.0", forRemoval = true)
+  @Deprecated
   public BigQueryCatalog(String defaultProjectId, BigQuery bigQueryClient) {
     this(defaultProjectId, BigQueryAPIResourceProvider.build(bigQueryClient));
   }
@@ -175,7 +175,7 @@ public class BigQueryCatalog implements CatalogWrapper {
    */
   private boolean functionExistsInCatalog(String reference) {
     try {
-      this.catalog.findFunction(List.of(reference));
+      this.catalog.findFunction(ImmutableList.of(reference));
       return true;
     } catch (NotFoundException err) {
       return false;
@@ -202,7 +202,7 @@ public class BigQueryCatalog implements CatalogWrapper {
    */
   private boolean procedureExistsInCatalog(String reference) {
     try {
-      this.catalog.findProcedure(List.of(reference));
+      this.catalog.findProcedure(ImmutableList.of(reference));
       return true;
     } catch (NotFoundException err) {
       return false;
@@ -299,25 +299,25 @@ public class BigQueryCatalog implements CatalogWrapper {
     String resourceName = reference.getResourceName();
 
     List<List<String>> resourcePaths =
-        List.of(
-            List.of(projectId, datasetName, resourceName), // format: project.dataset.table format
-            List.of(
+        ImmutableList.of(
+            ImmutableList.of(projectId, datasetName, resourceName), // format: project.dataset.table format
+            ImmutableList.of(
                 projectId
                     + "."
                     + datasetName
                     + "."
                     + resourceName), // format: `project.dataset.table`
-            List.of(projectId + "." + datasetName, resourceName), // format: `project.dataset`.table
-            List.of(projectId, datasetName + "." + resourceName) // format: project.`dataset.table`
+            ImmutableList.of(projectId + "." + datasetName, resourceName), // format: `project.dataset`.table
+            ImmutableList.of(projectId, datasetName + "." + resourceName) // format: project.`dataset.table`
             );
 
-    List<List<String>> resourcePathsWithImplicitProject = List.of();
+    List<List<String>> resourcePathsWithImplicitProject = ImmutableList.of();
 
     if (projectId.equals(this.defaultProjectId)) {
       resourcePathsWithImplicitProject =
-          List.of(
-              List.of(datasetName, resourceName), // format: dataset.table (project implied)
-              List.of(datasetName + "." + resourceName) // format: `dataset.table` (project implied)
+          ImmutableList.of(
+              ImmutableList.of(datasetName, resourceName), // format: dataset.table (project implied)
+              ImmutableList.of(datasetName + "." + resourceName) // format: `dataset.table` (project implied)
               );
     }
 
@@ -363,14 +363,14 @@ public class BigQueryCatalog implements CatalogWrapper {
   public void register(SimpleTable table, CreateMode createMode, CreateScope createScope) {
     this.validateCreateScope(
         createScope,
-        List.of(CreateScope.CREATE_DEFAULT_SCOPE, CreateScope.CREATE_TEMP),
+        ImmutableList.of(CreateScope.CREATE_DEFAULT_SCOPE, CreateScope.CREATE_TEMP),
         table.getFullName(),
         "table");
-    this.validateNamePathForCreation(List.of(table.getFullName()), createScope, "table");
+    this.validateNamePathForCreation(ImmutableList.of(table.getFullName()), createScope, "table");
 
     List<List<String>> tablePaths =
         createScope.equals(CreateScope.CREATE_TEMP)
-            ? List.of(List.of(table.getName()))
+            ? ImmutableList.of(ImmutableList.of(table.getName()))
             : this.buildCatalogPathsForResource(table.getFullName());
 
     try {
@@ -405,7 +405,7 @@ public class BigQueryCatalog implements CatalogWrapper {
 
     this.validateCreateScope(
         createScope,
-        List.of(CreateScope.CREATE_DEFAULT_SCOPE, CreateScope.CREATE_TEMP),
+        ImmutableList.of(CreateScope.CREATE_DEFAULT_SCOPE, CreateScope.CREATE_TEMP),
         fullName,
         "function");
     this.validateNamePathForCreation(functionNamePath, createScope, "function");
@@ -416,7 +416,7 @@ public class BigQueryCatalog implements CatalogWrapper {
 
     List<List<String>> functionPaths =
         createScope.equals(CreateScope.CREATE_TEMP)
-            ? List.of(functionNamePath)
+            ? ImmutableList.of(functionNamePath)
             : this.buildCatalogPathsForResource(functionNamePath);
 
     try {
@@ -439,7 +439,7 @@ public class BigQueryCatalog implements CatalogWrapper {
     String fullName = String.join(".", tvfInfo.getNamePath());
 
     this.validateCreateScope(
-        createScope, List.of(CreateScope.CREATE_DEFAULT_SCOPE), fullName, "TVF");
+        createScope, ImmutableList.of(CreateScope.CREATE_DEFAULT_SCOPE), fullName, "TVF");
     this.validateNamePathForCreation(tvfInfo.getNamePath(), createScope, "TVF");
 
     TVFInfo resolvedTvfInfo =
@@ -473,8 +473,8 @@ public class BigQueryCatalog implements CatalogWrapper {
     String fullName = String.join(".", procedureInfo.getNamePath());
 
     this.validateCreateScope(
-        createScope, List.of(CreateScope.CREATE_DEFAULT_SCOPE), fullName, "procedure");
-    this.validateNamePathForCreation(List.of(fullName), createScope, "procedure");
+        createScope, ImmutableList.of(CreateScope.CREATE_DEFAULT_SCOPE), fullName, "procedure");
+    this.validateNamePathForCreation(ImmutableList.of(fullName), createScope, "procedure");
 
     List<List<String>> procedurePaths = this.buildCatalogPathsForResource(fullName);
 
@@ -519,7 +519,7 @@ public class BigQueryCatalog implements CatalogWrapper {
 
     List<List<String>> tablePaths =
         !isQualified
-            ? List.of(List.of(tableReference))
+            ? ImmutableList.of(ImmutableList.of(tableReference))
             : this.buildCatalogPathsForResource(tableReference);
 
     CatalogOperations.deleteTableFromCatalog(this.catalog, tablePaths);
@@ -531,7 +531,7 @@ public class BigQueryCatalog implements CatalogWrapper {
 
     List<List<String>> functionPaths =
         !isQualified
-            ? List.of(List.of(functionReference))
+            ? ImmutableList.of(ImmutableList.of(functionReference))
             : this.buildCatalogPathsForResource(functionReference);
 
     CatalogOperations.deleteFunctionFromCatalog(this.catalog, functionPaths);
@@ -557,7 +557,7 @@ public class BigQueryCatalog implements CatalogWrapper {
   @Override
   public void addTables(List<String> tableReferences) {
     List<String> tablesNotInCatalog = tableReferences.stream()
-        .filter(Predicate.not(this::tableExistsInCatalog))
+        .filter(tableRef -> !this.tableExistsInCatalog(tableRef))
         .collect(Collectors.toList());
 
     this.bigQueryResourceProvider
@@ -613,7 +613,7 @@ public class BigQueryCatalog implements CatalogWrapper {
             .map(tablePath -> String.join(".", tablePath))
             .filter(BigQueryReference::isQualified) // Remove non-qualified tables
             .collect(Collectors.toSet());
-    this.addTables(List.copyOf(tables));
+    this.addTables(ImmutableList.copyOf((tables)));
   }
 
   /**
@@ -628,7 +628,7 @@ public class BigQueryCatalog implements CatalogWrapper {
   @Override
   public void addFunctions(List<String> functionReferences) {
     List<String> functionsNotInCatalog = functionReferences.stream()
-        .filter(Predicate.not(this::functionExistsInCatalog))
+        .filter(functionRef -> !this.functionExistsInCatalog(functionRef))
         .collect(Collectors.toList());
 
     this.bigQueryResourceProvider
@@ -708,7 +708,7 @@ public class BigQueryCatalog implements CatalogWrapper {
             .map(functionPath -> String.join(".", functionPath))
             .filter(BigQueryReference::isQualified) // Remove non-qualified functions
             .collect(Collectors.toSet());
-    this.addFunctions(List.copyOf(functions));
+    this.addFunctions(ImmutableList.copyOf((functions)));
   }
 
   /**
@@ -719,7 +719,7 @@ public class BigQueryCatalog implements CatalogWrapper {
   @Override
   public void addTVFs(List<String> functionReferences) {
     List<String> functionsNotInCatalog = functionReferences.stream()
-        .filter(Predicate.not(this::tvfExistsInCatalog))
+        .filter(functionRef -> !this.tvfExistsInCatalog(functionRef))
         .collect(Collectors.toList());
 
     this.bigQueryResourceProvider
@@ -794,7 +794,7 @@ public class BigQueryCatalog implements CatalogWrapper {
             .map(functionPath -> String.join(".", functionPath))
             .filter(BigQueryReference::isQualified) // Remove non-qualified functions
             .collect(Collectors.toSet());
-    this.addTVFs(List.copyOf(functions));
+    this.addTVFs(ImmutableList.copyOf((functions)));
   }
 
   /**
@@ -806,7 +806,7 @@ public class BigQueryCatalog implements CatalogWrapper {
   @Override
   public void addProcedures(List<String> procedureReferences) {
     List<String> proceduresNotInCatalog = procedureReferences.stream()
-        .filter(Predicate.not(this::procedureExistsInCatalog))
+        .filter(procedureRef -> !this.procedureExistsInCatalog(procedureRef))
         .collect(Collectors.toList());
 
     this.bigQueryResourceProvider
@@ -862,7 +862,7 @@ public class BigQueryCatalog implements CatalogWrapper {
             .filter(BigQueryReference::isQualified) // Remove non-qualified functions
             .collect(Collectors.toSet());
 
-    this.addProcedures(List.copyOf(procedures));
+    this.addProcedures(ImmutableList.copyOf((procedures)));
   }
 
   /**

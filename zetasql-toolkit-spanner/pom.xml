@@ -6,19 +6,17 @@
   <parent>
     <groupId>com.google.zetasql.toolkit</groupId>
     <artifactId>zetasql-toolkit</artifactId>
-    <version>0.4.1-SNAPSHOT</version>
+    <version>0.4.1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>zetasql-toolkit-spanner</artifactId>
-  <version>0.4.1-SNAPSHOT</version>
+  <version>0.4.1</version>
 
   <name>${project.groupId}:${project.artifactId}</name>
 
   <properties>
     <zetasql.toolkit.version>${project.version}</zetasql.toolkit.version>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.deploy.skip>false</maven.deploy.skip>
   </properties>
@@ -90,13 +88,6 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>com.google.zetasql.toolkit</groupId>
-      <artifactId>zetasql-toolkit-core</artifactId>
-      <version>${zetasql.toolkit.version}</version>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
       <scope>test</scope>
@@ -133,5 +124,26 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>default</id>
+      <dependencies>
+        <dependency>
+          <groupId>com.google.zetasql.toolkit</groupId>
+          <artifactId>zetasql-toolkit-core</artifactId>
+          <version>${zetasql.toolkit.version}</version>
+          <type>test-jar</type>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+    </profile>
+    <profile>
+      <id>release</id>
+    </profile>
+  </profiles>
 
 </project>

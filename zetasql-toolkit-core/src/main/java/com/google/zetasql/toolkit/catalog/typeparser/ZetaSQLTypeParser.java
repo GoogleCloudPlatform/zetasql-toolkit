@@ -22,6 +22,7 @@ import com.google.zetasql.TypeFactory;
 import com.google.zetasql.ZetaSQLType.TypeKind;
 import com.google.zetasql.toolkit.catalog.typeparser.ZetaSQLTypeGrammarParser.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
@@ -83,28 +84,30 @@ public class ZetaSQLTypeParser {
    */
   private static class ZetaSQLTypeParserListener extends ZetaSQLTypeGrammarBaseListener {
 
-    private static final Map<String, TypeKind> simpleTypeMapping =
-        Map.ofEntries(
-            Map.entry("STRING", TypeKind.TYPE_STRING),
-            Map.entry("BYTES", TypeKind.TYPE_BYTES),
-            Map.entry("INT32", TypeKind.TYPE_INT32),
-            Map.entry("INT64", TypeKind.TYPE_INT64),
-            Map.entry("UINT32", TypeKind.TYPE_UINT32),
-            Map.entry("UINT64", TypeKind.TYPE_UINT64),
-            Map.entry("FLOAT64", TypeKind.TYPE_DOUBLE),
-            Map.entry("DECIMAL", TypeKind.TYPE_NUMERIC),
-            Map.entry("NUMERIC", TypeKind.TYPE_NUMERIC),
-            Map.entry("BIGNUMERIC", TypeKind.TYPE_BIGNUMERIC),
-            Map.entry("INTERVAL", TypeKind.TYPE_INTERVAL),
-            Map.entry("BOOL", TypeKind.TYPE_BOOL),
-            Map.entry("TIMESTAMP", TypeKind.TYPE_TIMESTAMP),
-            Map.entry("DATE", TypeKind.TYPE_DATE),
-            Map.entry("TIME", TypeKind.TYPE_TIME),
-            Map.entry("DATETIME", TypeKind.TYPE_DATETIME),
-            Map.entry("GEOGRAPHY", TypeKind.TYPE_GEOGRAPHY),
-            Map.entry("JSON", TypeKind.TYPE_JSON));
+    private static final Map<String, TypeKind> simpleTypeMapping = new HashMap<>();
     private final Stack<Type> typeStack = new Stack<>();
     private final Stack<List<StructField>> structFieldStack = new Stack<>();
+    
+    static {
+      simpleTypeMapping.put("STRING", TypeKind.TYPE_STRING);
+      simpleTypeMapping.put("BYTES", TypeKind.TYPE_BYTES);
+      simpleTypeMapping.put("INT32", TypeKind.TYPE_INT32);
+      simpleTypeMapping.put("INT64", TypeKind.TYPE_INT64);
+      simpleTypeMapping.put("UINT32", TypeKind.TYPE_UINT32);
+      simpleTypeMapping.put("UINT64", TypeKind.TYPE_UINT64);
+      simpleTypeMapping.put("FLOAT64", TypeKind.TYPE_DOUBLE);
+      simpleTypeMapping.put("DECIMAL", TypeKind.TYPE_NUMERIC);
+      simpleTypeMapping.put("NUMERIC", TypeKind.TYPE_NUMERIC);
+      simpleTypeMapping.put("BIGNUMERIC", TypeKind.TYPE_BIGNUMERIC);
+      simpleTypeMapping.put("INTERVAL", TypeKind.TYPE_INTERVAL);
+      simpleTypeMapping.put("BOOL", TypeKind.TYPE_BOOL);
+      simpleTypeMapping.put("TIMESTAMP", TypeKind.TYPE_TIMESTAMP);
+      simpleTypeMapping.put("DATE", TypeKind.TYPE_DATE);
+      simpleTypeMapping.put("TIME", TypeKind.TYPE_TIME);
+      simpleTypeMapping.put("DATETIME", TypeKind.TYPE_DATETIME);
+      simpleTypeMapping.put("GEOGRAPHY", TypeKind.TYPE_GEOGRAPHY);
+      simpleTypeMapping.put("JSON", TypeKind.TYPE_JSON);
+    }
 
     public Type getResult() {
       return this.typeStack.pop();

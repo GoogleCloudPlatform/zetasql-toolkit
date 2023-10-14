@@ -16,6 +16,7 @@
 
 package com.google.zetasql.toolkit;
 
+import com.google.common.collect.ImmutableList;
 import com.google.zetasql.*;
 import com.google.zetasql.TVFRelation.Column;
 import com.google.zetasql.ZetaSQLFunctions.FunctionEnums.Mode;
@@ -191,7 +192,7 @@ class CatalogUpdaterVisitor extends Visitor {
             .setNamePath(createFunctionStmt.getNamePath())
             .setGroup("UDF")
             .setMode(Mode.SCALAR)
-            .setSignatures(List.of(createFunctionStmt.getSignature()))
+            .setSignatures(ImmutableList.of(createFunctionStmt.getSignature()))
             .build();
 
     CreateMode createMode = createFunctionStmt.getCreateMode();

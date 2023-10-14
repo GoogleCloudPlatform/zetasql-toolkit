@@ -16,6 +16,7 @@
 
 package com.google.zetasql.toolkit.catalog.io;
 
+import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonParseException;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.toolkit.catalog.FunctionInfo;
@@ -45,19 +46,19 @@ public class CatalogResources {
   }
 
   public List<SimpleTable> getTables() {
-    return tables != null ? tables : List.of();
+    return tables != null ? tables : ImmutableList.of();
   }
 
   public List<FunctionInfo> getFunctions() {
-    return functions != null ? functions : List.of();
+    return functions != null ? functions : ImmutableList.of();
   }
 
   public List<TVFInfo> getTVFs() {
-    return tvfs != null ? tvfs : List.of();
+    return tvfs != null ? tvfs : ImmutableList.of();
   }
 
   public List<ProcedureInfo> getProcedures() {
-    return procedures != null ? procedures : List.of();
+    return procedures != null ? procedures : ImmutableList.of();
   }
 
   /**

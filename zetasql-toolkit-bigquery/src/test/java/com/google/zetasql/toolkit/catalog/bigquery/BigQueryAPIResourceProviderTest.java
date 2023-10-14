@@ -24,6 +24,7 @@ import static org.mockito.Mockito.*;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.Table;
+import com.google.common.collect.ImmutableList;
 import com.google.zetasql.*;
 import com.google.zetasql.FunctionArgumentType.FunctionArgumentTypeOptions;
 import com.google.zetasql.StructType.StructField;
@@ -42,7 +43,6 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -59,37 +59,35 @@ public class BigQueryAPIResourceProviderTest {
   }
 
   Table createMockTable(boolean timePartitioned) {
-    Table mockTable = mock(Table.class);
-    StandardTableDefinition mockTableDefinition =
-        mock(StandardTableDefinition.class, Answers.RETURNS_DEEP_STUBS);
-
     TableId tableId = TableId.of("project", "dataset", "table");
     FieldList fields =
         FieldList.of(
             Field.of("col1", StandardSQLTypeName.INT64),
             Field.newBuilder("col2", StandardSQLTypeName.STRING).setMode(Mode.REPEATED).build(),
             Field.of(
-                "col3", StandardSQLTypeName.STRUCT, Field.of("field1", StandardSQLTypeName.INT64)));
+                "col3", StandardSQLTypeName.STRUCT,
+                Field.of("field1", StandardSQLTypeName.INT64)));
 
-    when(mockTable.getTableId()).thenReturn(tableId);
-    when(mockTable.getDefinition()).thenReturn(mockTableDefinition);
-    when(mockTableDefinition.getSchema().getFields()).thenReturn(fields);
+    StandardTableDefinition.Builder tableDefinitionBuilder = StandardTableDefinition.newBuilder();
+    tableDefinitionBuilder.setSchema(Schema.of(fields));
 
     if (timePartitioned) {
       TimePartitioning timePartitioning =
           TimePartitioning.newBuilder(TimePartitioning.Type.DAY)
               .setField(null) // A null field means the table in ingestion-time partitioned
               .build();
-      when(mockTableDefinition.getTimePartitioning()).thenReturn(timePartitioning);
-    } else {
-      when(mockTableDefinition.getTimePartitioning()).thenReturn(null);
+      tableDefinitionBuilder.setTimePartitioning(timePartitioning);
     }
+
+    Table mockTable = mock(Table.class);
+    when(mockTable.getTableId()).thenReturn(tableId);
+    when(mockTable.getDefinition()).thenReturn(tableDefinitionBuilder.build());
 
     return mockTable;
   }
 
   List<SimpleColumn> expectedColumnsForMockTable() {
-    return List.of(
+    return ImmutableList.of(
         new SimpleColumn("table", "col1", TypeFactory.createSimpleType(TypeKind.TYPE_INT64)),
         new SimpleColumn(
             "table",
@@ -99,7 +97,7 @@ public class BigQueryAPIResourceProviderTest {
             "table",
             "col3",
             TypeFactory.createStructType(
-                List.of(
+                ImmutableList.of(
                     new StructField(
                         "field1", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))))));
   }
@@ -112,7 +110,7 @@ public class BigQueryAPIResourceProviderTest {
 
     List<SimpleColumn> expectedSchemaForMockTable = expectedColumnsForMockTable();
 
-    List<SimpleTable> tables = bigqueryResourceProvider.getTables("project", List.of("reference"));
+    List<SimpleTable> tables = bigqueryResourceProvider.getTables("project", ImmutableList.of("reference"));
 
     assertEquals(1, tables.size());
     assertTrue(
@@ -126,7 +124,7 @@ public class BigQueryAPIResourceProviderTest {
     when(bigQueryServiceMock.fetchTable(anyString(), anyString()))
         .thenReturn(Result.success(mockTable));
 
-    List<SimpleTable> tables = bigqueryResourceProvider.getTables("project", List.of("reference"));
+    List<SimpleTable> tables = bigqueryResourceProvider.getTables("project", ImmutableList.of("reference"));
 
     assertEquals(1, tables.size());
 
@@ -159,7 +157,7 @@ public class BigQueryAPIResourceProviderTest {
     TableId tableId = TableId.of("project", "dataset", "table");
     Table mockTable = createMockTable(false);
     when(bigQueryServiceMock.listTables(anyString(), anyString()))
-        .thenReturn(Result.success(List.of(tableId)));
+        .thenReturn(Result.success(ImmutableList.of(tableId)));
     when(bigQueryServiceMock.fetchTable(anyString(), anyString()))
         .thenReturn(Result.success(mockTable));
 
@@ -179,9 +177,9 @@ public class BigQueryAPIResourceProviderTest {
     TableId tableId = TableId.of("project", "dataset", "table");
     Table mockTable = createMockTable(false);
     when(bigQueryServiceMock.listDatasets(anyString()))
-        .thenReturn(Result.success(List.of(datasetId)));
+        .thenReturn(Result.success(ImmutableList.of(datasetId)));
     when(bigQueryServiceMock.listTables(anyString(), anyString()))
-        .thenReturn(Result.success(List.of(tableId)));
+        .thenReturn(Result.success(ImmutableList.of(tableId)));
     when(bigQueryServiceMock.fetchTable(anyString(), anyString()))
         .thenReturn(Result.success(mockTable));
 
@@ -203,7 +201,7 @@ public class BigQueryAPIResourceProviderTest {
     when(routine.getRoutineType()).thenReturn(BigQueryAPIRoutineType.UDF.getLabel());
     when(routine.getArguments())
         .thenReturn(
-            List.of(
+            ImmutableList.of(
                 RoutineArgument.newBuilder()
                     .setName("x")
                     .setDataType(StandardSQLDataType.newBuilder(StandardSQLTypeName.INT64).build())
@@ -227,7 +225,7 @@ public class BigQueryAPIResourceProviderTest {
                 .build(),
             1);
 
-    return new FunctionSignature(returnType, List.of(argument), -1);
+    return new FunctionSignature(returnType, ImmutableList.of(argument), -1);
   }
 
   @Test
@@ -239,7 +237,7 @@ public class BigQueryAPIResourceProviderTest {
     FunctionSignature expectedSignatureForMockUDF = expectedSignatureForMockUDF();
 
     List<FunctionInfo> functions =
-        bigqueryResourceProvider.getFunctions("project", List.of("reference"));
+        bigqueryResourceProvider.getFunctions("project", ImmutableList.of("reference"));
 
     assertEquals(1, functions.size());
     assertTrue(
@@ -255,7 +253,7 @@ public class BigQueryAPIResourceProviderTest {
     when(routine.getRoutineType()).thenReturn(BigQueryAPIRoutineType.TVF.getLabel());
     when(routine.getArguments())
         .thenReturn(
-            List.of(
+            ImmutableList.of(
                 RoutineArgument.newBuilder()
                     .setName("x")
                     .setDataType(StandardSQLDataType.newBuilder(StandardSQLTypeName.INT64).build())
@@ -264,7 +262,7 @@ public class BigQueryAPIResourceProviderTest {
         .thenReturn(
             StandardSQLTableType.newBuilder()
                 .setColumns(
-                    List.of(
+                    ImmutableList.of(
                         StandardSQLField.newBuilder()
                             .setName("out")
                             .setDataType(
@@ -277,7 +275,7 @@ public class BigQueryAPIResourceProviderTest {
 
   TVFRelation expectedOutputSchemaForMockTVF() {
     return TVFRelation.createColumnBased(
-        List.of(Column.create("out", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
+        ImmutableList.of(Column.create("out", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
   }
 
   FunctionSignature expectedSignatureForMockTVF() {
@@ -298,7 +296,7 @@ public class BigQueryAPIResourceProviderTest {
                 .build(),
             1);
 
-    return new FunctionSignature(returnType, List.of(argument), -1);
+    return new FunctionSignature(returnType, ImmutableList.of(argument), -1);
   }
 
   @Test
@@ -310,7 +308,7 @@ public class BigQueryAPIResourceProviderTest {
     FunctionSignature expectedSignatureForMockTVF = expectedSignatureForMockTVF();
     TVFRelation expectedOutputSchemaForMockTVF = expectedOutputSchemaForMockTVF();
 
-    List<TVFInfo> functions = bigqueryResourceProvider.getTVFs("project", List.of("reference"));
+    List<TVFInfo> functions = bigqueryResourceProvider.getTVFs("project", ImmutableList.of("reference"));
 
     assertEquals(1, functions.size());
     assertTrue(
@@ -329,7 +327,7 @@ public class BigQueryAPIResourceProviderTest {
     when(routine.getRoutineType()).thenReturn(BigQueryAPIRoutineType.PROCEDURE.getLabel());
     when(routine.getArguments())
         .thenReturn(
-            List.of(
+            ImmutableList.of(
                 RoutineArgument.newBuilder()
                     .setName("x")
                     .setDataType(StandardSQLDataType.newBuilder(StandardSQLTypeName.INT64).build())
@@ -351,7 +349,7 @@ public class BigQueryAPIResourceProviderTest {
                 .build(),
             1);
 
-    return new FunctionSignature(returnType, List.of(argument), -1);
+    return new FunctionSignature(returnType, ImmutableList.of(argument), -1);
   }
 
   @Test
@@ -363,7 +361,7 @@ public class BigQueryAPIResourceProviderTest {
     FunctionSignature expectedSignatureForMockProcedure = expectedSignatureForMockProcedure();
 
     List<ProcedureInfo> procedures =
-        bigqueryResourceProvider.getProcedures("project", List.of("reference"));
+        bigqueryResourceProvider.getProcedures("project", ImmutableList.of("reference"));
 
     assertEquals(1, procedures.size());
     assertTrue(

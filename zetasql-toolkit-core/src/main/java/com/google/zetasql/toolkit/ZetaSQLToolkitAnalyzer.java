@@ -288,7 +288,7 @@ public class ZetaSQLToolkitAnalyzer {
           .map(expression -> AnalyzerExtensions.analyzeExpression(
               query, expression, analyzerOptions, catalog.getZetaSQLCatalog()));
 
-      if (explicitType.isEmpty() && defaultValueExpr.isEmpty()) {
+      if (!explicitType.isPresent() && !defaultValueExpr.isPresent()) {
         // Should not happen, since this is enforced by the parser
         throw new AnalysisException(
             "Either the type or the default value must be present for variable declarations");
@@ -316,7 +316,7 @@ public class ZetaSQLToolkitAnalyzer {
           query, expression, analyzerOptions, catalog.getZetaSQLCatalog());
 
       try {
-        Constant constant = catalog.getZetaSQLCatalog().findConstant(List.of(assignmentTarget));
+        Constant constant = catalog.getZetaSQLCatalog().findConstant(ImmutableList.of(assignmentTarget));
         this.coerceExpressionToType(constant.getType(), analyzedExpression);
       } catch (NotFoundException e) {
         throw new AnalysisException("Undeclared variable: " + assignmentTarget);

@@ -16,12 +16,12 @@
 
 package com.google.zetasql.toolkit.options;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.zetasql.LanguageOptions;
 import com.google.zetasql.ZetaSQLOptions.LanguageFeature;
 import com.google.zetasql.ZetaSQLOptions.NameResolutionMode;
 import com.google.zetasql.ZetaSQLOptions.ProductMode;
 import com.google.zetasql.ZetaSQLResolvedNodeKind.ResolvedNodeKind;
-import java.util.Set;
 
 public class BigQueryLanguageOptions {
 
@@ -32,7 +32,7 @@ public class BigQueryLanguageOptions {
     languageOptions.setProductMode(ProductMode.PRODUCT_EXTERNAL);
 
     languageOptions.setEnabledLanguageFeatures(
-        Set.of(
+        ImmutableSet.of(
             LanguageFeature.FEATURE_ALLOW_MISSING_PATH_EXPRESSION_IN_ALTER_DDL,
             LanguageFeature.FEATURE_ALTER_COLUMN_SET_DATA_TYPE,
             LanguageFeature.FEATURE_ALTER_TABLE_RENAME_COLUMN,
@@ -117,7 +117,7 @@ public class BigQueryLanguageOptions {
             LanguageFeature.FEATURE_V_1_3_WITH_RECURSIVE));
 
     languageOptions.setSupportedStatementKinds(
-        Set.of(
+        ImmutableSet.of(
             ResolvedNodeKind.RESOLVED_ADD_CONSTRAINT_ACTION,
             ResolvedNodeKind.RESOLVED_ALTER_ENTITY_STMT,
             ResolvedNodeKind.RESOLVED_ALTER_MATERIALIZED_VIEW_STMT,

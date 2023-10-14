@@ -16,8 +16,8 @@
 
 package com.google.zetasql.toolkit.examples;
 
+import com.google.common.collect.ImmutableList;
 import com.google.zetasql.toolkit.catalog.bigquery.BigQueryCatalog;
-import java.util.List;
 
 public class AddResourcesToBigQueryCatalog {
 
@@ -28,7 +28,7 @@ public class AddResourcesToBigQueryCatalog {
     // Views are considered tables as well, so they can be added this way to the catalog
     catalog.addTable("bigquery-public-data.samples.wikipedia");
     catalog.addTables(
-        List.of(
+        ImmutableList.of(
             "bigquery-public-data.samples.wikipedia",
             "bigquery-public-data.samples.github_nested"));
 
@@ -41,7 +41,7 @@ public class AddResourcesToBigQueryCatalog {
     // For the time being, functions must have an explicit return type (i.e. creating with
     // a RETURNS clause); otherwise adding them will fail.
     catalog.addFunction("project.dataset.function");
-    catalog.addFunctions(List.of("project.dataset.function2", "project.dataset.function3"));
+    catalog.addFunctions(ImmutableList.of("project.dataset.function2", "project.dataset.function3"));
 
     // Add all functions in a dataset or project
     // For the time being, functions without an explicit return type are silently ignored
@@ -52,7 +52,7 @@ public class AddResourcesToBigQueryCatalog {
     // For the time being, TVFs must have an explicit return type (i.e. creating with
     // a RETURNS clause); otherwise adding them will fail.
     catalog.addTVF("project.dataset.tvf");
-    catalog.addTVFs(List.of("project.dataset.tvf2", "project.dataset.tvf3"));
+    catalog.addTVFs(ImmutableList.of("project.dataset.tvf2", "project.dataset.tvf3"));
 
     // Add all TVFs in a dataset or project
     // For the time being, TVFs without an explicit return type are silently ignored
@@ -61,7 +61,7 @@ public class AddResourcesToBigQueryCatalog {
 
     // Add a procedure or a set of procedures by name
     catalog.addProcedure("project.dataset.procedure");
-    catalog.addProcedures(List.of("project.dataset.procedure1", "project.dataset.procedure2"));
+    catalog.addProcedures(ImmutableList.of("project.dataset.procedure1", "project.dataset.procedure2"));
 
     // Add all procedures in a dataset or project
     catalog.addAllProceduresInDataset("projectId", "datasetName");
