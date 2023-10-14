@@ -21,10 +21,13 @@ import com.google.zetasql.StructType;
 import com.google.zetasql.Type;
 import com.google.zetasql.resolvedast.ResolvedColumn;
 import com.google.zetasql.resolvedast.ResolvedNode;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedAnalyticScan;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedArrayScan;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedComputedColumn;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedExpr;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedMakeStruct;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedSetOperationItem;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedSetOperationScan;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedTVFScan;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedTableScan;
@@ -314,6 +317,25 @@ class ParentColumnFinder extends Visitor {
     if (arrayScan.getInputScan() != null) {
       arrayScan.getInputScan().accept(this);
     }
+  }
+
+  public void visit(ResolvedSetOperationScan setOperationScan) {
+    List<ResolvedColumn> generatedColumns = setOperationScan.getColumnList();
+    List<ResolvedSetOperationItem> setOperationItems = setOperationScan.getInputItemList();
+
+    for (int i = 0; i < generatedColumns.size(); i++) {
+      int columnIndex = i;
+      ResolvedColumn generatedColumn = generatedColumns.get(columnIndex);
+      List<ResolvedColumn> parentColumns = setOperationItems.stream()
+          .map(ResolvedSetOperationItem::getOutputColumnList)
+          .map(outputColumnList -> outputColumnList.get(columnIndex))
+          .collect(Collectors.toList());
+      addParentsToColumn(generatedColumn, parentColumns);
+    }
+
+    setOperationItems.stream()
+        .map(ResolvedSetOperationItem::getScan)
+        .forEach(innerScan ->  innerScan.accept(this));
   }
 
 }
