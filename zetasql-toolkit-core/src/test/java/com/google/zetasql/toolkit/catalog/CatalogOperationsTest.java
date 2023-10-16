@@ -112,38 +112,21 @@ class CatalogOperationsTest {
                     tableName, "column", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
     newTable.setFullName(fullTableName);
 
-    List<String> newTablePath1 = ImmutableList.of("newTable");
-    List<String> newTablePath2 = ImmutableList.of("qualified", "newTable");
-    List<List<String>> newTablePaths = ImmutableList.of(newTablePath1, newTablePath2);
-
     CatalogOperations.createTableInCatalog(
-        this.testCatalog,
-        newTablePaths,
-        fullTableName,
-        newTable.getColumnList(),
-        CreateMode.CREATE_DEFAULT);
+        this.testCatalog, newTable.getFullName(), newTable, CreateMode.CREATE_DEFAULT);
 
-    assertAll(
-        () -> assertTableExists(this.testCatalog, newTablePath1, "Expected created table to exist"),
-        () ->
-            assertTableExists(this.testCatalog, newTablePath2, "Expected created table to exist"));
+    assertTableExists(this.testCatalog, ImmutableList.of("qualified.newTable"), "Expected created table to exist");
   }
 
   @Test
   void testDeleteTableFromCatalog() {
-    List<String> sampleTablePath = ImmutableList.of("sample");
-    List<String> nestedSampleTablePath = ImmutableList.of("nested", "sample");
 
-    List<List<String>> tablePathsToDelete = ImmutableList.of(sampleTablePath, nestedSampleTablePath);
-    CatalogOperations.deleteTableFromCatalog(this.testCatalog, tablePathsToDelete);
+    CatalogOperations.deleteTableFromCatalog(this.testCatalog, "sample");
 
-    assertAll(
-        () ->
-            assertTableDoesNotExist(
-                this.testCatalog, sampleTablePath, "Expected table to have been deleted"),
-        () ->
-            assertTableDoesNotExist(
-                this.testCatalog, nestedSampleTablePath, "Expected table to have been deleted"));
+    assertTableDoesNotExist(
+        this.testCatalog, ImmutableList.of("sample"),
+        "Expected table to have been deleted");
+
   }
 
   @Test
@@ -156,17 +139,11 @@ class CatalogOperationsTest {
                 new SimpleColumn(
                     tableName, "column", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))));
 
-    List<String> tablePath = ImmutableList.of("sample");
-
     assertThrows(
         CatalogResourceAlreadyExists.class,
         () ->
             CatalogOperations.createTableInCatalog(
-                this.testCatalog,
-                ImmutableList.of(tablePath),
-                "sample",
-                newTable.getColumnList(),
-                CreateMode.CREATE_DEFAULT));
+                this.testCatalog, newTable.getFullName(), newTable, CreateMode.CREATE_DEFAULT));
   }
 
   @Test
@@ -179,17 +156,12 @@ class CatalogOperationsTest {
                 new SimpleColumn(
                     tableName, "column", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))));
 
-    List<String> tablePath = ImmutableList.of("sample");
 
     CatalogOperations.createTableInCatalog(
-        this.testCatalog,
-        ImmutableList.of(tablePath),
-        "sample",
-        newTable.getColumnList(),
-        CreateMode.CREATE_OR_REPLACE);
+        this.testCatalog, newTable.getFullName(), newTable, CreateMode.CREATE_OR_REPLACE);
 
-    Table foundTable =
-        assertTableExists(this.testCatalog, tablePath, "Expected replaced table to exist");
+    Table foundTable = assertTableExists(
+        this.testCatalog, ImmutableList.of("sample"), "Expected replaced table to exist");
 
     assertEquals(
         foundTable.getColumn(0).getType(),
@@ -212,11 +184,7 @@ class CatalogOperationsTest {
     Table originalTable = this.testCatalog.findTable(sampleTablePath);
 
     CatalogOperations.createTableInCatalog(
-        this.testCatalog,
-        ImmutableList.of(sampleTablePath),
-        "sample",
-        newTable.getColumnList(),
-        CreateMode.CREATE_IF_NOT_EXISTS);
+        this.testCatalog, newTable.getFullName(), newTable, CreateMode.CREATE_IF_NOT_EXISTS);
 
     Table foundTable =
         assertTableExists(
@@ -240,16 +208,13 @@ class CatalogOperationsTest {
                 new SimpleColumn(
                     tableName, "column", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))));
 
-    List<String> newTablePath = ImmutableList.of("newTable");
-
     CatalogOperations.createTableInCatalog(
-        this.testCatalog,
-        ImmutableList.of(newTablePath),
-        "newTable",
-        newTable.getColumnList(),
-        CreateMode.CREATE_IF_NOT_EXISTS);
+        this.testCatalog, newTable.getFullName(), newTable, CreateMode.CREATE_IF_NOT_EXISTS);
 
-    assertTableExists(this.testCatalog, newTablePath, "Expected table to have been created");
+    assertTableExists(
+        this.testCatalog,
+        ImmutableList.of("newTable"),
+        "Expected table to have been created");
   }
 
   private Function assertFunctionExists(SimpleCatalog catalog, String fullName, String message) {

@@ -41,10 +41,9 @@ public class CatalogOperations {
   // TODO: Probably come up with an abstraction to reduce code repetition in this class.
   //  This implementation has a lot of repeated code; namely in methods like
   //  validate[Resource]DoesNotExist(), delete[Resource]FromCatalog() and
-  // create[Resource]InCatalog().
+  //  create[Resource]InCatalog().
   //  Because of the slightly different ways the SimpleCatalog handles naming for different types of
-  // resources,
-  //  avoiding that repetition is not very straightforward.
+  //  resources, avoiding that repetition is not very straightforward.
 
   private CatalogOperations() {}
 
@@ -154,82 +153,50 @@ public class CatalogOperations {
   }
 
   /**
-   * Checks a table does not exist at any of the provided paths.
-   *
-   * @param rootCatalog The catalog to look for tables in
-   * @param tablePaths The list of paths the table should not be in
-   * @param fullTableName The full name of the table we're looking for, used for error reporting
-   * @throws CatalogResourceAlreadyExists if a table exists at any of the provided paths
-   */
-  private static void validateTableDoesNotExist(
-      SimpleCatalog rootCatalog, List<List<String>> tablePaths, String fullTableName) {
-    for (List<String> tablePath : tablePaths) {
-      if (tableExists(rootCatalog, tablePath)) {
-        String errorMessage =
-            String.format(
-                "Table %s already exists at path %s", fullTableName, tablePath.toString());
-        throw new CatalogResourceAlreadyExists(fullTableName, errorMessage);
-      }
-    }
-  }
-
-  /**
    * Deletes a table from the specified paths in a {@link SimpleCatalog}
    *
-   * @param rootCatalog The catalog from which to delete tables
-   * @param tablePaths The paths for the table that should be deleted
+   * @param catalog The catalog from which to delete tables
+   * @param name The name for the table in the catalog
    */
-  public static void deleteTableFromCatalog(
-      SimpleCatalog rootCatalog, List<List<String>> tablePaths) {
-    for (List<String> tablePath : tablePaths) {
-      String tableName = tablePath.get(tablePath.size() - 1);
-      SimpleCatalog catalog = getSubCatalogForResource(rootCatalog, tablePath);
-
-      if (tableExists(catalog, tableName)) {
-        catalog.removeSimpleTable(tableName);
-      }
-    }
+  public static void deleteTableFromCatalog(SimpleCatalog catalog, String name) {
+    catalog.removeSimpleTable(name);
   }
 
   /**
-   * Creates a table in a SimpleCatalog using the provided paths and complying with the provided
-   * CreateMode.
+   * Creates a table in a {@link SimpleCatalog} using the provided paths and complying with
+   * the provided CreateMode.
    *
-   * @param rootCatalog The root SimpleCatalog in which to create the table.
-   * @param tablePaths The table paths to create the table at. If multiple paths are provided,
-   *     multiple copies of the table will be registered in the catalog.
-   * @param fullTableName The full name of the table to create.
-   * @param columns The list of columns for the table
+   * @param catalog The catalog in which to create the table.
+   * @param nameInCatalog The name under which the table will be registered in the catalog.
+   * @param table The {@link SimpleTable} object representing the table
    * @param createMode The CreateMode to use
    * @throws CatalogResourceAlreadyExists if the table already exists at any of the provided paths
    *     and CreateMode != CREATE_OR_REPLACE.
    */
   public static void createTableInCatalog(
-      SimpleCatalog rootCatalog,
-      List<List<String>> tablePaths,
-      String fullTableName,
-      List<SimpleColumn> columns,
+      SimpleCatalog catalog,
+      String nameInCatalog,
+      SimpleTable table,
       CreateMode createMode) {
 
-    if (createMode.equals(CreateMode.CREATE_OR_REPLACE)) {
-      deleteTableFromCatalog(rootCatalog, tablePaths);
+    boolean alreadyExists = tableExists(catalog, nameInCatalog);
+
+    if (createMode.equals(CreateMode.CREATE_IF_NOT_EXISTS) && alreadyExists) {
+      return;
     }
 
-    if (createMode.equals(CreateMode.CREATE_DEFAULT)) {
-      validateTableDoesNotExist(rootCatalog, tablePaths, fullTableName);
+    if (createMode.equals(CreateMode.CREATE_OR_REPLACE) && alreadyExists) {
+      deleteTableFromCatalog(catalog, nameInCatalog);
     }
 
-    SimpleTable table = new SimpleTable(fullTableName, columns);
-    table.setFullName(fullTableName);
-
-    for (List<String> tablePath : tablePaths) {
-      String tableName = tablePath.get(tablePath.size() - 1);
-      SimpleCatalog catalogForCreation = getSubCatalogForResource(rootCatalog, tablePath);
-
-      if (!tableExists(catalogForCreation, tableName)) {
-        catalogForCreation.addSimpleTable(tableName, table);
-      }
+    if (createMode.equals(CreateMode.CREATE_DEFAULT) && alreadyExists) {
+      String errorMessage =
+          String.format(
+              "Table %s already exists in catalog", nameInCatalog);
+      throw new CatalogResourceAlreadyExists(nameInCatalog, errorMessage);
     }
+
+    catalog.addSimpleTable(nameInCatalog, table);
   }
 
   /**

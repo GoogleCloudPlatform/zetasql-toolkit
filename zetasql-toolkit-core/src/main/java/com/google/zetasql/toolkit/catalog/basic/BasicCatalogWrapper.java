@@ -80,12 +80,7 @@ public class BasicCatalogWrapper implements CatalogWrapper {
    */
   @Override
   public void register(SimpleTable table, CreateMode createMode, CreateScope createScope) {
-    CatalogOperations.createTableInCatalog(
-        this.catalog,
-        ImmutableList.of(ImmutableList.of(table.getFullName())),
-        table.getFullName(),
-        table.getColumnList(),
-        createMode);
+    CatalogOperations.createTableInCatalog(this.catalog, table.getFullName(), table, createMode);
   }
 
   @Override
@@ -151,7 +146,7 @@ public class BasicCatalogWrapper implements CatalogWrapper {
 
   @Override
   public void removeTable(String fullTableName) {
-    CatalogOperations.deleteTableFromCatalog(this.catalog, ImmutableList.of(ImmutableList.of(fullTableName)));
+    CatalogOperations.deleteTableFromCatalog(this.catalog, fullTableName);
   }
 
   @Override

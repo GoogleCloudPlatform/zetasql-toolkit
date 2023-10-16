@@ -351,10 +351,10 @@ public class BigQueryCatalog implements CatalogWrapper {
   /**
    * {@inheritDoc}
    *
-   * <p>Multiple copies of the registered {@link SimpleTable} will be created in the Catalog to
-   * comply with BigQuery name resolution semantics.
+   * <p> If the table is not temporary and is in the catalog's default project, it will be
+   * registered twice. Once as "project.dataset.table" and once as "dataset.table". That way,
+   * queries that omit the project when referencing the table can be analyzed.
    *
-   * @see #buildCatalogPathsForResource(BigQueryReference)
    * @throws BigQueryCreateError if a pre-create validation fails
    * @throws CatalogResourceAlreadyExists if the table already exists and CreateMode !=
    *     CREATE_OR_REPLACE
@@ -366,16 +366,34 @@ public class BigQueryCatalog implements CatalogWrapper {
         ImmutableList.of(CreateScope.CREATE_DEFAULT_SCOPE, CreateScope.CREATE_TEMP),
         table.getFullName(),
         "table");
-    this.validateNamePathForCreation(ImmutableList.of(table.getFullName()), createScope, "table");
+    this.validateNamePathForCreation(
+        ImmutableList.of(table.getFullName()), createScope, "table");
 
-    List<List<String>> tablePaths =
-        createScope.equals(CreateScope.CREATE_TEMP)
-            ? ImmutableList.of(ImmutableList.of(table.getName()))
-            : this.buildCatalogPathsForResource(table.getFullName());
+    boolean isQualified = BigQueryReference.isQualified(table.getFullName());
 
     try {
+      // If it is not qualified, just create it with its name
+      if (!isQualified) {
+        CatalogOperations.createTableInCatalog(
+            this.catalog, table.getFullName(), table, createMode);
+        return;
+      }
+
+      // If it is qualified, create it as "project.dataset.table". If it is in the default project,
+      // also create it as "dataset.table".
+      BigQueryReference parsedReference =
+          BigQueryReference.from(this.defaultProjectId, table.getFullName());
+      boolean isInDefaultProject =
+          parsedReference.getProjectId().equalsIgnoreCase(this.defaultProjectId);
+
       CatalogOperations.createTableInCatalog(
-          this.catalog, tablePaths, table.getFullName(), table.getColumnList(), createMode);
+          this.catalog, parsedReference.getFullName(), table, createMode);
+
+      if (isInDefaultProject) {
+        CatalogOperations.createTableInCatalog(
+            this.catalog, parsedReference.getNameWithDataset(), table, createMode);
+      }
+
     } catch (CatalogResourceAlreadyExists alreadyExists) {
       throw this.addCaseInsensitivityWarning(alreadyExists);
     }
@@ -515,14 +533,23 @@ public class BigQueryCatalog implements CatalogWrapper {
 
   @Override
   public void removeTable(String tableReference) {
-    boolean isQualified = tableReference.split("\\.").length > 1;
+    boolean isQualified = BigQueryReference.isQualified(tableReference);
 
-    List<List<String>> tablePaths =
-        !isQualified
-            ? ImmutableList.of(ImmutableList.of(tableReference))
-            : this.buildCatalogPathsForResource(tableReference);
+    if (isQualified) {
+      BigQueryReference parsedReference =
+          BigQueryReference.from(this.defaultProjectId, tableReference);
+      boolean isInDefaultProject =
+          parsedReference.getProjectId().equalsIgnoreCase(this.defaultProjectId);
 
-    CatalogOperations.deleteTableFromCatalog(this.catalog, tablePaths);
+      CatalogOperations.deleteTableFromCatalog(this.catalog, parsedReference.getFullName());
+
+      if (isInDefaultProject) {
+        CatalogOperations.deleteTableFromCatalog(this.catalog, parsedReference.getNameWithDataset());
+      }
+    } else {
+      CatalogOperations.deleteTableFromCatalog(this.catalog, tableReference);
+    }
+
   }
 
   @Override
