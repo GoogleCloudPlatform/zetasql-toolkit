@@ -23,6 +23,7 @@ import com.google.zetasql.SimpleCatalogProtos.SimpleCatalogProto;
 import com.google.zetasql.TableValuedFunction.FixedOutputSchemaTVF;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.toolkit.catalog.exceptions.CatalogResourceAlreadyExists;
+import com.google.zetasql.toolkit.catalog.exceptions.CatalogResourceDoesNotExist;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -153,12 +154,18 @@ public class CatalogOperations {
   }
 
   /**
-   * Deletes a table from the specified paths in a {@link SimpleCatalog}
+   * Deletes a table with the provided name from {@link SimpleCatalog}
    *
    * @param catalog The catalog from which to delete tables
    * @param name The name for the table in the catalog
+   * @throws CatalogResourceDoesNotExist if the table does not exist in the catalog
    */
   public static void deleteTableFromCatalog(SimpleCatalog catalog, String name) {
+    if (!tableExists(catalog, name)) {
+      String errorMessage = String.format("Tried to delete table which does not exist: %s", name);
+      throw new CatalogResourceDoesNotExist(name, errorMessage);
+    }
+
     catalog.removeSimpleTable(name);
   }
 
@@ -166,8 +173,8 @@ public class CatalogOperations {
    * Creates a table in a {@link SimpleCatalog} using the provided paths and complying with
    * the provided CreateMode.
    *
-   * @param catalog The catalog in which to create the table.
-   * @param nameInCatalog The name under which the table will be registered in the catalog.
+   * @param catalog The catalog in which to create the table
+   * @param nameInCatalog The name under which the table will be registered in the catalog
    * @param table The {@link SimpleTable} object representing the table
    * @param createMode The CreateMode to use
    * @throws CatalogResourceAlreadyExists if the table already exists at any of the provided paths
@@ -200,94 +207,73 @@ public class CatalogOperations {
   }
 
   /**
-   * Checks a function does not exist at any of the provided paths.
+   * Deletes a function with the provided name from the {@link SimpleCatalog}
    *
-   * @param rootCatalog The catalog to look for functions in
-   * @param functionPaths The list of paths the function should not be in
-   * @param functionFullName The full name of the function we're looking for, only used for error
-   *     reporting
-   * @throws CatalogResourceAlreadyExists if a function exists at any of the provided paths
+   * @param catalog The catalog from which to delete the function
+   * @param fullName The full name of the function in the catalog
+   * @throws CatalogResourceDoesNotExist if the function does not exist in the catalog
    */
-  private static void validateFunctionDoesNotExist(
-      SimpleCatalog rootCatalog, List<List<String>> functionPaths, String functionFullName) {
-    for (List<String> functionPath : functionPaths) {
-      String functionNameInCatalog = functionPath.get(functionPath.size() - 1);
+  public static void deleteFunctionFromCatalog(SimpleCatalog catalog, String fullName) {
+    String fullNameWithoutGroup = removeGroupFromFunctionName(fullName);
 
-      SimpleCatalog catalog = getSubCatalogForResource(rootCatalog, functionPath);
+    Optional<String> fullNameToDelete =
+        catalog.getFunctionNameList().stream()
+            .filter(
+                name ->
+                    removeGroupFromFunctionName(name).equalsIgnoreCase(fullNameWithoutGroup))
+            .findFirst();
 
-      if (functionExists(catalog, functionNameInCatalog)) {
-        throw new CatalogResourceAlreadyExists(functionFullName);
-      }
+    if (fullNameToDelete.isPresent()) {
+      catalog.removeFunction(fullNameToDelete.get());
+    } else {
+      String errorMessage = String.format(
+          "Tried to delete function which does not exist: %s", fullName);
+      throw new CatalogResourceDoesNotExist(fullName, errorMessage);
     }
   }
 
   /**
-   * Deletes a function from the specified paths in a {@link SimpleCatalog}
+   * Creates a function in a {@link SimpleCatalog} using the provided paths and complying with the
+   * provided CreateMode.
    *
-   * @param rootCatalog The catalog from which to delete functions
-   * @param functionPaths The paths for the function that should be deleted
-   */
-  public static void deleteFunctionFromCatalog(
-      SimpleCatalog rootCatalog, List<List<String>> functionPaths) {
-    for (List<String> functionPath : functionPaths) {
-      String functionNameInCatalog = functionPath.get(functionPath.size() - 1);
-      SimpleCatalog catalog = getSubCatalogForResource(rootCatalog, functionPath);
-
-      if (functionExists(catalog, functionNameInCatalog)) {
-        Optional<String> fullNameToDelete =
-            catalog.getFunctionNameList().stream()
-                .filter(
-                    fullName ->
-                        removeGroupFromFunctionName(fullName)
-                            .equalsIgnoreCase(functionNameInCatalog))
-                .findFirst();
-        fullNameToDelete.ifPresent(catalog::removeFunction);
-      }
-    }
-  }
-
-  /**
-   * Creates a function in a SimpleCatalog using the provided paths and complying with the provided
-   * CreateMode.
-   *
-   * @param rootCatalog The root SimpleCatalog in which to create the function.
-   * @param functionPaths The function paths to create the function at. If multiple paths are
-   *     provided, multiple copies of the function will be registered in the catalog.
+   * @param catalog The catalog in which to create the function
+   * @param nameInCatalog The name under which the function will be registered in the catalog
    * @param functionInfo The FunctionInfo object representing the function that should be created
    * @param createMode The CreateMode to use
    * @throws CatalogResourceAlreadyExists if the function already exists at any of the provided
    *     paths and CreateMode != CREATE_OR_REPLACE.
    */
   public static void createFunctionInCatalog(
-      SimpleCatalog rootCatalog,
-      List<List<String>> functionPaths,
+      SimpleCatalog catalog,
+      String nameInCatalog,
       FunctionInfo functionInfo,
       CreateMode createMode) {
 
-    if (createMode.equals(CreateMode.CREATE_OR_REPLACE)) {
-      deleteFunctionFromCatalog(rootCatalog, functionPaths);
+    boolean alreadyExists = functionExists(catalog, nameInCatalog);
+
+    if (createMode.equals(CreateMode.CREATE_IF_NOT_EXISTS) && alreadyExists) {
+      return;
     }
 
-    if (createMode.equals(CreateMode.CREATE_DEFAULT)) {
-      validateFunctionDoesNotExist(
-          rootCatalog, functionPaths, String.join(".", functionInfo.getNamePath()));
+    if (createMode.equals(CreateMode.CREATE_OR_REPLACE) && alreadyExists) {
+      deleteFunctionFromCatalog(catalog, nameInCatalog);
     }
 
-    for (List<String> functionPath : functionPaths) {
-      String functionName = functionPath.get(functionPath.size() - 1);
-      SimpleCatalog catalogForCreation = getSubCatalogForResource(rootCatalog, functionPath);
-
-      Function finalFunction =
-          new Function(
-              ImmutableList.of(functionName),
-              functionInfo.getGroup(),
-              functionInfo.getMode(),
-              functionInfo.getSignatures());
-
-      if (!functionExists(catalogForCreation, finalFunction)) {
-        catalogForCreation.addFunction(finalFunction);
-      }
+    if (createMode.equals(CreateMode.CREATE_DEFAULT) && alreadyExists) {
+      String errorMessage =
+          String.format(
+              "Function %s already exists in catalog", nameInCatalog);
+      throw new CatalogResourceAlreadyExists(nameInCatalog, errorMessage);
     }
+
+    Function function =
+        new Function(
+            ImmutableList.of(nameInCatalog),
+            functionInfo.getGroup(),
+            functionInfo.getMode(),
+            functionInfo.getSignatures());
+
+    catalog.addFunction(function);
   }
 
   /**

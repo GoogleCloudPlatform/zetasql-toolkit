@@ -86,7 +86,7 @@ public class BasicCatalogWrapper implements CatalogWrapper {
   @Override
   public void register(FunctionInfo function, CreateMode createMode, CreateScope createScope) {
     CatalogOperations.createFunctionInCatalog(
-        this.catalog, ImmutableList.of(function.getNamePath()), function, createMode);
+        this.catalog, function.getFullName(), function, createMode);
   }
 
   @Override
@@ -151,7 +151,7 @@ public class BasicCatalogWrapper implements CatalogWrapper {
 
   @Override
   public void removeFunction(String function) {
-    CatalogOperations.deleteFunctionFromCatalog(this.catalog, ImmutableList.of(ImmutableList.of(function)));
+    CatalogOperations.deleteFunctionFromCatalog(this.catalog, function);
   }
 
   @Override

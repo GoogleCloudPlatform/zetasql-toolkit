@@ -402,14 +402,14 @@ public class BigQueryCatalog implements CatalogWrapper {
   /**
    * {@inheritDoc}
    *
-   * <p>Multiple copies of the registered {@link FunctionInfo} will be created in the Catalog to
-   * comply with BigQuery name resolution semantics.
+   * <p> If the function is not temporary and is in the catalog's default project, it will be
+   * registered twice. Once as "project.dataset.function" and once as "dataset.function". That way,
+   * queries that omit the project when referencing the table can be analyzed.
    *
    * <p>If any function signature which does not include a valid return type, this method will
    * attempt to infer it. If inference is not possible, {@link MissingFunctionResultType} will be
    * thrown.
    *
-   * @see #buildCatalogPathsForResource(BigQueryReference)
    * @throws BigQueryCreateError if a pre-create validation fails
    * @throws CatalogResourceAlreadyExists if the function already exists and CreateMode !=
    *     CREATE_OR_REPLACE
@@ -432,14 +432,28 @@ public class BigQueryCatalog implements CatalogWrapper {
         FunctionResultTypeResolver.resolveFunctionReturnTypes(
             function, BigQueryLanguageOptions.get(), this.catalog);
 
-    List<List<String>> functionPaths =
-        createScope.equals(CreateScope.CREATE_TEMP)
-            ? ImmutableList.of(functionNamePath)
-            : this.buildCatalogPathsForResource(functionNamePath);
+    boolean isQualified = BigQueryReference.isQualified(fullName);
 
     try {
+      if (!isQualified) {
+        CatalogOperations.createFunctionInCatalog(
+            this.catalog, fullName, resolvedFunction, createMode);
+        return;
+      }
+
+      BigQueryReference parsedReference =
+          BigQueryReference.from(this.defaultProjectId, fullName);
+      boolean isInDefaultProject =
+          parsedReference.getProjectId().equalsIgnoreCase(this.defaultProjectId);
+
       CatalogOperations.createFunctionInCatalog(
-          this.catalog, functionPaths, resolvedFunction, createMode);
+          this.catalog, parsedReference.getFullName(), resolvedFunction, createMode);
+
+      if (isInDefaultProject) {
+        CatalogOperations.createFunctionInCatalog(
+            this.catalog, parsedReference.getNameWithDataset(), resolvedFunction, createMode);
+      }
+
     } catch (CatalogResourceAlreadyExists alreadyExists) {
       throw this.addCaseInsensitivityWarning(alreadyExists);
     }
@@ -554,14 +568,23 @@ public class BigQueryCatalog implements CatalogWrapper {
 
   @Override
   public void removeFunction(String functionReference) {
-    boolean isQualified = functionReference.split("\\.").length > 1;
+    boolean isQualified = BigQueryReference.isQualified(functionReference);
 
-    List<List<String>> functionPaths =
-        !isQualified
-            ? ImmutableList.of(ImmutableList.of(functionReference))
-            : this.buildCatalogPathsForResource(functionReference);
+    if (isQualified) {
+      BigQueryReference parsedReference =
+          BigQueryReference.from(this.defaultProjectId, functionReference);
+      boolean isInDefaultProject =
+          parsedReference.getProjectId().equalsIgnoreCase(this.defaultProjectId);
 
-    CatalogOperations.deleteFunctionFromCatalog(this.catalog, functionPaths);
+      CatalogOperations.deleteFunctionFromCatalog(this.catalog, parsedReference.getFullName());
+
+      if (isInDefaultProject) {
+        CatalogOperations.deleteFunctionFromCatalog(
+            this.catalog, parsedReference.getNameWithDataset());
+      }
+    } else {
+      CatalogOperations.deleteFunctionFromCatalog(this.catalog, functionReference);
+    }
   }
 
   @Override

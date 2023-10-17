@@ -233,7 +233,7 @@ class CatalogOperationsTest {
   void testCreateFunctionInCatalog() {
     FunctionInfo newFunction =
         FunctionInfo.newBuilder()
-            .setNamePath(ImmutableList.of("newFunction"))
+            .setNamePath(ImmutableList.of("qualified.newFunction"))
             .setGroup("UDF")
             .setMode(ZetaSQLFunctions.FunctionEnums.Mode.SCALAR)
             .setSignatures(
@@ -245,46 +245,39 @@ class CatalogOperationsTest {
                         -1)))
             .build();
 
-    List<String> newFunctionPath1 = ImmutableList.of("newFunction");
-    List<String> newFunctionPath2 = ImmutableList.of("qualified", "newFunction");
-    List<List<String>> newFunctionPaths = ImmutableList.of(newFunctionPath1, newFunctionPath2);
-
     CatalogOperations.createFunctionInCatalog(
-        this.testCatalog, newFunctionPaths, newFunction, CreateMode.CREATE_DEFAULT);
+        this.testCatalog, "qualified.newFunction", newFunction, CreateMode.CREATE_DEFAULT);
 
-    SimpleCatalog qualifiedNestedCatalog = this.testCatalog.getCatalog("qualified", null);
+    assertFunctionExists(
+        this.testCatalog, "UDF:qualified.newFunction", "Expected created function to exist");
 
-    assertNotNull(
-        qualifiedNestedCatalog,
-        "Expected the nested catalog to exist after creating a resource in it");
-
-    assertAll(
-        () ->
-            assertFunctionExists(
-                this.testCatalog, "UDF:newFunction", "Expected created function to exist"),
-        () ->
-            assertFunctionExists(
-                qualifiedNestedCatalog, "UDF:newFunction", "Expected created function to exist"));
   }
 
   @Test
   void testDeleteFunctionFromCatalog() {
-    List<String> sampleFunctionPath = ImmutableList.of("function");
-    List<String> nestedSampleFunctionPath = ImmutableList.of("nested", "function");
+    FunctionInfo newFunction =
+        FunctionInfo.newBuilder()
+            .setNamePath(ImmutableList.of("qualified.newFunction"))
+            .setGroup("UDF")
+            .setMode(ZetaSQLFunctions.FunctionEnums.Mode.SCALAR)
+            .setSignatures(
+                ImmutableList.of(
+                    new FunctionSignature(
+                        new FunctionArgumentType(
+                            TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
+                        ImmutableList.of(),
+                        -1)))
+            .build();
 
-    List<List<String>> functionPathsToDelete =
-        ImmutableList.of(sampleFunctionPath, nestedSampleFunctionPath);
-    CatalogOperations.deleteFunctionFromCatalog(this.testCatalog, functionPathsToDelete);
+    CatalogOperations.createFunctionInCatalog(
+        this.testCatalog, "qualified.newFunction", newFunction, CreateMode.CREATE_DEFAULT);
+    CatalogOperations.deleteFunctionFromCatalog(this.testCatalog, "qualified.newFunction");
 
-    assertAll(
-        () ->
-            assertFunctionDoesNotExist(
-                this.testCatalog.getCatalog("nested", null),
-                "UDF:function",
-                "Expected function to have been deleted"),
-        () ->
-            assertFunctionDoesNotExist(
-                this.testCatalog, "UDF:function", "Expected function to have been deleted"));
+    assertFunctionDoesNotExist(
+        this.testCatalog,
+        "UDF:qualified.newFunction",
+        "Expected function to have been deleted");
+
   }
 
   private TableValuedFunction assertTVFExists(SimpleCatalog catalog, String name, String message) {

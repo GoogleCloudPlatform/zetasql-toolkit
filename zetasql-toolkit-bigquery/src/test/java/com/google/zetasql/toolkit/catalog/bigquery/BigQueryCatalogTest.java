@@ -58,19 +58,6 @@ public class BigQueryCatalogTest {
   BigQueryCatalog bigQueryCatalog;
   @Mock BigQueryResourceProvider bigQueryResourceProviderMock;
 
-  FunctionInfo exampleFunction =
-      FunctionInfo.newBuilder()
-          .setNamePath(ImmutableList.of(testProjectId, "dataset", "examplefunction"))
-          .setGroup("UDF")
-          .setMode(Mode.SCALAR)
-          .setSignatures(
-              ImmutableList.of(
-                  new FunctionSignature(
-                      new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
-                      ImmutableList.of(),
-                      -1)))
-          .build();
-
   TVFInfo exampleTVF =
       TVFInfo.newBuilder()
           .setNamePath(ImmutableList.of(testProjectId, "dataset", "exampletvf"))
@@ -95,29 +82,6 @@ public class BigQueryCatalogTest {
         new BigQueryCatalog(this.testProjectId, this.bigQueryResourceProviderMock);
   }
 
-  private List<List<String>> buildPathsWhereResourceShouldBe(String resourceReference) {
-    BigQueryReference ref = BigQueryReference.from(this.testProjectId, resourceReference);
-
-    List<List<String>> fullyQualifiedPaths =
-        ImmutableList.of(
-            ImmutableList.of(ref.getProjectId() + "." + ref.getDatasetId() + "." + ref.getResourceName()),
-            ImmutableList.of(ref.getProjectId(), ref.getDatasetId() + "." + ref.getResourceName()),
-            ImmutableList.of(ref.getProjectId() + "." + ref.getDatasetId(), ref.getResourceName()),
-            ImmutableList.of(ref.getProjectId(), ref.getDatasetId(), ref.getResourceName()));
-
-    List<List<String>> result = new ArrayList<>(fullyQualifiedPaths);
-
-    if (ref.getProjectId().equals(this.testProjectId)) {
-      List<List<String>> implicitProjectPaths =
-          ImmutableList.of(
-              ImmutableList.of(ref.getDatasetId() + "." + ref.getResourceName()),
-              ImmutableList.of(ref.getDatasetId(), ref.getResourceName()));
-      result.addAll(implicitProjectPaths);
-    }
-
-    return result;
-  }
-
   private SimpleTable buildExampleTable(String tableRef) {
     SimpleTable table = new SimpleTable(
         tableRef,
@@ -128,6 +92,20 @@ public class BigQueryCatalogTest {
                 TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
     table.setFullName(tableRef);
     return table;
+  }
+
+  private FunctionInfo buildExampleFunction(String functionRef) {
+    return FunctionInfo.newBuilder()
+        .setNamePath(ImmutableList.of(functionRef))
+        .setGroup("UDF")
+        .setMode(Mode.SCALAR)
+        .setSignatures(
+            ImmutableList.of(
+                new FunctionSignature(
+                    new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
+                    ImmutableList.of(),
+                    -1)))
+        .build();
   }
 
   private Table assertTableExists(BigQueryCatalog catalog, String tableRef) {
@@ -364,22 +342,26 @@ public class BigQueryCatalogTest {
 
   @Test
   void testRegisterFunction() {
+    String functionRef = String.format("%s.dataset.function", this.testProjectId);
+    FunctionInfo function = buildExampleFunction(functionRef);
+
     this.bigQueryCatalog.register(
-        exampleFunction, CreateMode.CREATE_DEFAULT, CreateScope.CREATE_DEFAULT_SCOPE);
+        function, CreateMode.CREATE_DEFAULT, CreateScope.CREATE_DEFAULT_SCOPE);
 
     SimpleCatalog underlyingCatalog = this.bigQueryCatalog.getZetaSQLCatalog();
     assertDoesNotThrow(
-        () -> underlyingCatalog.findFunction(exampleFunction.getNamePath()),
+        () -> underlyingCatalog.findFunction(function.getNamePath()),
         String.format(
             "Expected function to exist at path %s",
-            String.join(".", exampleFunction.getNamePath())));
+            String.join(".", function.getNamePath())));
   }
 
   @Test
   void testInferFunctionReturnType() {
+    String functionRef = String.format("%s.dataset.function", this.testProjectId);
     FunctionInfo functionWithUnknownReturnType =
         FunctionInfo.newBuilder()
-            .setNamePath(ImmutableList.of(testProjectId, "dataset", "function"))
+            .setNamePath(ImmutableList.of(functionRef))
             .setGroup("UDF")
             .setMode(Mode.SCALAR)
             .setSignatures(
