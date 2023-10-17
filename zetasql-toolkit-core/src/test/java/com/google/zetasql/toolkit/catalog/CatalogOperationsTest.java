@@ -41,15 +41,6 @@ class CatalogOperationsTest {
                     "sample", "column", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
     catalog.addSimpleTable(sampleTable);
 
-    Procedure procedure =
-        new Procedure(
-            ImmutableList.of("procedure"),
-            new FunctionSignature(
-                new FunctionArgumentType(ZetaSQLFunctions.SignatureArgumentKind.ARG_TYPE_VOID),
-                ImmutableList.of(),
-                -1));
-    catalog.addProcedure(procedure);
-
     return catalog;
   }
 
@@ -319,18 +310,17 @@ class CatalogOperationsTest {
   void testCreateProcedureInCatalog() {
     ProcedureInfo newProcedure =
         new ProcedureInfo(
-            ImmutableList.of("newProcedure"),
+            ImmutableList.of("qualified.newProcedure"),
             new FunctionSignature(
                 new FunctionArgumentType(ZetaSQLFunctions.SignatureArgumentKind.ARG_TYPE_VOID),
                 ImmutableList.of(),
                 -1));
 
-    List<String> newProcedurePath1 = ImmutableList.of("newProcedure");
+    List<String> newProcedurePath1 = ImmutableList.of("qualified.newProcedure");
     List<String> newProcedurePath2 = ImmutableList.of("qualified", "newProcedure");
-    List<List<String>> newProcedurePaths = ImmutableList.of(newProcedurePath1, newProcedurePath2);
 
     CatalogOperations.createProcedureInCatalog(
-        this.testCatalog, newProcedurePaths, newProcedure, CreateMode.CREATE_DEFAULT);
+        this.testCatalog, "qualified.newProcedure", newProcedure, CreateMode.CREATE_DEFAULT);
 
     assertAll(
         () ->
@@ -343,20 +333,30 @@ class CatalogOperationsTest {
 
   @Test
   void testDeleteProcedureFromCatalog() {
-    List<String> sampleProcedurePath = ImmutableList.of("procedure");
-    List<String> nestedSampleProcedurePath = ImmutableList.of("nested", "procedure");
+    ProcedureInfo newProcedure =
+        new ProcedureInfo(
+            ImmutableList.of("qualified.newProcedure"),
+            new FunctionSignature(
+                new FunctionArgumentType(ZetaSQLFunctions.SignatureArgumentKind.ARG_TYPE_VOID),
+                ImmutableList.of(),
+                -1));
 
-    List<List<String>> pathsToDelete = ImmutableList.of(sampleProcedurePath, nestedSampleProcedurePath);
-    CatalogOperations.deleteProcedureFromCatalog(this.testCatalog, pathsToDelete);
+    CatalogOperations.createProcedureInCatalog(
+        this.testCatalog, "qualified.newProcedure", newProcedure, CreateMode.CREATE_DEFAULT);
+
+    List<String> procedurePath1 = ImmutableList.of("newProcedure");
+    List<String> procedurePath2 = ImmutableList.of("qualified", "newProcedure");
+
+    CatalogOperations.deleteProcedureFromCatalog(this.testCatalog, "qualified.newProcedure");
 
     assertAll(
         () ->
             assertProcedureDoesNotExist(
-                this.testCatalog, sampleProcedurePath, "Expected procedure to have been deleted"),
+                this.testCatalog, procedurePath1, "Expected procedure to have been deleted"),
         () ->
             assertProcedureDoesNotExist(
                 this.testCatalog,
-                nestedSampleProcedurePath,
+                procedurePath2,
                 "Expected procedure to have been deleted"));
   }
 

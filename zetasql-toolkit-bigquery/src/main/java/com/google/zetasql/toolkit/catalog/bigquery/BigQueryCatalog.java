@@ -301,74 +301,6 @@ public class BigQueryCatalog implements CatalogWrapper {
     }
   }
 
-  /**
-   * Creates the list of resource paths that should be used for creating a resource to make sure it
-   * is always found when analyzing queries.
-   *
-   * <p>Given the way the ZetaSQL {@link SimpleCatalog} resolves names, different ways of
-   * referencing resources while querying results in different lookups. For example; "SELECT * FROM
-   * `A.B`" will look for a table named "A.B", while "SELECT * FROM `A`.`B`" will look for a table
-   * named "B" on a catalog named "A".
-   *
-   * <p>Because of the previous point, a table or function being created needs to be registered in
-   * multiple paths. This method creates all those distinct paths. Given the resource
-   * "project.dataset.resource", this method will create these paths:
-   *
-   * <ul>
-   *   <li>["project.dataset.resource"]
-   *   <li>["project", "dataset", "resource"]
-   *   <li>["project", "dataset.resource"]
-   *   <li>["project.dataset", "resource"]
-   *   <li>["dataset.resource"] if the resource project is this catalog's default project id
-   *   <li>["dataset", "resource"] if the resource project is this catalog's default project id
-   * </ul>
-   *
-   * @param reference The BigQueryReference for the resource that needs to be created
-   * @return All the distinct name paths at which the resource should be created
-   */
-  private List<List<String>> buildCatalogPathsForResource(BigQueryReference reference) {
-    String projectId = reference.getProjectId();
-    String datasetName = reference.getDatasetId();
-    String resourceName = reference.getResourceName();
-
-    List<List<String>> resourcePaths =
-        ImmutableList.of(
-            ImmutableList.of(projectId, datasetName, resourceName), // format: project.dataset.table format
-            ImmutableList.of(
-                projectId
-                    + "."
-                    + datasetName
-                    + "."
-                    + resourceName), // format: `project.dataset.table`
-            ImmutableList.of(projectId + "." + datasetName, resourceName), // format: `project.dataset`.table
-            ImmutableList.of(projectId, datasetName + "." + resourceName) // format: project.`dataset.table`
-            );
-
-    List<List<String>> resourcePathsWithImplicitProject = ImmutableList.of();
-
-    if (projectId.equals(this.defaultProjectId)) {
-      resourcePathsWithImplicitProject =
-          ImmutableList.of(
-              ImmutableList.of(datasetName, resourceName), // format: dataset.table (project implied)
-              ImmutableList.of(datasetName + "." + resourceName) // format: `dataset.table` (project implied)
-              );
-    }
-
-    return Stream.concat(resourcePaths.stream(), resourcePathsWithImplicitProject.stream())
-        .collect(Collectors.toList());
-  }
-
-  /** @see #buildCatalogPathsForResource(BigQueryReference) */
-  private List<List<String>> buildCatalogPathsForResource(String referenceStr) {
-    BigQueryReference reference = BigQueryReference.from(this.defaultProjectId, referenceStr);
-    return this.buildCatalogPathsForResource(reference);
-  }
-
-  /** @see #buildCatalogPathsForResource(BigQueryReference) */
-  private List<List<String>> buildCatalogPathsForResource(List<String> resourcePath) {
-    return this.buildCatalogPathsForResource(String.join(".", resourcePath));
-  }
-
   private CatalogResourceAlreadyExists addCaseInsensitivityWarning(
       CatalogResourceAlreadyExists error) {
     return new CatalogResourceAlreadyExists(
@@ -459,9 +391,9 @@ public class BigQueryCatalog implements CatalogWrapper {
   /**
    * {@inheritDoc}
    *
-   * <p> If the function is not temporary and is in the catalog's default project, it will be
-   * registered twice. Once as "project.dataset.function" and once as "dataset.function". That way,
-   * queries that omit the project when referencing the table can be analyzed.
+   * <p> If the function in the catalog's default project, it will be registered twice. Once as
+   * "project.dataset.function" and once as "dataset.function". That way, queries that omit the
+   * project when referencing the table can be analyzed.
    *
    * @throws BigQueryCreateError if a pre-create validation fails
    * @throws CatalogResourceAlreadyExists if the function already exists and CreateMode !=
@@ -492,10 +424,10 @@ public class BigQueryCatalog implements CatalogWrapper {
   /**
    * {@inheritDoc}
    *
-   * <p>Multiple copies of the registered {@link Procedure} will be created in the Catalog to comply
-   * with BigQuery name resolution semantics.
+   * <p> If the procedure in the catalog's default project, it will be registered twice. Once as
+   * "project.dataset.procedure" and once as "dataset.procedure". That way, queries that omit the
+   * project when referencing the table can be analyzed.
    *
-   * @see #buildCatalogPathsForResource(BigQueryReference)
    * @throws BigQueryCreateError if a pre-create validation fails
    * @throws CatalogResourceAlreadyExists if the precedure already exists and CreateMode !=
    *     CREATE_OR_REPLACE
@@ -509,11 +441,12 @@ public class BigQueryCatalog implements CatalogWrapper {
         createScope, ImmutableList.of(CreateScope.CREATE_DEFAULT_SCOPE), fullName, "procedure");
     this.validateNamePathForCreation(ImmutableList.of(fullName), createScope, "procedure");
 
-    List<List<String>> procedurePaths = this.buildCatalogPathsForResource(fullName);
+    List<String> catalogNamesForProcedure = buildCatalogNamesForResource(fullName);
 
     try {
-      CatalogOperations.createProcedureInCatalog(
-          this.catalog, procedurePaths, procedureInfo, createMode);
+      catalogNamesForProcedure.forEach(catalogName ->
+          CatalogOperations.createProcedureInCatalog(
+              catalog, catalogName, procedureInfo, createMode));
     } catch (CatalogResourceAlreadyExists alreadyExists) {
       throw this.addCaseInsensitivityWarning(alreadyExists);
     }
@@ -572,8 +505,10 @@ public class BigQueryCatalog implements CatalogWrapper {
 
   @Override
   public void removeProcedure(String procedureReference) {
-    List<List<String>> functionPaths = this.buildCatalogPathsForResource(procedureReference);
-    CatalogOperations.deleteProcedureFromCatalog(this.catalog, functionPaths);
+    List<String> catalogNamesForProcedure = buildCatalogNamesForResource(procedureReference);
+
+    catalogNamesForProcedure.forEach(catalogName ->
+        CatalogOperations.deleteProcedureFromCatalog(catalog, catalogName));
   }
 
   /**

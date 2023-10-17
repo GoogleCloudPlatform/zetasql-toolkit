@@ -135,7 +135,7 @@ class BigQueryBuiltIns {
       ImmutableList.of(
           // BQ.ABORT_SESSION([STRING])
           new ProcedureInfo(
-              ImmutableList.of("BQ", "ABORT_SESSION"),
+              ImmutableList.of("BQ.ABORT_SESSION"),
               new FunctionSignature(
                   new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
                   ImmutableList.of(
@@ -149,7 +149,7 @@ class BigQueryBuiltIns {
                   -1)),
           // BQ.JOBS.CANCEL(STRING)
           new ProcedureInfo(
-              ImmutableList.of("BQ", "JOBS", "CANCEL"),
+              ImmutableList.of("BQ.JOBS.CANCEL"),
               new FunctionSignature(
                   new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
                   ImmutableList.of(
@@ -163,7 +163,7 @@ class BigQueryBuiltIns {
                   -1)),
           // BQ.REFRESH_EXTERNAL_METADATA_CACHE(STRING)
           new ProcedureInfo(
-              ImmutableList.of("BQ", "REFRESH_EXTERNAL_METADATA_CACHE"),
+              ImmutableList.of("BQ.REFRESH_EXTERNAL_METADATA_CACHE"),
               new FunctionSignature(
                   new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
                   ImmutableList.of(
@@ -177,7 +177,7 @@ class BigQueryBuiltIns {
                   -1)),
           // BQ.REFRESH_MATERIALIZED_VIEW(STRING)
           new ProcedureInfo(
-              ImmutableList.of("BQ", "REFRESH_MATERIALIZED_VIEW"),
+              ImmutableList.of("BQ.REFRESH_MATERIALIZED_VIEW"),
               new FunctionSignature(
                   new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
                   ImmutableList.of(
@@ -199,15 +199,9 @@ class BigQueryBuiltIns {
   public static void addToCatalog(SimpleCatalog catalog) {
     TYPE_ALIASES.forEach(catalog::addType);
     FUNCTIONS.forEach(catalog::addFunction);
-
-    for (ProcedureInfo procedureInfo : PROCEDURES) {
-      List<String> namePath = procedureInfo.getNamePath();
-      String procedureName = namePath.get(namePath.size() - 1);
-      List<List<String>> procedurePaths =
-          ImmutableList.of(namePath, ImmutableList.of(procedureName), ImmutableList.of(String.join(".", namePath)));
+    PROCEDURES.forEach(procedure ->
       CatalogOperations.createProcedureInCatalog(
-          catalog, procedurePaths, procedureInfo, CreateMode.CREATE_OR_REPLACE);
-    }
+          catalog, procedure.getFullName(), procedure, CreateMode.CREATE_DEFAULT));
   }
 
   private BigQueryBuiltIns() {}

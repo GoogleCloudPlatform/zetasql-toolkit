@@ -32,10 +32,8 @@ import com.google.zetasql.toolkit.catalog.ProcedureInfo;
 import com.google.zetasql.toolkit.catalog.TVFInfo;
 import com.google.zetasql.toolkit.catalog.exceptions.CatalogException;
 import com.google.zetasql.toolkit.catalog.exceptions.CatalogResourceAlreadyExists;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Basic implementation of CatalogWrapper which does not implement the semantics of any particular
@@ -103,24 +101,8 @@ public class BasicCatalogWrapper implements CatalogWrapper {
   @Override
   public void register(
       ProcedureInfo procedureInfo, CreateMode createMode, CreateScope createScope) {
-    if (procedureInfo.getNamePath().size() > 1) {
-      throw new CatalogException("Procedure name paths should have a single item");
-    }
-
-    List<String> namePath =
-        procedureInfo.getNamePath().stream()
-            .flatMap(pathElement -> Arrays.stream(pathElement.split("\\.")))
-            .collect(Collectors.toList());
-    String fullName = String.join(".", namePath);
-
-    List<List<String>> procedurePaths = new ArrayList<>();
-    procedurePaths.add(namePath);
-    if (namePath.size() > 1) {
-      procedurePaths.add(ImmutableList.of(fullName));
-    }
-
     CatalogOperations.createProcedureInCatalog(
-        this.catalog, procedurePaths, procedureInfo, createMode);
+        this.catalog, procedureInfo.getFullName(), procedureInfo, createMode);
   }
 
   /**
@@ -161,7 +143,7 @@ public class BasicCatalogWrapper implements CatalogWrapper {
 
   @Override
   public void removeProcedure(String procedure) {
-    CatalogOperations.deleteProcedureFromCatalog(this.catalog, ImmutableList.of(ImmutableList.of(procedure)));
+    CatalogOperations.deleteProcedureFromCatalog(this.catalog, procedure);
   }
 
   @Override

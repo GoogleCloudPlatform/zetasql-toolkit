@@ -101,19 +101,9 @@ public class CatalogOperations {
         .anyMatch(fullNameWithoutGroup::equalsIgnoreCase);
   }
 
-  /** Returns true if the Function exists in the SimpleCatalog */
-  private static boolean functionExists(SimpleCatalog catalog, Function function) {
-    return functionExists(catalog, function.getFullName(false));
-  }
-
   /** Returns true if the TVF named tvfName exists in the SimpleCatalog */
   private static boolean tvfExists(SimpleCatalog catalog, String tvfName) {
     return catalog.getTVFNameList().contains(tvfName.toLowerCase());
-  }
-
-  /** Returns true if the TVF exists in the SimpleCatalog */
-  private static boolean tvfExists(SimpleCatalog catalog, TableValuedFunction tvf) {
-    return tvfExists(catalog, tvf.getName());
   }
 
   /** Returns true if the named procedureName exists in the SimpleCatalog */
@@ -121,11 +111,6 @@ public class CatalogOperations {
     return catalog.getProcedureList().stream()
         .map(Procedure::getName)
         .anyMatch(name -> name.equalsIgnoreCase(procedureName));
-  }
-
-  /** Returns true if the Procedure exists in the SimpleCatalog */
-  private static boolean procedureExists(SimpleCatalog catalog, Procedure procedure) {
-    return procedureExists(catalog, procedure.getName());
   }
 
   /**
@@ -294,7 +279,7 @@ public class CatalogOperations {
   }
 
   /**
-   * Creates a TVF in a {@link SimpleCatalog} using the provided paths and complying with the
+   * Creates a TVF in a {@link SimpleCatalog} using the provided name and complying with the
    * provided CreateMode.
    *
    * @param catalog The catalog in which to create the TVF
@@ -339,82 +324,86 @@ public class CatalogOperations {
     catalog.addTableValuedFunction(tvf);
   }
 
-  /**
-   * Checks a Procedure does not exist at any of the provided paths.
-   *
-   * @param rootCatalog The catalog to look for procedures in
-   * @param procedurePaths The list of paths the procedure should not be in
-   * @param procedureFullName The full name of the procedure we're looking for, only used for error
-   *     reporting
-   * @throws CatalogResourceAlreadyExists if a procedure exists at any of the provided paths
-   */
-  private static void validateProcedureDoesNotExist(
-      SimpleCatalog rootCatalog, List<List<String>> procedurePaths, String procedureFullName) {
-    for (List<String> procedurePath : procedurePaths) {
-      String procedureName = procedurePath.get(procedurePath.size() - 1);
-      SimpleCatalog catalog = getSubCatalogForResource(rootCatalog, procedurePath);
+  private static void deleteProcedureFromCatalogImpl(SimpleCatalog catalog, String fullName) {
+    if (!procedureExists(catalog, fullName)) {
+      String errorMessage = String.format(
+          "Tried to delete procedure which does not exist: %s", fullName);
+      throw new CatalogResourceDoesNotExist(fullName, errorMessage);
+    }
 
-      if (procedureExists(catalog, procedureName)) {
-        throw new CatalogResourceAlreadyExists(procedureFullName);
-      }
+    catalog.removeProcedure(fullName);
+  }
+
+  /**
+   * Deletes a procedure with the provided name from the {@link SimpleCatalog}
+   *
+   * <p> Qualified procedures need to be registered two times in the catalog for analysis to
+   * work as expected. This method takes care of deleting both copies of the procedure if necessary.
+   *
+   * @param catalog The catalog from which to delete the procedure
+   * @param fullName The full name of the procedure in the catalog
+   * @throws CatalogResourceDoesNotExist if the procedure does not exist in the catalog
+   */
+  public static void deleteProcedureFromCatalog(SimpleCatalog catalog, String fullName) {
+    deleteProcedureFromCatalogImpl(catalog, fullName);
+
+    if (fullName.contains(".")) {
+      List<String> nameComponents = Arrays.asList(fullName.split("\\."));
+      String nestedName = nameComponents.get(nameComponents.size() - 1);
+      SimpleCatalog nestedCatalog = getSubCatalogForResource(catalog, nameComponents);
+      deleteProcedureFromCatalogImpl(nestedCatalog, nestedName);
     }
   }
 
   /**
-   * Deletes a Procedure from the specified paths in a {@link SimpleCatalog}
+   * Creates a procedure in a {@link SimpleCatalog} using the provided name and complying with
+   * the provided CreateMode.
    *
-   * @param rootCatalog The catalog from which to delete TVFs
-   * @param procedurePaths The paths for the Procedure that should be deleted
-   */
-  public static void deleteProcedureFromCatalog(
-      SimpleCatalog rootCatalog, List<List<String>> procedurePaths) {
-    for (List<String> procedurePath : procedurePaths) {
-      String procedureName = procedurePath.get(procedurePath.size() - 1);
-      SimpleCatalog catalog = getSubCatalogForResource(rootCatalog, procedurePath);
-
-      if (procedureExists(catalog, procedureName)) {
-        catalog.removeProcedure(procedureName);
-      }
-    }
-  }
-
-  /**
-   * Creates a procedure in a SimpleCatalog using the provided paths and complying with the provided
-   * CreateMode.
+   * <p> Qualified procedures will be registered two times in the catalog for analysis to work as
+   * expected. A procedure with name "project.dataset.table" will be registered at name paths:
+   * ["project.dataset.table"] and ["project", "dataset", "table"].
    *
-   * @param rootCatalog The root SimpleCatalog in which to create the procedure.
-   * @param procedurePaths The procedure paths to create the procedure at. If multiple paths are
-   *     provided, multiple copies of the procedure will be registered in the catalog.
+   * @param catalog The SimpleCatalog in which to create the procedure
+   * @param nameInCatalog The name under which the procedure will be registered in the catalog
    * @param procedureInfo The ProcedureInfo object representing the procedure that should be created
    * @param createMode The CreateMode to use
    * @throws CatalogResourceAlreadyExists if the procedure already exists at any of the provided
    *     paths and CreateMode != CREATE_OR_REPLACE.
    */
   public static void createProcedureInCatalog(
-      SimpleCatalog rootCatalog,
-      List<List<String>> procedurePaths,
+      SimpleCatalog catalog,
+      String nameInCatalog,
       ProcedureInfo procedureInfo,
       CreateMode createMode) {
 
-    if (createMode.equals(CreateMode.CREATE_OR_REPLACE)) {
-      deleteProcedureFromCatalog(rootCatalog, procedurePaths);
+    boolean alreadyExists = procedureExists(catalog, nameInCatalog);
+
+    if (createMode.equals(CreateMode.CREATE_IF_NOT_EXISTS) && alreadyExists) {
+      return;
     }
 
-    if (createMode.equals(CreateMode.CREATE_DEFAULT)) {
-      String procedureFullName = String.join(".", procedureInfo.getNamePath());
-      validateProcedureDoesNotExist(rootCatalog, procedurePaths, procedureFullName);
+    if (createMode.equals(CreateMode.CREATE_OR_REPLACE) && alreadyExists) {
+      deleteProcedureFromCatalog(catalog, nameInCatalog);
     }
 
-    for (List<String> procedurePath : procedurePaths) {
-      String procedureName = procedurePath.get(procedurePath.size() - 1);
-      SimpleCatalog catalogForCreation = getSubCatalogForResource(rootCatalog, procedurePath);
+    if (createMode.equals(CreateMode.CREATE_DEFAULT) && alreadyExists) {
+      String errorMessage =
+          String.format(
+              "Procedure %s already exists in catalog", nameInCatalog);
+      throw new CatalogResourceAlreadyExists(nameInCatalog, errorMessage);
+    }
 
-      Procedure procedure =
-          new Procedure(ImmutableList.of(procedureName), procedureInfo.getSignature());
+    Procedure procedure =
+        new Procedure(ImmutableList.of(nameInCatalog), procedureInfo.getSignature());
+    catalog.addProcedure(procedure);
 
-      if (!procedureExists(catalogForCreation, procedure)) {
-        catalogForCreation.addProcedure(procedure);
-      }
+    if (nameInCatalog.contains(".")) {
+      List<String> nameComponents = Arrays.asList(nameInCatalog.split("\\."));
+      String nestedName = nameComponents.get(nameComponents.size() - 1);
+      SimpleCatalog nestedCatalog = getSubCatalogForResource(catalog, nameComponents);
+      Procedure nestedProcedure =
+          new Procedure(ImmutableList.of(nestedName), procedureInfo.getSignature());
+      nestedCatalog.addProcedure(nestedProcedure);
     }
   }
 
