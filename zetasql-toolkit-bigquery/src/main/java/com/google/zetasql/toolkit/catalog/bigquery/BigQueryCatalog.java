@@ -269,6 +269,39 @@ public class BigQueryCatalog implements CatalogWrapper {
   }
 
   /**
+   * Returns the names a resource referenced by the provided string should have in the underlying
+   * {@link SimpleCatalog}.
+   *
+   * <p> If the reference is qualified, its complete name in the catalog will be in the form of
+   * "project.dataset.resource". If the resource is in the default project, an additional name
+   * in the form of "dataset.resource" will be returned.
+   *
+   * <p> For unqualified resource (e.g. temporary tables), the name will be used as-is.
+   *
+   * @param reference The string used to reference the resource (e.g. "project.dataset.table",
+   * "dataset.function", "tableName")
+   * @return The list of names the resource should have in the underlying {@link SimpleCatalog}
+   */
+  private List<String> buildCatalogNamesForResource(String reference) {
+    boolean isQualified = BigQueryReference.isQualified(reference);
+
+    if (!isQualified) {
+      return ImmutableList.of(reference);
+    }
+
+    BigQueryReference parsedReference =
+        BigQueryReference.from(this.defaultProjectId, reference);
+    boolean isInDefaultProject =
+        parsedReference.getProjectId().equalsIgnoreCase(this.defaultProjectId);
+
+    if (isInDefaultProject) {
+      return ImmutableList.of(parsedReference.getFullName(), parsedReference.getNameWithDataset());
+    } else {
+      return ImmutableList.of(parsedReference.getFullName());
+    }
+  }
+
+  /**
    * Creates the list of resource paths that should be used for creating a resource to make sure it
    * is always found when analyzing queries.
    *
@@ -361,7 +394,6 @@ public class BigQueryCatalog implements CatalogWrapper {
    */
   @Override
   public void register(SimpleTable table, CreateMode createMode, CreateScope createScope) {
-    // TODO: Avoid code duplication in register() and remove() methods
     this.validateCreateScope(
         createScope,
         ImmutableList.of(CreateScope.CREATE_DEFAULT_SCOPE, CreateScope.CREATE_TEMP),
@@ -370,31 +402,11 @@ public class BigQueryCatalog implements CatalogWrapper {
     this.validateNamePathForCreation(
         ImmutableList.of(table.getFullName()), createScope, "table");
 
-    boolean isQualified = BigQueryReference.isQualified(table.getFullName());
+    List<String> catalogNamesForTable = buildCatalogNamesForResource(table.getFullName());
 
     try {
-      // If it is not qualified, just create it with its name
-      if (!isQualified) {
-        CatalogOperations.createTableInCatalog(
-            this.catalog, table.getFullName(), table, createMode);
-        return;
-      }
-
-      // If it is qualified, create it as "project.dataset.table". If it is in the default project,
-      // also create it as "dataset.table".
-      BigQueryReference parsedReference =
-          BigQueryReference.from(this.defaultProjectId, table.getFullName());
-      boolean isInDefaultProject =
-          parsedReference.getProjectId().equalsIgnoreCase(this.defaultProjectId);
-
-      CatalogOperations.createTableInCatalog(
-          this.catalog, parsedReference.getFullName(), table, createMode);
-
-      if (isInDefaultProject) {
-        CatalogOperations.createTableInCatalog(
-            this.catalog, parsedReference.getNameWithDataset(), table, createMode);
-      }
-
+      catalogNamesForTable.forEach(catalogName ->
+          CatalogOperations.createTableInCatalog(catalog, catalogName, table, createMode));
     } catch (CatalogResourceAlreadyExists alreadyExists) {
       throw this.addCaseInsensitivityWarning(alreadyExists);
     }
@@ -433,28 +445,12 @@ public class BigQueryCatalog implements CatalogWrapper {
         FunctionResultTypeResolver.resolveFunctionReturnTypes(
             function, BigQueryLanguageOptions.get(), this.catalog);
 
-    boolean isQualified = BigQueryReference.isQualified(fullName);
+    List<String> catalogNamesForFunction = buildCatalogNamesForResource(fullName);
 
     try {
-      if (!isQualified) {
-        CatalogOperations.createFunctionInCatalog(
-            this.catalog, fullName, resolvedFunction, createMode);
-        return;
-      }
-
-      BigQueryReference parsedReference =
-          BigQueryReference.from(this.defaultProjectId, fullName);
-      boolean isInDefaultProject =
-          parsedReference.getProjectId().equalsIgnoreCase(this.defaultProjectId);
-
-      CatalogOperations.createFunctionInCatalog(
-          this.catalog, parsedReference.getFullName(), resolvedFunction, createMode);
-
-      if (isInDefaultProject) {
-        CatalogOperations.createFunctionInCatalog(
-            this.catalog, parsedReference.getNameWithDataset(), resolvedFunction, createMode);
-      }
-
+      catalogNamesForFunction.forEach(catalogName ->
+          CatalogOperations.createFunctionInCatalog(
+              catalog, catalogName, resolvedFunction, createMode));
     } catch (CatalogResourceAlreadyExists alreadyExists) {
       throw this.addCaseInsensitivityWarning(alreadyExists);
     }
@@ -483,28 +479,11 @@ public class BigQueryCatalog implements CatalogWrapper {
         FunctionResultTypeResolver.resolveTVFOutputSchema(
             tvfInfo, BigQueryLanguageOptions.get(), this.catalog);
 
-    boolean isQualified = BigQueryReference.isQualified(fullName);
+    List<String> catalogNamesForFunction = buildCatalogNamesForResource(fullName);
 
     try {
-      if (!isQualified) {
-        CatalogOperations.createTVFInCatalog(
-            this.catalog, fullName, resolvedTvfInfo, createMode);
-        return;
-      }
-
-      BigQueryReference parsedReference =
-          BigQueryReference.from(this.defaultProjectId, fullName);
-      boolean isInDefaultProject =
-          parsedReference.getProjectId().equalsIgnoreCase(this.defaultProjectId);
-
-      CatalogOperations.createTVFInCatalog(
-          this.catalog, parsedReference.getFullName(), resolvedTvfInfo, createMode);
-
-      if (isInDefaultProject) {
-        CatalogOperations.createTVFInCatalog(
-            this.catalog, parsedReference.getNameWithDataset(), resolvedTvfInfo, createMode);
-      }
-
+      catalogNamesForFunction.forEach(catalogName ->
+          CatalogOperations.createTVFInCatalog(catalog, catalogName, resolvedTvfInfo, createMode));
     } catch (CatalogResourceAlreadyExists alreadyExists) {
       throw this.addCaseInsensitivityWarning(alreadyExists);
     }
@@ -569,65 +548,26 @@ public class BigQueryCatalog implements CatalogWrapper {
 
   @Override
   public void removeTable(String tableReference) {
-    boolean isQualified = BigQueryReference.isQualified(tableReference);
+    List<String> catalogNamesForTable = buildCatalogNamesForResource(tableReference);
 
-    if (isQualified) {
-      BigQueryReference parsedReference =
-          BigQueryReference.from(this.defaultProjectId, tableReference);
-      boolean isInDefaultProject =
-          parsedReference.getProjectId().equalsIgnoreCase(this.defaultProjectId);
-
-      CatalogOperations.deleteTableFromCatalog(this.catalog, parsedReference.getFullName());
-
-      if (isInDefaultProject) {
-        CatalogOperations.deleteTableFromCatalog(this.catalog, parsedReference.getNameWithDataset());
-      }
-    } else {
-      CatalogOperations.deleteTableFromCatalog(this.catalog, tableReference);
-    }
-
+    catalogNamesForTable.forEach(catalogName ->
+        CatalogOperations.deleteTableFromCatalog(catalog, catalogName));
   }
 
   @Override
   public void removeFunction(String functionReference) {
-    boolean isQualified = BigQueryReference.isQualified(functionReference);
+    List<String> catalogNamesForFunction = buildCatalogNamesForResource(functionReference);
 
-    if (isQualified) {
-      BigQueryReference parsedReference =
-          BigQueryReference.from(this.defaultProjectId, functionReference);
-      boolean isInDefaultProject =
-          parsedReference.getProjectId().equalsIgnoreCase(this.defaultProjectId);
-
-      CatalogOperations.deleteFunctionFromCatalog(this.catalog, parsedReference.getFullName());
-
-      if (isInDefaultProject) {
-        CatalogOperations.deleteFunctionFromCatalog(
-            this.catalog, parsedReference.getNameWithDataset());
-      }
-    } else {
-      CatalogOperations.deleteFunctionFromCatalog(this.catalog, functionReference);
-    }
+    catalogNamesForFunction.forEach(catalogName ->
+        CatalogOperations.deleteFunctionFromCatalog(catalog, catalogName));
   }
 
   @Override
   public void removeTVF(String functionReference) {
-    boolean isQualified = BigQueryReference.isQualified(functionReference);
+    List<String> catalogNamesForFunction = buildCatalogNamesForResource(functionReference);
 
-    if (isQualified) {
-      BigQueryReference parsedReference =
-          BigQueryReference.from(this.defaultProjectId, functionReference);
-      boolean isInDefaultProject =
-          parsedReference.getProjectId().equalsIgnoreCase(this.defaultProjectId);
-
-      CatalogOperations.deleteTVFFromCatalog(this.catalog, parsedReference.getFullName());
-
-      if (isInDefaultProject) {
-        CatalogOperations.deleteTVFFromCatalog(
-            this.catalog, parsedReference.getNameWithDataset());
-      }
-    } else {
-      CatalogOperations.deleteTVFFromCatalog(this.catalog, functionReference);
-    }
+    catalogNamesForFunction.forEach(catalogName ->
+        CatalogOperations.deleteTVFFromCatalog(catalog, catalogName));
   }
 
   @Override
