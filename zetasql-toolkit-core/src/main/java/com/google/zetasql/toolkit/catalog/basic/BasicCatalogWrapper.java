@@ -92,7 +92,7 @@ public class BasicCatalogWrapper implements CatalogWrapper {
   @Override
   public void register(TVFInfo tvfInfo, CreateMode createMode, CreateScope createScope) {
     CatalogOperations.createTVFInCatalog(
-        this.catalog, ImmutableList.of(tvfInfo.getNamePath()), tvfInfo, createMode);
+        this.catalog, tvfInfo.getFullName(), tvfInfo, createMode);
   }
 
   /**
@@ -156,7 +156,7 @@ public class BasicCatalogWrapper implements CatalogWrapper {
 
   @Override
   public void removeTVF(String function) {
-    CatalogOperations.deleteTVFFromCatalog(this.catalog, ImmutableList.of(ImmutableList.of(function)));
+    CatalogOperations.deleteTVFFromCatalog(this.catalog, function);
   }
 
   @Override

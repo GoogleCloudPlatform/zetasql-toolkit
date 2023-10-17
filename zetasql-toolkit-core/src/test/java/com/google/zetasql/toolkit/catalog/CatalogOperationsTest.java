@@ -41,38 +41,6 @@ class CatalogOperationsTest {
                     "sample", "column", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
     catalog.addSimpleTable(sampleTable);
 
-    Function function =
-        new Function(
-            ImmutableList.of("function"),
-            "UDF",
-            ZetaSQLFunctions.FunctionEnums.Mode.SCALAR,
-            ImmutableList.of(
-                new FunctionSignature(
-                    new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
-                    ImmutableList.of(),
-                    -1)));
-    catalog.addFunction(function);
-
-    TVFRelation tvfOutputSchema =
-        TVFRelation.createColumnBased(
-            ImmutableList.of(
-                TVFRelation.Column.create(
-                    "output", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
-    TableValuedFunction tvf =
-        new TableValuedFunction.FixedOutputSchemaTVF(
-            ImmutableList.of("tvf"),
-            new FunctionSignature(
-                new FunctionArgumentType(
-                    ZetaSQLFunctions.SignatureArgumentKind.ARG_TYPE_RELATION,
-                    FunctionArgumentType.FunctionArgumentTypeOptions.builder()
-                        .setRelationInputSchema(tvfOutputSchema)
-                        .build(),
-                    1),
-                ImmutableList.of(),
-                -1),
-            tvfOutputSchema);
-    catalog.addTableValuedFunction(tvf);
-
     Procedure procedure =
         new Procedure(
             ImmutableList.of("procedure"),
@@ -296,7 +264,7 @@ class CatalogOperationsTest {
   void testCreateTVFInCatalog() {
     TVFInfo newTVF =
         TVFInfo.newBuilder()
-            .setNamePath(ImmutableList.of("newTVF"))
+            .setNamePath(ImmutableList.of("qualified.newTVF"))
             .setSignature(
                 new FunctionSignature(
                     new FunctionArgumentType(
@@ -308,44 +276,33 @@ class CatalogOperationsTest {
                     TypeFactory.createSimpleType(TypeKind.TYPE_STRING)))
             .build();
 
-    List<String> newFunctionPath1 = ImmutableList.of("newTVF");
-    List<String> newFunctionPath2 = ImmutableList.of("qualified", "newTVF");
-    List<List<String>> newFunctionPaths = ImmutableList.of(newFunctionPath1, newFunctionPath2);
-
     CatalogOperations.createTVFInCatalog(
-        this.testCatalog, newFunctionPaths, newTVF, CreateMode.CREATE_DEFAULT);
+        this.testCatalog, "qualified.newTVF", newTVF, CreateMode.CREATE_DEFAULT);
 
-    SimpleCatalog qualifiedNestedCatalog = this.testCatalog.getCatalog("qualified", null);
-
-    assertNotNull(
-        qualifiedNestedCatalog,
-        "Expected the nested catalog to exist after creating a resource in it");
-
-    assertAll(
-        () -> assertTVFExists(this.testCatalog, "newTVF", "Expected created function to exist"),
-        () ->
-            assertTVFExists(
-                qualifiedNestedCatalog, "newTVF", "Expected created function to exist"));
+    assertTVFExists(testCatalog, "qualified.newTVF", "Expected created function to exist");
   }
 
   @Test
   void testDeleteTVFFromCatalog() {
-    List<String> sampleFunctionPath = ImmutableList.of("tvf");
-    List<String> nestedSampleFunctionPath = ImmutableList.of("nested", "tvf");
+    TVFInfo tvf = TVFInfo.newBuilder()
+        .setNamePath(ImmutableList.of("qualified.newTVF"))
+        .setSignature(
+            new FunctionSignature(
+                new FunctionArgumentType(
+                    ZetaSQLFunctions.SignatureArgumentKind.ARG_TYPE_RELATION),
+                ImmutableList.of(),
+                -1))
+        .setOutputSchema(
+            TVFRelation.createValueTableBased(
+                TypeFactory.createSimpleType(TypeKind.TYPE_STRING)))
+        .build();
 
-    List<List<String>> functionPathsToDelete =
-        ImmutableList.of(sampleFunctionPath, nestedSampleFunctionPath);
-    CatalogOperations.deleteTVFFromCatalog(this.testCatalog, functionPathsToDelete);
+    CatalogOperations.createTVFInCatalog(
+        this.testCatalog, "qualified.newTVF", tvf, CreateMode.CREATE_DEFAULT);
+    CatalogOperations.deleteTVFFromCatalog(this.testCatalog, "qualified.newTVF");
 
-    assertAll(
-        () ->
-            assertTVFDoesNotExist(
-                this.testCatalog.getCatalog("nested", null),
-                "tvf",
-                "Expected function to have been deleted"),
-        () ->
-            assertTVFDoesNotExist(
-                this.testCatalog, "tvf", "Expected function to have been deleted"));
+    assertTVFDoesNotExist(
+        this.testCatalog, "qualified.newTVF", "Expected function to have been deleted");
   }
 
   private Procedure assertProcedureExists(

@@ -361,6 +361,7 @@ public class BigQueryCatalog implements CatalogWrapper {
    */
   @Override
   public void register(SimpleTable table, CreateMode createMode, CreateScope createScope) {
+    // TODO: Avoid code duplication in register() and remove() methods
     this.validateCreateScope(
         createScope,
         ImmutableList.of(CreateScope.CREATE_DEFAULT_SCOPE, CreateScope.CREATE_TEMP),
@@ -462,6 +463,10 @@ public class BigQueryCatalog implements CatalogWrapper {
   /**
    * {@inheritDoc}
    *
+   * <p> If the function is not temporary and is in the catalog's default project, it will be
+   * registered twice. Once as "project.dataset.function" and once as "dataset.function". That way,
+   * queries that omit the project when referencing the table can be analyzed.
+   *
    * @throws BigQueryCreateError if a pre-create validation fails
    * @throws CatalogResourceAlreadyExists if the function already exists and CreateMode !=
    *     CREATE_OR_REPLACE
@@ -478,11 +483,28 @@ public class BigQueryCatalog implements CatalogWrapper {
         FunctionResultTypeResolver.resolveTVFOutputSchema(
             tvfInfo, BigQueryLanguageOptions.get(), this.catalog);
 
-    List<List<String>> functionPaths = this.buildCatalogPathsForResource(fullName);
+    boolean isQualified = BigQueryReference.isQualified(fullName);
 
     try {
+      if (!isQualified) {
+        CatalogOperations.createTVFInCatalog(
+            this.catalog, fullName, resolvedTvfInfo, createMode);
+        return;
+      }
+
+      BigQueryReference parsedReference =
+          BigQueryReference.from(this.defaultProjectId, fullName);
+      boolean isInDefaultProject =
+          parsedReference.getProjectId().equalsIgnoreCase(this.defaultProjectId);
+
       CatalogOperations.createTVFInCatalog(
-          this.catalog, functionPaths, resolvedTvfInfo, createMode);
+          this.catalog, parsedReference.getFullName(), resolvedTvfInfo, createMode);
+
+      if (isInDefaultProject) {
+        CatalogOperations.createTVFInCatalog(
+            this.catalog, parsedReference.getNameWithDataset(), resolvedTvfInfo, createMode);
+      }
+
     } catch (CatalogResourceAlreadyExists alreadyExists) {
       throw this.addCaseInsensitivityWarning(alreadyExists);
     }
@@ -589,8 +611,23 @@ public class BigQueryCatalog implements CatalogWrapper {
 
   @Override
   public void removeTVF(String functionReference) {
-    List<List<String>> functionPaths = this.buildCatalogPathsForResource(functionReference);
-    CatalogOperations.deleteTVFFromCatalog(this.catalog, functionPaths);
+    boolean isQualified = BigQueryReference.isQualified(functionReference);
+
+    if (isQualified) {
+      BigQueryReference parsedReference =
+          BigQueryReference.from(this.defaultProjectId, functionReference);
+      boolean isInDefaultProject =
+          parsedReference.getProjectId().equalsIgnoreCase(this.defaultProjectId);
+
+      CatalogOperations.deleteTVFFromCatalog(this.catalog, parsedReference.getFullName());
+
+      if (isInDefaultProject) {
+        CatalogOperations.deleteTVFFromCatalog(
+            this.catalog, parsedReference.getNameWithDataset());
+      }
+    } else {
+      CatalogOperations.deleteTVFFromCatalog(this.catalog, functionReference);
+    }
   }
 
   @Override

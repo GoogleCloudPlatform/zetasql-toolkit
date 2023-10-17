@@ -238,7 +238,8 @@ public class CatalogOperations {
    *
    * @param catalog The catalog in which to create the function
    * @param nameInCatalog The name under which the function will be registered in the catalog
-   * @param functionInfo The FunctionInfo object representing the function that should be created
+   * @param functionInfo The {@link FunctionInfo} object representing the function that
+   * should be created
    * @param createMode The CreateMode to use
    * @throws CatalogResourceAlreadyExists if the function already exists at any of the provided
    *     paths and CreateMode != CREATE_OR_REPLACE.
@@ -277,87 +278,65 @@ public class CatalogOperations {
   }
 
   /**
-   * Checks a TVF does not exist at any of the provided paths.
+   * Deletes a TVF with the provided name from the {@link SimpleCatalog}
    *
-   * @param rootCatalog The catalog to look for functions in
-   * @param functionPaths The list of paths the function should not be in
-   * @param functionFullName The full name of the function we're looking for, only used for error
-   *     reporting
-   * @throws CatalogResourceAlreadyExists if a function exists at any of the provided paths
+   * @param catalog The catalog from which to delete the function
+   * @param fullName The full name of the function in the catalog
+   * @throws CatalogResourceDoesNotExist if the function does not exist in the catalog
    */
-  private static void validateTVFDoesNotExist(
-      SimpleCatalog rootCatalog, List<List<String>> functionPaths, String functionFullName) {
-    for (List<String> functionPath : functionPaths) {
-      String functionName = functionPath.get(functionPath.size() - 1);
-      SimpleCatalog catalog = getSubCatalogForResource(rootCatalog, functionPath);
-
-      if (tvfExists(catalog, functionName)) {
-        throw new CatalogResourceAlreadyExists(functionFullName);
-      }
+  public static void deleteTVFFromCatalog(SimpleCatalog catalog, String fullName) {
+    if (!tvfExists(catalog, fullName)) {
+      String errorMessage = String.format("Tried to delete TVF which does not exist: %s", fullName);
+      throw new CatalogResourceDoesNotExist(fullName, errorMessage);
     }
+
+    catalog.removeTableValuedFunction(fullName);
   }
 
   /**
-   * Deletes a TVF from the specified paths in a {@link SimpleCatalog}
+   * Creates a TVF in a {@link SimpleCatalog} using the provided paths and complying with the
+   * provided CreateMode.
    *
-   * @param rootCatalog The catalog from which to delete TVFs
-   * @param functionPaths The paths for the TVF that should be deleted
-   */
-  public static void deleteTVFFromCatalog(
-      SimpleCatalog rootCatalog, List<List<String>> functionPaths) {
-    for (List<String> functionPath : functionPaths) {
-      String functionName = functionPath.get(functionPath.size() - 1);
-      SimpleCatalog catalog = getSubCatalogForResource(rootCatalog, functionPath);
-
-      if (tvfExists(catalog, functionName)) {
-        catalog.removeTableValuedFunction(functionName);
-      }
-    }
-  }
-
-  /**
-   * Creates a TVF in a SimpleCatalog using the provided paths and complying with the provided
-   * CreateMode.
-   *
-   * @param rootCatalog The root SimpleCatalog in which to create the function.
-   * @param functionPaths The function paths to create the TVF at. If multiple paths are provided,
-   *     multiple copies of the function will be registered in the catalog.
-   * @param tvfInfo The TVFInfo object representing the TVF that should be created
+   * @param catalog The catalog in which to create the TVF
+   * @param nameInCatalog The name under which the TVF will be registered in the catalog
+   * @param tvfInfo The {@link TVFInfo} object representing the TVF that should be created
    * @param createMode The CreateMode to use
-   * @throws CatalogResourceAlreadyExists if the function already exists at any of the provided
+   * @throws CatalogResourceAlreadyExists if the TVF already exists at any of the provided
    *     paths and CreateMode != CREATE_OR_REPLACE.
    */
   public static void createTVFInCatalog(
-      SimpleCatalog rootCatalog,
-      List<List<String>> functionPaths,
+      SimpleCatalog catalog,
+      String nameInCatalog,
       TVFInfo tvfInfo,
       CreateMode createMode) {
     Preconditions.checkArgument(
-        tvfInfo.getOutputSchema().isPresent(), "Cannot create a a TVF without an output schema");
+        tvfInfo.getOutputSchema().isPresent(),
+        "Cannot create a a TVF without an output schema");
 
-    if (createMode.equals(CreateMode.CREATE_OR_REPLACE)) {
-      deleteTVFFromCatalog(rootCatalog, functionPaths);
+    boolean alreadyExists = tvfExists(catalog, nameInCatalog);
+
+    if (createMode.equals(CreateMode.CREATE_IF_NOT_EXISTS) && alreadyExists) {
+      return;
     }
 
-    if (createMode.equals(CreateMode.CREATE_DEFAULT)) {
-      String tvfFullName = String.join(".", tvfInfo.getNamePath());
-      validateTVFDoesNotExist(rootCatalog, functionPaths, tvfFullName);
+    if (createMode.equals(CreateMode.CREATE_OR_REPLACE) && alreadyExists) {
+      deleteTVFFromCatalog(catalog, nameInCatalog);
     }
 
-    for (List<String> functionPath : functionPaths) {
-      String functionName = functionPath.get(functionPath.size() - 1);
-      SimpleCatalog catalogForCreation = getSubCatalogForResource(rootCatalog, functionPath);
-
-      TableValuedFunction tvf =
-          new FixedOutputSchemaTVF(
-              ImmutableList.of(functionName),
-              tvfInfo.getSignature(),
-              tvfInfo.getOutputSchema().get());
-
-      if (!tvfExists(catalogForCreation, tvf)) {
-        catalogForCreation.addTableValuedFunction(tvf);
-      }
+    if (createMode.equals(CreateMode.CREATE_DEFAULT) && alreadyExists) {
+      String errorMessage =
+          String.format(
+              "TVF %s already exists in catalog", nameInCatalog);
+      throw new CatalogResourceAlreadyExists(nameInCatalog, errorMessage);
     }
+
+    TableValuedFunction tvf =
+        new FixedOutputSchemaTVF(
+            ImmutableList.of(nameInCatalog),
+            tvfInfo.getSignature(),
+            tvfInfo.getOutputSchema().get());
+
+    catalog.addTableValuedFunction(tvf);
   }
 
   /**
