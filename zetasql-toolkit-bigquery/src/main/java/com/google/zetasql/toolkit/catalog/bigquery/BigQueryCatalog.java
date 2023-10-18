@@ -452,6 +452,11 @@ public class BigQueryCatalog implements CatalogWrapper {
     }
   }
 
+  @Override
+  public void register(SimpleModel model, CreateMode createMode, CreateScope createScope) {
+    throw new UnsupportedOperationException("Unimplemented");
+  }
+
   /**
    * {@inheritDoc}
    *
@@ -509,6 +514,11 @@ public class BigQueryCatalog implements CatalogWrapper {
 
     catalogNamesForProcedure.forEach(catalogName ->
         CatalogOperations.deleteProcedureFromCatalog(catalog, catalogName));
+  }
+
+  @Override
+  public void removeModel(String model) {
+    throw new UnsupportedOperationException("Unimplemented");
   }
 
   /**
@@ -777,6 +787,11 @@ public class BigQueryCatalog implements CatalogWrapper {
             procedureInfo ->
                 this.register(
                     procedureInfo, CreateMode.CREATE_OR_REPLACE, CreateScope.CREATE_DEFAULT_SCOPE));
+  }
+
+  @Override
+  public void addModels(List<String> models) {
+    throw new UnsupportedOperationException("Unimplemented");
   }
 
   /**

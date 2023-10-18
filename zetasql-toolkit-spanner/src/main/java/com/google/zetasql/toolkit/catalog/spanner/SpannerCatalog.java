@@ -23,6 +23,7 @@ import com.google.zetasql.Analyzer;
 import com.google.zetasql.AnalyzerOptions;
 import com.google.zetasql.Constant;
 import com.google.zetasql.SimpleCatalog;
+import com.google.zetasql.SimpleModel;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.ZetaSQLBuiltinFunctionOptions;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
@@ -179,6 +180,11 @@ public class SpannerCatalog implements CatalogWrapper {
   }
 
   @Override
+  public void register(SimpleModel model, CreateMode createMode, CreateScope createScope) {
+    throw new UnsupportedOperationException("Cloud Spanner does not support models");
+  }
+
+  @Override
   public void register(Constant constant) {
     throw new UnsupportedOperationException("Cloud Spanner does not support constants");
   }
@@ -204,6 +210,11 @@ public class SpannerCatalog implements CatalogWrapper {
   @Override
   public void removeProcedure(String procedure) {
     throw new UnsupportedOperationException("Cloud Spanner does not support procedures");
+  }
+
+  @Override
+  public void removeModel(String model) {
+    throw new UnsupportedOperationException("Cloud Spanner does not support models");
   }
 
   private void validateSpannerTableNames(List<String> tableNames) {
@@ -279,6 +290,11 @@ public class SpannerCatalog implements CatalogWrapper {
   @Override
   public void addProcedures(List<String> procedures) {
     throw new UnsupportedOperationException("Cloud Spanner does not support procedures");
+  }
+
+  @Override
+  public void addModels(List<String> models) {
+    throw new UnsupportedOperationException("Cloud Spanner does not support models");
   }
 
   @Override

@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.zetasql.Constant;
 import com.google.zetasql.LanguageOptions;
 import com.google.zetasql.SimpleCatalog;
+import com.google.zetasql.SimpleModel;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.ZetaSQLBuiltinFunctionOptions;
 import com.google.zetasql.ZetaSQLOptions.LanguageFeature;
@@ -105,6 +106,12 @@ public class BasicCatalogWrapper implements CatalogWrapper {
         this.catalog, procedureInfo.getFullName(), procedureInfo, createMode);
   }
 
+  @Override
+  public void register(SimpleModel model, CreateMode createMode, CreateScope createScope) {
+    CatalogOperations.createModelInCatalog(
+        this.catalog, model.getFullName(), model, createMode);
+  }
+
   /**
    * {@inheritDoc}
    *
@@ -147,6 +154,11 @@ public class BasicCatalogWrapper implements CatalogWrapper {
   }
 
   @Override
+  public void removeModel(String model) {
+    CatalogOperations.deleteModelFromCatalog(this.catalog, model);
+  }
+
+  @Override
   public void addTables(List<String> tables) {
     throw new UnsupportedOperationException("The BasicCatalogWrapper cannot add tables by name");
   }
@@ -165,6 +177,12 @@ public class BasicCatalogWrapper implements CatalogWrapper {
   public void addProcedures(List<String> procedures) {
     throw new UnsupportedOperationException(
         "The BasicCatalogWrapper cannot add procedures by name");
+  }
+
+  @Override
+  public void addModels(List<String> models) {
+    throw new UnsupportedOperationException(
+        "The BasicCatalogWrapper cannot add models by name");
   }
 
   @Override

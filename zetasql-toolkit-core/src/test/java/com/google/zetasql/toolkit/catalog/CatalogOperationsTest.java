@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.common.collect.ImmutableList;
 import com.google.zetasql.*;
+import com.google.zetasql.SimpleModel.NameAndType;
 import com.google.zetasql.ZetaSQLType.TypeKind;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.toolkit.catalog.exceptions.CatalogResourceAlreadyExists;
@@ -358,6 +359,52 @@ class CatalogOperationsTest {
                 this.testCatalog,
                 procedurePath2,
                 "Expected procedure to have been deleted"));
+  }
+
+  private Model assertModelExists(
+      SimpleCatalog catalog, String name, String message) {
+    return assertDoesNotThrow(() -> catalog.findModel(ImmutableList.of(name)), message);
+  }
+
+  private void assertModelDoesNotExist(
+      SimpleCatalog catalog, String name, String message) {
+    assertThrows(
+        NotFoundException.class,
+        () -> catalog.findModel(ImmutableList.of(name)),
+        message);
+  }
+
+  @Test
+  void testCreateModelInCatalog() {
+    SimpleModel model = new SimpleModel(
+        "qualified.model",
+        ImmutableList.of(
+            new NameAndType("input", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))),
+        ImmutableList.of(
+            new NameAndType("output", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))));
+
+    CatalogOperations.createModelInCatalog(
+        this.testCatalog, "qualified.model", model, CreateMode.CREATE_DEFAULT);
+
+    assertModelExists(this.testCatalog, "qualified.model", "Expected created model to exist");
+  }
+
+  @Test
+  void testDeleteModelFromCatalog() {
+    SimpleModel model = new SimpleModel(
+        "qualified.model",
+        ImmutableList.of(
+            new NameAndType("input", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))),
+        ImmutableList.of(
+            new NameAndType("output", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))));
+
+    CatalogOperations.createModelInCatalog(
+        this.testCatalog, "qualified.model", model, CreateMode.CREATE_DEFAULT);
+
+    CatalogOperations.deleteModelFromCatalog(this.testCatalog, "qualified.model");
+
+    assertModelDoesNotExist(
+        this.testCatalog, "qualified.model", "Expected deleted catalog to not exist");
   }
 
   @Test

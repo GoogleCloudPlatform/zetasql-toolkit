@@ -19,6 +19,7 @@ package com.google.zetasql.toolkit.catalog;
 import com.google.common.collect.ImmutableList;
 import com.google.zetasql.Constant;
 import com.google.zetasql.SimpleCatalog;
+import com.google.zetasql.SimpleModel;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateScope;
@@ -69,6 +70,15 @@ public interface CatalogWrapper {
   void register(ProcedureInfo procedureInfo, CreateMode createMode, CreateScope createScope);
 
   /**
+   * Registers a model in this catalog.
+   *
+   * @param model The {@link SimpleModel} object representing the model to register
+   * @param createMode The CreateMode for creating the model
+   * @param createScope The CreateScope for creating the model
+   */
+  void register(SimpleModel model, CreateMode createMode, CreateScope createScope);
+
+  /**
    * Registers a constant in this catalog.
    *
    * @param constant The {@link Constant} object representing the constant to register
@@ -104,48 +114,11 @@ public interface CatalogWrapper {
   void removeProcedure(String procedure);
 
   /**
-   * Removes a set of tables to this catalog by name.
+   * Removes a model to this catalog by name.
    *
-   * @param tables The list of table references to remove
+   * @param model The reference to the model to remove
    */
-  default void removeTables(List<String> tables) {
-    for (String table : tables) {
-      this.removeTable(table);
-    }
-  }
-
-  /**
-   * Removes a set of functions to this catalog by name.
-   *
-   * @param functions The list of function references to remove
-   */
-  default void removeFunctions(List<String> functions) {
-    for (String function : functions) {
-      this.removeFunction(function);
-    }
-  }
-
-  /**
-   * Removes a set of TVFs to this catalog by name.
-   *
-   * @param functions The list of function references to remove
-   */
-  default void removeTVFs(List<String> functions) {
-    for (String function : functions) {
-      this.removeTVF(function);
-    }
-  }
-
-  /**
-   * Removes a set of procedures to this catalog by name.
-   *
-   * @param procedures The list of procedure references to remove
-   */
-  default void removeProcedures(List<String> procedures) {
-    for (String procedure : procedures) {
-      this.removeProcedure(procedure);
-    }
-  }
+  void removeModel(String model);
 
   /**
    * Adds a set of tables to this catalog by name.
@@ -174,6 +147,13 @@ public interface CatalogWrapper {
    * @param procedures The list of procedure references to add
    */
   void addProcedures(List<String> procedures);
+
+  /**
+   * Adds a set of models to this catalog by name.
+   *
+   * @param models The list of model references to add
+   */
+  void addModels(List<String> models);
 
   /**
    * Adds a table to this catalog by name.

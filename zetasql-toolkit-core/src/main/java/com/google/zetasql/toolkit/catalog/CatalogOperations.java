@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.zetasql.*;
 import com.google.zetasql.SimpleCatalogProtos.SimpleCatalogProto;
+import com.google.zetasql.SimpleModel.NameAndType;
 import com.google.zetasql.TableValuedFunction.FixedOutputSchemaTVF;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.toolkit.catalog.exceptions.CatalogResourceAlreadyExists;
@@ -65,46 +66,6 @@ public class CatalogOperations {
             .findFirst();
 
     return maybeExistingCatalog.orElseGet(() -> parent.addNewSimpleCatalog(name));
-  }
-
-  /** Returns true if a table with path tablePath exists in the SimpleCatalog */
-  private static boolean tableExists(SimpleCatalog catalog, List<String> tablePath) {
-    try {
-      catalog.findTable(tablePath);
-      return true;
-    } catch (NotFoundException err) {
-      return false;
-    }
-  }
-
-  /** Returns true if a table named tableName exists in the SimpleCatalog */
-  private static boolean tableExists(SimpleCatalog catalog, String tableName) {
-    return tableExists(catalog, ImmutableList.of(tableName));
-  }
-
-  private static String removeGroupFromFunctionName(String functionName) {
-    return functionName.substring(functionName.indexOf(":") + 1);
-  }
-
-  /** Returns true if a function with the provided fullName exists in the SimpleCatalog */
-  private static boolean functionExists(SimpleCatalog catalog, String fullName) {
-    // TODO: switch to using Catalog.findFunction once available
-    String fullNameWithoutGroup = removeGroupFromFunctionName(fullName);
-    return catalog.getFunctionNameList().stream()
-        .map(CatalogOperations::removeGroupFromFunctionName)
-        .anyMatch(fullNameWithoutGroup::equalsIgnoreCase);
-  }
-
-  /** Returns true if the TVF named tvfName exists in the SimpleCatalog */
-  private static boolean tvfExists(SimpleCatalog catalog, String tvfName) {
-    return catalog.getTVFNameList().contains(tvfName.toLowerCase());
-  }
-
-  /** Returns true if the named procedureName exists in the SimpleCatalog */
-  private static boolean procedureExists(SimpleCatalog catalog, String procedureName) {
-    return catalog.getProcedureList().stream()
-        .map(Procedure::getName)
-        .anyMatch(name -> name.equalsIgnoreCase(procedureName));
   }
 
   /**
@@ -164,6 +125,21 @@ public class CatalogOperations {
     creator.run();
   }
 
+  /** Returns true if a table with path tablePath exists in the SimpleCatalog */
+  private static boolean tableExists(SimpleCatalog catalog, List<String> tablePath) {
+    try {
+      catalog.findTable(tablePath);
+      return true;
+    } catch (NotFoundException err) {
+      return false;
+    }
+  }
+
+  /** Returns true if a table named tableName exists in the SimpleCatalog */
+  private static boolean tableExists(SimpleCatalog catalog, String tableName) {
+    return tableExists(catalog, ImmutableList.of(tableName));
+  }
+
   /**
    * Deletes a table with the provided name from {@link SimpleCatalog}
    *
@@ -188,7 +164,7 @@ public class CatalogOperations {
    * @param nameInCatalog The name under which the table will be registered in the catalog
    * @param table The {@link SimpleTable} object representing the table
    * @param createMode The CreateMode to use
-   * @throws CatalogResourceAlreadyExists if the table already exists at any of the provided paths
+   * @throws CatalogResourceAlreadyExists if the table already exists under the provided name
    *     and CreateMode != CREATE_OR_REPLACE.
    */
   public static void createTableInCatalog(
@@ -207,6 +183,19 @@ public class CatalogOperations {
         /*creator=*/ () -> catalog.addSimpleTable(nameInCatalog, table),
         /*deleter=*/ () -> deleteTableFromCatalog(catalog, nameInCatalog)
     );
+  }
+
+  private static String removeGroupFromFunctionName(String functionName) {
+    return functionName.substring(functionName.indexOf(":") + 1);
+  }
+
+  /** Returns true if a function with the provided fullName exists in the SimpleCatalog */
+  private static boolean functionExists(SimpleCatalog catalog, String fullName) {
+    // TODO: switch to using Catalog.findFunction once available
+    String fullNameWithoutGroup = removeGroupFromFunctionName(fullName);
+    return catalog.getFunctionNameList().stream()
+        .map(CatalogOperations::removeGroupFromFunctionName)
+        .anyMatch(fullNameWithoutGroup::equalsIgnoreCase);
   }
 
   /**
@@ -244,8 +233,8 @@ public class CatalogOperations {
    * @param functionInfo The {@link FunctionInfo} object representing the function that
    * should be created
    * @param createMode The CreateMode to use
-   * @throws CatalogResourceAlreadyExists if the function already exists at any of the provided
-   *     paths and CreateMode != CREATE_OR_REPLACE.
+   * @throws CatalogResourceAlreadyExists if the function already exists under the provided name
+   *  and CreateMode != CREATE_OR_REPLACE.
    */
   public static void createFunctionInCatalog(
       SimpleCatalog catalog,
@@ -272,6 +261,11 @@ public class CatalogOperations {
     );
   }
 
+  /** Returns true if the TVF named tvfName exists in the SimpleCatalog */
+  private static boolean tvfExists(SimpleCatalog catalog, String tvfName) {
+    return catalog.getTVFNameList().contains(tvfName.toLowerCase());
+  }
+
   /**
    * Deletes a TVF with the provided name from the {@link SimpleCatalog}
    *
@@ -296,8 +290,8 @@ public class CatalogOperations {
    * @param nameInCatalog The name under which the TVF will be registered in the catalog
    * @param tvfInfo The {@link TVFInfo} object representing the TVF that should be created
    * @param createMode The CreateMode to use
-   * @throws CatalogResourceAlreadyExists if the TVF already exists at any of the provided
-   *     paths and CreateMode != CREATE_OR_REPLACE.
+   * @throws CatalogResourceAlreadyExists if the TVF already exists under the provided name
+   *  and CreateMode != CREATE_OR_REPLACE.
    */
   public static void createTVFInCatalog(
       SimpleCatalog catalog,
@@ -324,6 +318,13 @@ public class CatalogOperations {
         /*creator=*/() -> catalog.addTableValuedFunction(tvf),
         /*deleter=*/() -> deleteTVFFromCatalog(catalog, nameInCatalog)
     );
+  }
+
+  /** Returns true if the named procedureName exists in the SimpleCatalog */
+  private static boolean procedureExists(SimpleCatalog catalog, String procedureName) {
+    return catalog.getProcedureList().stream()
+        .map(Procedure::getName)
+        .anyMatch(name -> name.equalsIgnoreCase(procedureName));
   }
 
   private static void deleteProcedureFromCatalogImpl(SimpleCatalog catalog, String fullName) {
@@ -369,8 +370,8 @@ public class CatalogOperations {
    * @param nameInCatalog The name under which the procedure will be registered in the catalog
    * @param procedureInfo The ProcedureInfo object representing the procedure that should be created
    * @param createMode The CreateMode to use
-   * @throws CatalogResourceAlreadyExists if the procedure already exists at any of the provided
-   *     paths and CreateMode != CREATE_OR_REPLACE.
+   * @throws CatalogResourceAlreadyExists if the procedure already exists under the provided name
+   *  and CreateMode != CREATE_OR_REPLACE.
    */
   public static void createProcedureInCatalog(
       SimpleCatalog catalog,
@@ -404,6 +405,70 @@ public class CatalogOperations {
         /*deleter=*/ () -> deleteProcedureFromCatalog(catalog, nameInCatalog)
     );
 
+  }
+
+  /** Returns true if the model named fullName exists in the SimpleCatalog */
+  private static boolean modelExists(SimpleCatalog catalog, String fullName) {
+    return catalog.getModelList()
+        .stream()
+        .map(Model::getFullName)
+        .anyMatch(fullName::equalsIgnoreCase);
+  }
+
+  /**
+   * Deletes a model with the provided name from the {@link SimpleCatalog}
+   *
+   * @param catalog The catalog from which to delete the model
+   * @param fullName The full name of the model in the catalog
+   * @throws CatalogResourceDoesNotExist if the model does not exist in the catalog
+   */
+  public static void deleteModelFromCatalog(SimpleCatalog catalog, String fullName) {
+    if (!modelExists(catalog, fullName)) {
+      String errorMessage = String.format(
+          "Tried to delete model which does not exist: %s", fullName);
+      throw new CatalogResourceDoesNotExist(fullName, errorMessage);
+    }
+
+    catalog.removeModel(fullName);
+  }
+
+  /**
+   * Creates a model in a {@link SimpleCatalog} using the provided name and complying with the
+   * provided CreateMode.
+   *
+   * @param catalog The catalog in which to create the model
+   * @param nameInCatalog The name under which the model will be registered in the catalog
+   * @param model The {@link SimpleModel} object representing the model that should be created
+   * @param createMode The CreateMode to use
+   * @throws CatalogResourceAlreadyExists if the model already exists under the provided name
+   *  and CreateMode != CREATE_OR_REPLACE.
+   */
+  public static void createModelInCatalog(
+      SimpleCatalog catalog,
+      String nameInCatalog,
+      SimpleModel model,
+      CreateMode createMode) {
+
+    boolean alreadyExists = modelExists(catalog, nameInCatalog);
+
+    SimpleModel modelForCreation = new SimpleModel(nameInCatalog);
+    model.getInputs()
+        .stream()
+        .map(input -> new NameAndType(input.getName(), input.getType()))
+        .forEachOrdered(modelForCreation::addInput);
+    model.getOutputs()
+        .stream()
+        .map(output -> new NameAndType(output.getName(), output.getType()))
+        .forEachOrdered(modelForCreation::addOutput);
+
+    createResource(
+        nameInCatalog,
+        createMode,
+        "TVF",
+        alreadyExists,
+        /*creator=*/() -> catalog.addModel(modelForCreation),
+        /*deleter=*/() -> deleteTVFFromCatalog(catalog, nameInCatalog)
+    );
   }
 
   /**
