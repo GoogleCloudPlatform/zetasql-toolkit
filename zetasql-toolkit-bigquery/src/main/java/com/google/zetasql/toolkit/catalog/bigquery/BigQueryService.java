@@ -48,6 +48,7 @@ public class BigQueryService {
   private final BigQuery client;
   private final Map<String, Table> cachedTables = new HashMap<>();
   private final Map<String, Routine> cachedRoutines = new HashMap<>();
+  private final Map<String, Model> cachedModels = new HashMap<>();
 
   /**
    * Constructs a BigQueryService with a given BigQuery client.
@@ -170,7 +171,7 @@ public class BigQueryService {
   }
 
   /**
-   * Fetches a BigQuery Table from the API. Results are cached indefinitely.
+   * Fetches a BigQuery Table from the API. Results are cached over the lifetime of this service.
    *
    * @param projectId The default BigQuery project id
    * @param tableReference The String referencing the table,
@@ -221,7 +222,8 @@ public class BigQueryService {
   }
 
   /**
-   * Fetches a BigQuery Routine from the API. Results are cached through the lifetime of this.
+   * Fetches a BigQuery Routine from the API. Results are cached through the lifetime of this
+   * service.
    *
    * @param projectId The default BigQuery project id
    * @param routineReference The String referencing the routine, e.g. "project.dataset.routine"
@@ -243,16 +245,66 @@ public class BigQueryService {
     DatasetId datasetId = DatasetId.of(projectId, datasetName);
 
     try {
-      Page<Routine> tables = this.client.listRoutines(datasetId, RoutineListOption.pageSize(100));
+      Page<Routine> routines = this.client.listRoutines(datasetId, RoutineListOption.pageSize(100));
 
       List<RoutineId> routineIds =
-          this.pageToStream(tables).map(Routine::getRoutineId).collect(Collectors.toList());
+          this.pageToStream(routines).map(Routine::getRoutineId).collect(Collectors.toList());
 
       return Result.success(routineIds);
     } catch (BigQueryException err) {
       String message =
           String.format(
               "Failed to list routines in dataset %s.%s",
+              datasetId.getProject(), datasetId.getDataset());
+      BigQueryAPIError wrapperError = new BigQueryAPIError(message, err);
+      return Result.failure(wrapperError);
+    }
+  }
+
+  /**
+   * Fetches a BigQuery Model from the API.
+   *
+   * @param reference The BigQueryReference referencing the model
+   * @return The fetched {@link Model} object, null if not found
+   * @throws BigQueryException if an API error occurs
+   */
+  private Model fetchModelFromAPI(BigQueryReference reference) {
+    return this.client.getModel(reference.toModelId());
+  }
+
+  /**
+   * Fetches a BigQuery Model from the API. Results are cached through the lifetime of this service.
+   *
+   * @param projectId The default BigQuery project id
+   * @param modelReference The String referencing the model, e.g. "project.dataset.model"
+   * @return A Result&lt;Model&gt; containing the fetched model
+   */
+  public Result<Model> fetchModel(String projectId, String modelReference) {
+    return this.fetchResource(
+        projectId, modelReference, this::fetchModelFromAPI, this.cachedModels);
+  }
+
+  /**
+   * Lists models in a BigQuery dataset
+   *
+   * @param projectId The project id the dataset belongs to
+   * @param datasetName The name of the dataset to list models from
+   * @return A Result&lt;List&lt;ModelId&gt;&gt; containing the list ModelId objects
+   */
+  public Result<List<ModelId>> listModels(String projectId, String datasetName) {
+    DatasetId datasetId = DatasetId.of(projectId, datasetName);
+
+    try {
+      Page<Model> models = this.client.listModels(datasetId, ModelListOption.pageSize(100));
+
+      List<ModelId> routineIds =
+          this.pageToStream(models).map(Model::getModelId).collect(Collectors.toList());
+
+      return Result.success(routineIds);
+    } catch (BigQueryException err) {
+      String message =
+          String.format(
+              "Failed to list models in dataset %s.%s",
               datasetId.getProject(), datasetId.getDataset());
       BigQueryAPIError wrapperError = new BigQueryAPIError(message, err);
       return Result.failure(wrapperError);

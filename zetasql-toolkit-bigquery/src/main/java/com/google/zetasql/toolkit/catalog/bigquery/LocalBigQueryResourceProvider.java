@@ -16,6 +16,7 @@
 
 package com.google.zetasql.toolkit.catalog.bigquery;
 
+import com.google.zetasql.SimpleModel;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.toolkit.catalog.FunctionInfo;
 import com.google.zetasql.toolkit.catalog.ProcedureInfo;
@@ -193,6 +194,45 @@ public class LocalBigQueryResourceProvider implements BigQueryResourceProvider {
           BigQueryReference procedureReference =
               BigQueryReference.from(projectId, procedure.getFullName());
           return procedureReference.getProjectId().equalsIgnoreCase(projectId);
+        })
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<SimpleModel> getModels(String projectId, List<String> modelReferences) {
+    Set<BigQueryReference> references = parseBigQueryReferences(projectId, modelReferences);
+
+    return catalogResources.getModels()
+        .stream()
+        .filter(model -> {
+          BigQueryReference modelReference =
+              BigQueryReference.from(projectId, model.getFullName());
+          return references.contains(modelReference);
+        })
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<SimpleModel> getAllModelsInDataset(String projectId, String datasetName) {
+    return catalogResources.getModels()
+        .stream()
+        .filter(model -> {
+          BigQueryReference modelReference =
+              BigQueryReference.from(projectId, model.getFullName());
+          return modelReference.getProjectId().equalsIgnoreCase(projectId)
+              && modelReference.getDatasetId().equals(datasetName);
+        })
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<SimpleModel> getAllModelsInProject(String projectId) {
+    return catalogResources.getModels()
+        .stream()
+        .filter(model -> {
+          BigQueryReference modelReference =
+              BigQueryReference.from(projectId, model.getFullName());
+          return modelReference.getProjectId().equalsIgnoreCase(projectId);
         })
         .collect(Collectors.toList());
   }

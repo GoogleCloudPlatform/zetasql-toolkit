@@ -23,6 +23,7 @@ import static org.mockito.Mockito.*;
 
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.Field.Mode;
+import com.google.cloud.bigquery.Model;
 import com.google.cloud.bigquery.Table;
 import com.google.common.collect.ImmutableList;
 import com.google.zetasql.*;
@@ -367,5 +368,50 @@ public class BigQueryAPIResourceProviderTest {
     assertTrue(
         CatalogTestUtils.functionSignatureEquals(
             expectedSignatureForMockProcedure, procedures.get(0).getSignature()));
+  }
+
+  Model createMockModel() {
+    Model model = mock(Model.class);
+    ModelId modelId = ModelId.of("project", "dataset", "model");
+
+    when(model.getModelId()).thenReturn(modelId);
+    when(model.getFeatureColumns()).thenReturn(ImmutableList.of(
+        StandardSQLField.newBuilder(
+            "input",
+            StandardSQLDataType.newBuilder(StandardSQLTypeName.STRING).build())
+            .build()));
+    when(model.getLabelColumns()).thenReturn(ImmutableList.of(
+        StandardSQLField.newBuilder(
+                "output",
+                StandardSQLDataType.newBuilder(StandardSQLTypeName.INT64).build())
+            .build()));
+
+    return model;
+  }
+
+  @Test
+  void testGetModels() {
+    Model mockModel = createMockModel();
+    when(bigQueryServiceMock.fetchModel(anyString(), anyString()))
+        .thenReturn(Result.success(mockModel));
+
+    FunctionSignature expectedSignatureForMockProcedure = expectedSignatureForMockProcedure();
+
+    List<SimpleModel> models =
+        bigqueryResourceProvider.getModels("project", ImmutableList.of("reference"));
+
+    assertEquals(1, models.size());
+
+    SimpleModel model = models.get(0);
+
+    assertEquals(1, model.getInputs().size());
+    assertEquals(
+        TypeFactory.createSimpleType(TypeKind.TYPE_STRING),
+        model.getInputs().get(0).getType());
+    assertEquals(1, model.getOutputs().size());
+    assertEquals(
+        TypeFactory.createSimpleType(TypeKind.TYPE_INT64),
+        model.getOutputs().get(0).getType());
+
   }
 }

@@ -123,6 +123,29 @@ public class BigQueryServiceTest {
   }
 
   @Test
+  void testListModels() {
+    String projectId = "project";
+    String datasetName = "dataset";
+    String modelName = "model";
+    ModelId modelId = ModelId.of(projectId, datasetName, modelName);
+
+    Model mockModel = mock(Model.class);
+    when(mockModel.getModelId()).thenReturn(modelId);
+
+    Page<Model> mockPage = createMockPage(ImmutableList.of(mockModel));
+    when(bigqueryClientMock.listModels(any(DatasetId.class), any())).thenReturn(mockPage);
+
+    Result<List<ModelId>> listModelsResult =
+        bigQueryService.listModels(projectId, datasetName);
+
+    assertTrue(listModelsResult.succeeded(), "Expected listing models to succeed");
+
+    List<ModelId> listedModelIds = listModelsResult.get();
+
+    assertIterableEquals(ImmutableList.of(modelId), listedModelIds);
+  }
+
+  @Test
   void testFetchTable() {
     Table mockTable = mock(Table.class);
     when(bigqueryClientMock.getTable(any(TableId.class))).thenReturn(mockTable);
@@ -142,6 +165,17 @@ public class BigQueryServiceTest {
 
     assertTrue(fetchRoutineResult.succeeded(), "Expected fetching routine to succeed");
     assertSame(mockRoutine, fetchRoutineResult.get());
+  }
+
+  @Test
+  void testFetchModel() {
+    Model mockModel = mock(Model.class);
+    when(bigqueryClientMock.getModel(any(ModelId.class))).thenReturn(mockModel);
+
+    Result<Model> fetchModelResult = bigQueryService.fetchModel("project", "dataset.model");
+
+    assertTrue(fetchModelResult.succeeded(), "Expected fetching model to succeed");
+    assertSame(mockModel, fetchModelResult.get());
   }
 
   @Test
@@ -168,16 +202,25 @@ public class BigQueryServiceTest {
     Routine mockRoutine = mock(Routine.class);
     when(bigqueryClientMock.getRoutine(any(RoutineId.class))).thenReturn(mockRoutine);
 
+    Model mockModel = mock(Model.class);
+    when(bigqueryClientMock.getModel(any(ModelId.class))).thenReturn(mockModel);
+
     // Fetch the same table twice, expect the second call to have been cached
     bigQueryService.fetchTable("project", "dataset.table");
     bigQueryService.fetchTable("project", "dataset.table");
 
     verify(bigqueryClientMock, times(1)).getTable(any(TableId.class));
 
-    // Fetch the same table routine, expect the second call to have been cached
+    // Fetch the same routine twice, expect the second call to have been cached
     bigQueryService.fetchRoutine("project", "dataset.routine");
     bigQueryService.fetchRoutine("project", "dataset.routine");
 
     verify(bigqueryClientMock, times(1)).getRoutine(any(RoutineId.class));
+
+    // Fetch the same model twice, expect the second call to have been cached
+    bigQueryService.fetchModel("project", "dataset.model");
+    bigQueryService.fetchModel("project", "dataset.model");
+
+    verify(bigqueryClientMock, times(1)).getModel(any(ModelId.class));
   }
 }

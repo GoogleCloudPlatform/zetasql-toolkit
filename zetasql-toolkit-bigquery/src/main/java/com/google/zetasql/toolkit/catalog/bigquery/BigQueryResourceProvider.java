@@ -17,6 +17,7 @@
 package com.google.zetasql.toolkit.catalog.bigquery;
 
 import com.google.zetasql.Function;
+import com.google.zetasql.SimpleModel;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.toolkit.catalog.FunctionInfo;
 import com.google.zetasql.toolkit.catalog.ProcedureInfo;
@@ -137,4 +138,32 @@ public interface BigQueryResourceProvider {
    * @return The list of {@link ProcedureInfo} representing the procedures in the project
    */
   List<ProcedureInfo> getAllProceduresInProject(String projectId);
+
+  /**
+   * Gets a set of BigQuery models and returns them as {@link SimpleModel}s
+   *
+   * @param projectId The default BigQuery project id. If a model reference does not specify
+   *     the project, the default project is used.
+   * @param modelReferences The list of model references. Each reference should be in the
+   *     format "project.dataset.model" or "dataset.model".
+   * @return The list of SimpleModels representing the requested BigQuery models.
+   */
+  List<SimpleModel> getModels(String projectId, List<String> modelReferences);
+
+  /**
+   * Gets all BigQuery models in a given dataset and returns them as {@link SimpleModel}s
+   *
+   * @param projectId The projectId the dataset belongs to
+   * @param datasetName The name of the dataset from which to get the models
+   * @return The list of SimpleModels representing the models in the dataset
+   */
+  List<SimpleModel> getAllModelsInDataset(String projectId, String datasetName);
+
+  /**
+   * Gets all BigQuery models in a given project and returns them as {@link SimpleModel}s
+   *
+   * @param projectId The projectId from which to get the models
+   * @return The list of SimpleModels representing the models in the project
+   */
+  List<SimpleModel> getAllModelsInProject(String projectId);
 }

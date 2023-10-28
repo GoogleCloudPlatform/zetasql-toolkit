@@ -16,6 +16,7 @@
 
 package com.google.zetasql.toolkit.catalog.bigquery;
 
+import com.google.cloud.bigquery.ModelId;
 import com.google.cloud.bigquery.RoutineId;
 import com.google.cloud.bigquery.TableId;
 import com.google.common.base.CharMatcher;
@@ -54,6 +55,11 @@ class BigQueryReference {
   public static BigQueryReference from(RoutineId routineId) {
     return new BigQueryReference(
         routineId.getProject(), routineId.getDataset(), routineId.getRoutine());
+  }
+
+  public static BigQueryReference from(ModelId modelId) {
+    return new BigQueryReference(
+        modelId.getProject(), modelId.getDataset(), modelId.getModel());
   }
 
   /**
@@ -121,6 +127,10 @@ class BigQueryReference {
 
   public RoutineId toRoutineId() {
     return RoutineId.of(this.getProjectId(), this.getDatasetId(), this.getResourceName());
+  }
+
+  public ModelId toModelId() {
+    return ModelId.of(this.getProjectId(), this.getDatasetId(), this.getResourceName());
   }
 
   @Override

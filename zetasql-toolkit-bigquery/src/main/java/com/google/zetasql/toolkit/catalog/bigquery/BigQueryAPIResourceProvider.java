@@ -16,14 +16,31 @@
 
 package com.google.zetasql.toolkit.catalog.bigquery;
 
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.MaterializedViewDefinition;
+import com.google.cloud.bigquery.Model;
+import com.google.cloud.bigquery.Routine;
+import com.google.cloud.bigquery.RoutineArgument;
+import com.google.cloud.bigquery.RoutineId;
+import com.google.cloud.bigquery.SnapshotTableDefinition;
+import com.google.cloud.bigquery.StandardSQLDataType;
+import com.google.cloud.bigquery.StandardSQLField;
+import com.google.cloud.bigquery.StandardSQLStructType;
+import com.google.cloud.bigquery.StandardSQLTableType;
+import com.google.cloud.bigquery.StandardSQLTypeName;
+import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.TableDefinition;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TimePartitioning;
 import com.google.common.collect.ImmutableList;
 import com.google.zetasql.Function;
 import com.google.zetasql.FunctionArgumentType;
 import com.google.zetasql.FunctionArgumentType.FunctionArgumentTypeOptions;
 import com.google.zetasql.FunctionSignature;
 import com.google.zetasql.SimpleColumn;
+import com.google.zetasql.SimpleModel;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.StructType.StructField;
 import com.google.zetasql.TVFRelation;
@@ -256,7 +273,8 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
     }
 
     if (typeKind.equals("STRUCT")) {
-      StandardSQLStructType structType = bigqueryDataType.getStructType();
+      StandardSQLStructType structType;
+      structType = bigqueryDataType.getStructType();
       List<StructField> structFields =
           structType.getFields().stream()
               .map(
@@ -626,8 +644,8 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
    */
   @Override
   public List<ProcedureInfo> getAllProceduresInDataset(String projectId, String datasetName) {
-    List<String> functionReferences = this.listRoutineReferencesInDataset(projectId, datasetName);
-    return this.getProcedures(projectId, functionReferences);
+    List<String> procedureReferences = this.listRoutineReferencesInDataset(projectId, datasetName);
+    return this.getProcedures(projectId, procedureReferences);
   }
 
   /**
@@ -639,4 +657,60 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
   public List<ProcedureInfo> getAllProceduresInProject(String projectId) {
     return this.getAllResourcesInProject(projectId, this::getAllProceduresInDataset);
   }
+
+  private SimpleModel.NameAndType buildModelColumn(StandardSQLField bigqueryField) {
+    return new SimpleModel.NameAndType(
+        bigqueryField.getName(),
+        convertBigQueryDataTypeToZetaSQLType(bigqueryField.getDataType()));
+  }
+
+  private SimpleModel buildSimpleModel(Model model) {
+    BigQueryReference reference = BigQueryReference.from(model.getModelId());
+    List<SimpleModel.NameAndType> inputs = model.getFeatureColumns()
+        .stream()
+        .map(this::buildModelColumn)
+        .collect(Collectors.toList());
+    List<SimpleModel.NameAndType> outputs = model.getLabelColumns()
+        .stream()
+        .map(this::buildModelColumn)
+        .collect(Collectors.toList());
+
+    return new SimpleModel(reference.getFullName(), inputs, outputs);
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * @throws BigQueryAPIError if an API error occurs
+   */
+  @Override
+  public List<SimpleModel> getModels(String projectId, List<String> modelReferences) {
+    return modelReferences.stream()
+        .map(reference -> this.service.fetchModel(projectId, reference))
+        .map(Result::get)
+        .map(this::buildSimpleModel)
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * @throws BigQueryAPIError if an API error occurs
+   */
+  @Override
+  public List<SimpleModel> getAllModelsInDataset(String projectId, String datasetName) {
+    List<String> modelReferences = this.listRoutineReferencesInDataset(projectId, datasetName);
+    return this.getModels(projectId, modelReferences);
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * @throws BigQueryAPIError if an API error occurs
+   */
+  @Override
+  public List<SimpleModel> getAllModelsInProject(String projectId) {
+    return this.getAllResourcesInProject(projectId, this::getAllModelsInDataset);
+  }
+
 }
