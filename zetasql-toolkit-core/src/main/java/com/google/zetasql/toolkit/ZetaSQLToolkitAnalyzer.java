@@ -200,8 +200,6 @@ public class ZetaSQLToolkitAnalyzer {
         this.validateSingleAssignment((ASTSingleAssignment) parsedStatement);
       }
 
-      this.validateProcedureAndTVFReferences(parsedStatement);
-
       if (this.reachedComplexScriptStatement || this.isScriptStatement(parsedStatement)) {
         return new AnalyzedStatement(parsedStatement, Optional.empty());
       }
@@ -328,49 +326,6 @@ public class ZetaSQLToolkitAnalyzer {
 
     private void applyCatalogMutation(ResolvedStatement statement) {
       statement.accept(catalogUpdaterVisitor);
-    }
-
-    private void validateProcedureAndTVFReferences(ASTStatement parsedStatement) {
-      parsedStatement.accept(new ParseTreeVisitor() {
-
-        public void visit(ASTCallStatement callStatement) {
-          List<String> procedureNames = callStatement.getProcedureName().getNames()
-              .stream()
-              .map(ASTIdentifier::getIdString)
-              .collect(Collectors.toList());
-
-          if (procedureNames.size() > 1) {
-            String foundProcedureName = procedureNames.stream()
-                .map(name -> "`" + name + "`")
-                .collect(Collectors.joining("."));
-            String expectedProcedureName = "`" + String.join(".", procedureNames) + "`";
-
-            String message = String.format(
-                "Procedures in CALL statements should be fully quoted. Expected %s, found %s.",
-                expectedProcedureName, foundProcedureName);
-            throw new AnalysisException(message);
-          }
-        }
-
-        public void visit(ASTTVF astTvf) {
-          List<String> tvfNames = astTvf.getName().getNames()
-              .stream()
-              .map(ASTIdentifier::getIdString)
-              .collect(Collectors.toList());
-          if (tvfNames.size() > 1) {
-            String foundTvfName = tvfNames.stream()
-                .map(name -> "`" + name + "`")
-                .collect(Collectors.joining("."));
-            String expectedTvfName = "`" + String.join(".", tvfNames) + "`";
-
-            String message = String.format(
-                "TVF calls should be fully quoted. Expected %s, found %s.",
-                expectedTvfName, foundTvfName);
-            throw new AnalysisException(message);
-          }
-        }
-
-      });
     }
 
   }
