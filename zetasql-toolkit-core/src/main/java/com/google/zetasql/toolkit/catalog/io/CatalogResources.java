@@ -18,6 +18,7 @@ package com.google.zetasql.toolkit.catalog.io;
 
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonParseException;
+import com.google.zetasql.SimpleModel;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.toolkit.catalog.FunctionInfo;
 import com.google.zetasql.toolkit.catalog.ProcedureInfo;
@@ -33,16 +34,19 @@ public class CatalogResources {
   private final List<FunctionInfo> functions;
   private final List<TVFInfo> tvfs;
   private final List<ProcedureInfo> procedures;
+  private final List<SimpleModel> models;
 
   public CatalogResources(
       List<SimpleTable> tables,
       List<FunctionInfo> functions,
       List<TVFInfo> tvfs,
-      List<ProcedureInfo> procedures) {
+      List<ProcedureInfo> procedures,
+      List<SimpleModel> models) {
     this.tables = tables;
     this.functions = functions;
     this.tvfs = tvfs;
     this.procedures = procedures;
+    this.models = models;
   }
 
   public List<SimpleTable> getTables() {
@@ -59,6 +63,10 @@ public class CatalogResources {
 
   public List<ProcedureInfo> getProcedures() {
     return procedures != null ? procedures : ImmutableList.of();
+  }
+
+  public List<SimpleModel> getModels() {
+    return models != null ? models : ImmutableList.of();
   }
 
   /**
@@ -109,6 +117,17 @@ public class CatalogResources {
    *         { "name": "arg1", "type": "ARRAY&lt;STRUCT&lt;x INT64&gt;&gt;" }
    *       ]
    *     }
+   *   ],
+   *   "models": [
+   *    {
+   *      "name": "project.dataset.model",
+   *      "inputs": [
+   *        { "name": "input", "type": "ARRAY&lt;STRUCT&lt;x INT64&gt;&gt;" }
+   *      ],
+   *      "outputs": [
+   *        { "name": "output", "type": "ARRAY&lt;STRUCT&lt;x INT64&gt;&gt;" }
+   *      ]
+   *    }
    *   ]
    * }
    * </pre>

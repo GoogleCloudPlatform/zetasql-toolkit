@@ -30,6 +30,7 @@ import com.google.zetasql.FunctionArgumentType;
 import com.google.zetasql.FunctionArgumentType.FunctionArgumentTypeOptions;
 import com.google.zetasql.FunctionSignature;
 import com.google.zetasql.SimpleColumn;
+import com.google.zetasql.SimpleModel;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.TVFRelation;
 import com.google.zetasql.Type;
@@ -43,6 +44,7 @@ import com.google.zetasql.toolkit.catalog.ProcedureInfo;
 import com.google.zetasql.toolkit.catalog.TVFInfo;
 import com.google.zetasql.toolkit.catalog.typeparser.ZetaSQLTypeParseError;
 import com.google.zetasql.toolkit.catalog.typeparser.ZetaSQLTypeParser;
+import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -115,6 +117,8 @@ class JsonCatalogDeserializer {
       .registerTypeAdapter(FunctionArgumentType.class, new FunctionArgumentTypeDeserializer())
       .registerTypeAdapter(TVFInfo.class, new TVFDeserializer())
       .registerTypeAdapter(ProcedureInfo.class, new ProcedureDeserializer())
+      .registerTypeAdapter(SimpleModel.NameAndType.class, new ModelNameAndTypeDeserializer())
+      .registerTypeAdapter(SimpleModel.class, new ModelDeserializer())
       .create();
 
   /**
@@ -436,6 +440,71 @@ class JsonCatalogDeserializer {
           returnType, Arrays.asList(arguments), -1);
 
       return new ProcedureInfo(ImmutableList.of(procedureName), signature);
+    }
+  }
+
+  /**
+   * Gson deserializer for {@link SimpleModel.NameAndType}
+   */
+  private static class ModelNameAndTypeDeserializer
+      implements JsonDeserializer<SimpleModel.NameAndType> {
+
+    @Override
+    public SimpleModel.NameAndType deserialize(
+        JsonElement jsonElement,
+        java.lang.reflect.Type type,
+        JsonDeserializationContext context
+    ) throws JsonParseException {
+      JsonObject jsonObject = getAsJsonObject(
+          jsonElement,
+          "Invalid JSON model column: " + jsonElement + ". Should be object.");
+
+      String argumentName = getFieldAsString(
+          jsonObject, "name",
+          "Invalid JSON model column: " + jsonElement + ". Field name should be string.");
+
+      String argumentType = getFieldAsString(
+          jsonObject, "type",
+          "Invalid JSON model column: " + jsonElement + ". Field type should be string.");
+
+      Type parsedArgumentType = parseType(argumentType);
+
+      return new SimpleModel.NameAndType(argumentName, parsedArgumentType);
+    }
+  }
+
+  /**
+   * Gson deserializer for {@link SimpleModel}
+   */
+  private static class ModelDeserializer implements JsonDeserializer<SimpleModel> {
+
+    @Override
+    public SimpleModel deserialize(
+        JsonElement jsonElement,
+        java.lang.reflect.Type type,
+        JsonDeserializationContext context
+    ) throws JsonParseException {
+      JsonObject jsonObject = getAsJsonObject(
+          jsonElement,
+          "Invalid JSON model: " + jsonElement + ". Models should be objects.");
+
+      String modelName = getFieldAsString(
+          jsonObject, "name",
+          "Invalid JSON model: " + jsonElement + ". Field name should be string.");
+
+      SimpleModel.NameAndType[] inputs = Optional.ofNullable(jsonObject.get("inputs"))
+          .map(jsonInputs -> context.deserialize(jsonInputs, SimpleModel.NameAndType[].class))
+          .map(SimpleModel.NameAndType[].class::cast)
+          .orElseThrow(() -> new JsonParseException(
+              "Invalid JSON model: " + jsonElement + ". Inputs missing."));
+
+      SimpleModel.NameAndType[] outputs = Optional.ofNullable(jsonObject.get("outputs"))
+          .map(jsonInputs -> context.deserialize(jsonInputs, SimpleModel.NameAndType[].class))
+          .map(SimpleModel.NameAndType[].class::cast)
+          .orElseThrow(() -> new JsonParseException(
+              "Invalid JSON model: " + jsonElement + ". Inputs missing."));
+
+      return new SimpleModel(modelName, Arrays.asList(inputs), Arrays.asList(outputs));
     }
   }
 
