@@ -30,6 +30,7 @@ import com.google.zetasql.parser.ASTNodes.ASTCallStatement;
 import com.google.zetasql.parser.ASTNodes.ASTExpression;
 import com.google.zetasql.parser.ASTNodes.ASTFunctionCall;
 import com.google.zetasql.parser.ASTNodes.ASTIdentifier;
+import com.google.zetasql.parser.ASTNodes.ASTModelClause;
 import com.google.zetasql.parser.ASTNodes.ASTScript;
 import com.google.zetasql.parser.ASTNodes.ASTStatement;
 import com.google.zetasql.parser.ASTNodes.ASTTVF;
@@ -260,6 +261,81 @@ public class AnalyzerExtensions {
                     .map(ASTIdentifier::getIdString)
                     .collect(ImmutableList.toImmutableList());
             result.add(functionNamePath);
+          }
+        };
+
+    node.accept(extractProcedureNamesVisitor);
+
+    return ImmutableList.copyOf(result);
+  }
+
+  /**
+   * Extracts the name paths for all models used in a SQL statement.
+   *
+   * @param sql The SQL statement from which to extract models used
+   * @param options The {@link LanguageOptions} to use when parsing the provided statement
+   * @return The list of name paths for all models used in the statement. If a model is
+   *     referenced multiple times with different quoting (e.g. `catalog.model` vs
+   *     catalog.model), it will be returned multiple times.
+   */
+  public static List<List<String>> extractModelNamesFromStatement(
+      String sql, LanguageOptions options) {
+    ASTStatement statement = Parser.parseStatement(sql, options);
+    return extractModelNamesFromASTNode(statement);
+  }
+
+  /**
+   * Extracts the name paths for all models used in a SQL script
+   *
+   * @param sql The SQL script from which to extract models used
+   * @param options The {@link LanguageOptions} to use when parsing the provided script
+   * @return The list of name paths for all models used in the statement. If a model is
+   *    referenced multiple times with different quoting (e.g. `catalog.model` vs
+   *    catalog.model), it will be returned multiple times.
+   */
+  public static List<List<String>> extractModelNamesFromScript(
+      String sql, LanguageOptions options) {
+    ASTScript script = Parser.parseScript(sql, options);
+    return extractModelNamesFromASTNode(script);
+  }
+
+  /**
+   * Extracts the name paths for all models used in the next statement in the provided {@link
+   * ParseResumeLocation}.
+   *
+   * @param parseResumeLocation The ParseResumeLocation from which to extract models used
+   * @param options The {@link LanguageOptions} to use when parsing the statement
+   * @return The list of name paths for all models used in the statement. If a model is
+   *    referenced multiple times with different quoting (e.g. `catalog.model` vs
+   *    catalog.model), it will be returned multiple times.
+   */
+  public static List<List<String>> extractModelNamesFromNextStatement(
+      ParseResumeLocation parseResumeLocation, LanguageOptions options) {
+    ASTStatement statement = Parser.parseNextStatement(parseResumeLocation, options);
+    return extractModelNamesFromASTNode(statement);
+  }
+
+  /**
+   * Extracts the name paths for all models used in the provided parse tree
+   *
+   * @param node The root of the parse tree from which to extract models used
+   * @return The list of name paths for all models used in the statement. If a model is
+   *    referenced multiple times with different quoting (e.g. `catalog.model` vs
+   *    catalog.model), it will be returned multiple times.
+   */
+  private static List<List<String>> extractModelNamesFromASTNode(ASTNode node) {
+    Set<ImmutableList<String>> result = new LinkedHashSet<>();
+
+    ParseTreeVisitor extractProcedureNamesVisitor =
+        new ParseTreeVisitor() {
+
+          @Override
+          public void visit(ASTModelClause modelClause) {
+            ImmutableList<String> modelNamePath =
+                modelClause.getModelPath().getNames().stream()
+                    .map(ASTIdentifier::getIdString)
+                    .collect(ImmutableList.toImmutableList());
+            result.add(modelNamePath);
           }
         };
 

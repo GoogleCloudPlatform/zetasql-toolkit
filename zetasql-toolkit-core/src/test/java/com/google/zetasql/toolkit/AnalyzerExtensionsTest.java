@@ -150,4 +150,45 @@ public class AnalyzerExtensionsTest {
 
     assertIterableEquals(expected, extractedProcedures);
   }
+
+  @Test
+  void testExtractModelNamesFromStatement() {
+    String query = "SELECT * FROM `ML.PREDICT`(MODEL `model1`, TABLE `table1`);";
+
+    List<List<String>> expected = ImmutableList.of(ImmutableList.of("model1"));
+
+    List<List<String>> extractedModels =
+        AnalyzerExtensions.extractModelNamesFromStatement(query, languageOptions);
+
+    assertIterableEquals(expected, extractedModels);
+  }
+
+  @Test
+  void testExtractModelNamesFromScript() {
+    String script = "SELECT * FROM `ML.PREDICT`(MODEL c.model1, TABLE `table1`);\n"
+        + "SELECT * FROM `ML.PREDICT`(MODEL `c.model2`, TABLE `table1`);";
+
+    List<List<String>> expected =
+        ImmutableList.of(ImmutableList.of("c", "model1"), ImmutableList.of("c.model2"));
+
+    List<List<String>> extractedModels =
+        AnalyzerExtensions.extractModelNamesFromScript(script, languageOptions);
+
+    assertIterableEquals(expected, extractedModels);
+  }
+
+  @Test
+  void testExtractModelNamesFromNextStatement() {
+    String query = "SELECT * FROM `ML.PREDICT`(MODEL `model1`, TABLE `table1`);";
+
+    ParseResumeLocation parseResumeLocation = new ParseResumeLocation(query);
+
+    List<List<String>> expected = ImmutableList.of(ImmutableList.of("model1"));
+
+    List<List<String>> extractedModels =
+        AnalyzerExtensions.extractModelNamesFromNextStatement(
+            parseResumeLocation, languageOptions);
+
+    assertIterableEquals(expected, extractedModels);
+  }
 }
