@@ -268,6 +268,8 @@ class CatalogUpdaterVisitor extends Visitor {
       catalog.removeTable(resourceReference);
     } else if (objectType.equalsIgnoreCase("PROCEDURE")) {
       catalog.removeProcedure(resourceReference);
+    } else if (objectType.equalsIgnoreCase("MODEL")) {
+      catalog.removeModel(resourceReference);
     }
   }
 
