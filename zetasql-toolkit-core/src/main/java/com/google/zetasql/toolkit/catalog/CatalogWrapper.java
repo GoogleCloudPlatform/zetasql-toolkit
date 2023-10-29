@@ -23,6 +23,7 @@ import com.google.zetasql.SimpleModel;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateScope;
+import com.google.zetasql.toolkit.hooks.PreAnalysisHook;
 import java.util.List;
 
 /**
@@ -215,4 +216,13 @@ public interface CatalogWrapper {
    * @return The underlying ZetaSQL SimpleCatalog that can be used for analyzing queries
    */
   SimpleCatalog getZetaSQLCatalog();
+
+  /**
+   * Returns a list of {@link PreAnalysisHook}s that should be run when analyzing with this catalog
+   *
+   * @return The list of {@link PreAnalysisHook}s to run when analyzing with this catalog
+   */
+  default List<PreAnalysisHook> getPreAnalysisHooks() {
+    return ImmutableList.of();
+  }
 }

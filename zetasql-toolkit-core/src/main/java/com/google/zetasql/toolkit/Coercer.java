@@ -36,7 +36,7 @@ import java.util.Optional;
  * coercion for protos, enums and other complex types. However, it should suffice for the
  * SQL engines the ZetaSQL toolkit is targeting (primarily BigQuery and Cloud Spanner).
  */
-class Coercer {
+public class Coercer {
 
   private final LanguageOptions languageOptions;
 

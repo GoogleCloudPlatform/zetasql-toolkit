@@ -19,36 +19,23 @@ package com.google.zetasql.toolkit;
 import com.google.common.collect.ImmutableList;
 import com.google.zetasql.Analyzer;
 import com.google.zetasql.AnalyzerOptions;
-import com.google.zetasql.Constant;
-import com.google.zetasql.NotFoundException;
 import com.google.zetasql.ParseResumeLocation;
 import com.google.zetasql.Parser;
 import com.google.zetasql.SimpleCatalog;
-import com.google.zetasql.SimpleConstantProtos.SimpleConstantProto;
 import com.google.zetasql.SqlException;
-import com.google.zetasql.Type;
-import com.google.zetasql.TypeFactory;
-import com.google.zetasql.parser.ASTNodes.ASTCallStatement;
-import com.google.zetasql.parser.ASTNodes.ASTExpression;
-import com.google.zetasql.parser.ASTNodes.ASTIdentifier;
 import com.google.zetasql.parser.ASTNodes.ASTScriptStatement;
 import com.google.zetasql.parser.ASTNodes.ASTSingleAssignment;
 import com.google.zetasql.parser.ASTNodes.ASTStatement;
-import com.google.zetasql.parser.ASTNodes.ASTTVF;
-import com.google.zetasql.parser.ASTNodes.ASTType;
 import com.google.zetasql.parser.ASTNodes.ASTVariableDeclaration;
-import com.google.zetasql.parser.ParseTreeVisitor;
-import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedExpr;
-import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedLiteral;
-import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedParameter;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
 import com.google.zetasql.toolkit.catalog.CatalogWrapper;
 import com.google.zetasql.toolkit.catalog.basic.BasicCatalogWrapper;
-import com.google.zetasql.toolkit.catalog.typeparser.ZetaSQLTypeParser;
+import com.google.zetasql.toolkit.hooks.PreAnalysisHook;
+import com.google.zetasql.toolkit.hooks.SingleAssignmentHook;
+import com.google.zetasql.toolkit.hooks.VariableDeclarationHook;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Primary class exposed by the ZetaSQL Toolkit to perform SQL analysis.
@@ -150,9 +137,9 @@ public class ZetaSQLToolkitAnalyzer {
     private final String query;
     private final CatalogWrapper catalog;
     private final AnalyzerOptions analyzerOptions;
-    private final Coercer coercer;
     private final CatalogUpdaterVisitor catalogUpdaterVisitor;
     private final ParseResumeLocation parseResumeLocation;
+    private final List<PreAnalysisHook> preAnalysisHooks;
     private boolean reachedComplexScriptStatement = false;
 
     public StatementAnalyzer(String query, CatalogWrapper catalog,
@@ -160,9 +147,13 @@ public class ZetaSQLToolkitAnalyzer {
       this.query = query;
       this.catalog = catalog;
       this.analyzerOptions = analyzerOptions;
-      this.coercer = new Coercer(analyzerOptions.getLanguageOptions());
       this.catalogUpdaterVisitor = new CatalogUpdaterVisitor(catalog);
       this.parseResumeLocation = new ParseResumeLocation(query);
+      this.preAnalysisHooks = ImmutableList.<PreAnalysisHook>builder()
+          .add(new VariableDeclarationHook())
+          .add(new SingleAssignmentHook())
+          .addAll(catalog.getPreAnalysisHooks())
+          .build();
     }
 
     @Override
@@ -189,16 +180,8 @@ public class ZetaSQLToolkitAnalyzer {
       this.reachedComplexScriptStatement =
           this.reachedComplexScriptStatement || isComplexScriptStatement(parsedStatement);
 
-      // If the statement is a variable declaration, we need to validate it and create a Constant
-      // in the catalog
-      if (parsedStatement instanceof ASTVariableDeclaration) {
-        this.applyVariableDeclaration((ASTVariableDeclaration) parsedStatement);
-      }
-
-      // If the statement is an assignment (SET statement), we need to validate it
-      if (parsedStatement instanceof ASTSingleAssignment) {
-        this.validateSingleAssignment((ASTSingleAssignment) parsedStatement);
-      }
+      preAnalysisHooks.forEach(hook -> hook.run(
+          query, parsedStatement, catalog, analyzerOptions));
 
       if (this.reachedComplexScriptStatement || this.isScriptStatement(parsedStatement)) {
         return new AnalyzedStatement(parsedStatement, Optional.empty());
@@ -244,84 +227,6 @@ public class ZetaSQLToolkitAnalyzer {
               || parsedStatement instanceof ASTSingleAssignment;
 
       return this.isScriptStatement(parsedStatement) && !isVariableDeclarationOrSet;
-    }
-
-    private Type parseASTType(ASTType astType) {
-      String typeString = query.substring(
-          astType.getParseLocationRange().start(),
-          astType.getParseLocationRange().end()
-      );
-      return ZetaSQLTypeParser.parse(typeString);
-    }
-
-    private Constant buildConstant(String name, Type type) {
-      SimpleConstantProto proto = SimpleConstantProto.newBuilder()
-          .addNamePath(name)
-          .setType(type.serialize())
-          .build();
-
-      return Constant.deserialize(
-          proto,
-          ImmutableList.of(),
-          TypeFactory.nonUniqueNames());
-    }
-
-    private void applyVariableDeclaration(ASTVariableDeclaration declaration) {
-      Optional<Type> explicitType = Optional.ofNullable(declaration.getType())
-          .map(this::parseASTType);
-
-      Optional<ResolvedExpr> defaultValueExpr = Optional.ofNullable(declaration.getDefaultValue())
-          .map(expression -> AnalyzerExtensions.analyzeExpression(
-              query, expression, analyzerOptions, catalog.getZetaSQLCatalog()));
-
-      if (!explicitType.isPresent() && !defaultValueExpr.isPresent()) {
-        // Should not happen, since this is enforced by the parser
-        throw new AnalysisException(
-            "Either the type or the default value must be present for variable declarations");
-      }
-
-      if (explicitType.isPresent()
-          && defaultValueExpr.isPresent()
-          && !this.coercer.expressionCoercesTo(defaultValueExpr.get(), explicitType.get())) {
-
-        String message = String.format(
-            "Cannot coerce expression of type %s to type %s",
-            defaultValueExpr.get().getType(), explicitType.get());
-        throw new AnalysisException(message);
-      }
-
-      Type variableType = explicitType.orElseGet(() -> defaultValueExpr.get().getType());
-
-      declaration.getVariableList()
-          .getIdentifierList()
-          .stream()
-          .map(ASTIdentifier::getIdString)
-          .map(variableName -> this.buildConstant(variableName, variableType))
-          .forEach(catalog::register);
-    }
-
-    private void validateSingleAssignment(ASTSingleAssignment singleAssignment) {
-      String assignmentTarget = singleAssignment.getVariable().getIdString();
-      ASTExpression expression = singleAssignment.getExpression();
-
-      ResolvedExpr analyzedExpression = AnalyzerExtensions.analyzeExpression(
-          query, expression, analyzerOptions, catalog.getZetaSQLCatalog());
-
-      try {
-        Constant constant = catalog.getZetaSQLCatalog()
-            .findConstant(ImmutableList.of(assignmentTarget));
-        boolean coerces = this.coercer.expressionCoercesTo(analyzedExpression, constant.getType());
-
-        if (!coerces) {
-          String message = String.format(
-              "Cannot coerce expression of type %s to type %s",
-              analyzedExpression.getType(), constant.getType());
-          throw new AnalysisException(message);
-        }
-
-      } catch (NotFoundException e) {
-        throw new AnalysisException("Undeclared variable: " + assignmentTarget);
-      }
     }
 
     private void applyCatalogMutation(ResolvedStatement statement) {
