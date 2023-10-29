@@ -23,6 +23,9 @@ import com.google.zetasql.StructType;
 import com.google.zetasql.Type;
 import com.google.zetasql.ZetaSQLOptions.LanguageFeature;
 import com.google.zetasql.ZetaSQLType.TypeKind;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedExpr;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedLiteral;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedParameter;
 import java.util.Optional;
 
 /**
@@ -426,6 +429,14 @@ class Coercer {
     }
 
     return false;
+  }
+
+  public boolean expressionCoercesTo(ResolvedExpr resolvedExpr, Type type) {
+    Type expressionType = resolvedExpr.getType();
+    boolean isLiteral = resolvedExpr instanceof ResolvedLiteral;
+    boolean isParameter = resolvedExpr instanceof ResolvedParameter;
+
+    return coercesTo(expressionType, type, isLiteral, isParameter);
   }
 
   public boolean supportsImplicitCoercion(CoercionMode mode) {

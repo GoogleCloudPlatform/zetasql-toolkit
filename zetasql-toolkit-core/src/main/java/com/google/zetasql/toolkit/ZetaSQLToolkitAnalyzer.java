@@ -266,21 +266,6 @@ public class ZetaSQLToolkitAnalyzer {
           TypeFactory.nonUniqueNames());
     }
 
-    private void coerceExpressionToType(Type type, ResolvedExpr resolvedExpr) {
-      Type expressionType = resolvedExpr.getType();
-      boolean isLiteral = resolvedExpr instanceof ResolvedLiteral;
-      boolean isParameter = resolvedExpr instanceof ResolvedParameter;
-
-      boolean coerces = this.coercer.coercesTo(expressionType, type, isLiteral, isParameter);
-
-      if (!coerces) {
-        String message = String.format(
-            "Cannot coerce expression of type %s to type %s",
-            type, expressionType);
-        throw new AnalysisException(message);
-      }
-    }
-
     private void applyVariableDeclaration(ASTVariableDeclaration declaration) {
       Optional<Type> explicitType = Optional.ofNullable(declaration.getType())
           .map(this::parseASTType);
@@ -295,8 +280,14 @@ public class ZetaSQLToolkitAnalyzer {
             "Either the type or the default value must be present for variable declarations");
       }
 
-      if (explicitType.isPresent() && defaultValueExpr.isPresent()) {
-        this.coerceExpressionToType(explicitType.get(), defaultValueExpr.get());
+      if (explicitType.isPresent()
+          && defaultValueExpr.isPresent()
+          && !this.coercer.expressionCoercesTo(defaultValueExpr.get(), explicitType.get())) {
+
+        String message = String.format(
+            "Cannot coerce expression of type %s to type %s",
+            defaultValueExpr.get().getType(), explicitType.get());
+        throw new AnalysisException(message);
       }
 
       Type variableType = explicitType.orElseGet(() -> defaultValueExpr.get().getType());
@@ -317,8 +308,17 @@ public class ZetaSQLToolkitAnalyzer {
           query, expression, analyzerOptions, catalog.getZetaSQLCatalog());
 
       try {
-        Constant constant = catalog.getZetaSQLCatalog().findConstant(ImmutableList.of(assignmentTarget));
-        this.coerceExpressionToType(constant.getType(), analyzedExpression);
+        Constant constant = catalog.getZetaSQLCatalog()
+            .findConstant(ImmutableList.of(assignmentTarget));
+        boolean coerces = this.coercer.expressionCoercesTo(analyzedExpression, constant.getType());
+
+        if (!coerces) {
+          String message = String.format(
+              "Cannot coerce expression of type %s to type %s",
+              analyzedExpression.getType(), constant.getType());
+          throw new AnalysisException(message);
+        }
+
       } catch (NotFoundException e) {
         throw new AnalysisException("Undeclared variable: " + assignmentTarget);
       }
