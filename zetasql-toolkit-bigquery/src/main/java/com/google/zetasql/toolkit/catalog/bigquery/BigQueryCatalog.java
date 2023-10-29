@@ -163,6 +163,8 @@ public class BigQueryCatalog implements CatalogWrapper {
    * @return Whether there's a table in the catalog referenced by the reference
    */
   private boolean tableExistsInCatalog(String reference) {
+    // TODO: Remove these types of methods from the BigQueryCatalog and use the ones in
+    //  CatalogOperations
     return Objects.nonNull(this.catalog.getTable(reference, null));
   }
 
@@ -210,6 +212,22 @@ public class BigQueryCatalog implements CatalogWrapper {
   }
 
   /**
+   * Returns whether the model referenced by the provided reference exists
+   * in the catalog.
+   *
+   * @param reference The reference to check (e.g. "project.dataset.model")
+   * @return Whether there's a model in the catalog referenced by the reference
+   */
+  private boolean modelExistsInCatalog(String reference) {
+    try {
+      this.catalog.findModel(ImmutableList.of(reference));
+      return true;
+    } catch (NotFoundException err) {
+      return false;
+    }
+  }
+
+  /**
    * Validates that a {@link CreateScope} is in a list of allowed scopes, used before creation of
    * resources. Throws {@link BigQueryCreateError} in case the scope is not allowed.
    *
@@ -243,6 +261,8 @@ public class BigQueryCatalog implements CatalogWrapper {
    */
   private void validateNamePathForCreation(
       List<String> namePath, CreateScope createScope, String resourceType) {
+    // TODO: Probably change the signature to (String, CreateScope, String)
+    //  Multiple name paths are likely no longer necessary
     String fullName = String.join(".", namePath);
     List<String> flattenedNamePath =
         namePath.stream()
@@ -452,9 +472,37 @@ public class BigQueryCatalog implements CatalogWrapper {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * <p> If the model in the catalog's default project, it will be registered twice. Once as
+   * "project.dataset.model" and once as "dataset.model". That way, queries that omit the
+   * project when referencing the table can be analyzed.
+   *
+   * @throws BigQueryCreateError if a pre-create validation fails
+   * @throws CatalogResourceAlreadyExists if the model already exists and CreateMode !=
+   *     CREATE_OR_REPLACE
+   */
   @Override
   public void register(SimpleModel model, CreateMode createMode, CreateScope createScope) {
-    throw new UnsupportedOperationException("Unimplemented");
+    String fullName = model.getFullName();
+
+    this.validateCreateScope(
+        createScope,
+        ImmutableList.of(CreateScope.CREATE_DEFAULT_SCOPE),
+        model.getFullName(),
+        "model");
+
+    this.validateNamePathForCreation(ImmutableList.of(fullName), createScope, "model");
+
+    List<String> catalogNamesForModel = buildCatalogNamesForResource(fullName);
+
+    try {
+      catalogNamesForModel.forEach(catalogName ->
+          CatalogOperations.createModelInCatalog(catalog, catalogName, model, createMode));
+    } catch (CatalogResourceAlreadyExists alreadyExists) {
+      throw this.addCaseInsensitivityWarning(alreadyExists);
+    }
   }
 
   /**
@@ -789,11 +837,6 @@ public class BigQueryCatalog implements CatalogWrapper {
                     procedureInfo, CreateMode.CREATE_OR_REPLACE, CreateScope.CREATE_DEFAULT_SCOPE));
   }
 
-  @Override
-  public void addModels(List<String> models) {
-    throw new UnsupportedOperationException("Unimplemented");
-  }
-
   /**
    * Adds all procedures in the provided dataset to this catalog
    *
@@ -840,6 +883,72 @@ public class BigQueryCatalog implements CatalogWrapper {
             .collect(Collectors.toSet());
 
     this.addProcedures(ImmutableList.copyOf((procedures)));
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Model references should be in the format "project.dataset.model" or "dataset.model"
+   */
+  @Override
+  public void addModels(List<String> modelReferences) {
+    List<String> modelsNotInCatalog = modelReferences.stream()
+        .filter(modelRef -> !this.modelExistsInCatalog(modelRef))
+        .collect(Collectors.toList());
+
+    this.bigQueryResourceProvider
+        .getModels(this.defaultProjectId, modelsNotInCatalog)
+        .forEach(
+            model ->
+                this.register(
+                    model, CreateMode.CREATE_OR_REPLACE, CreateScope.CREATE_DEFAULT_SCOPE));
+  }
+
+  /**
+   * Adds all models in the provided dataset to this catalog
+   *
+   * @param projectId The project id the dataset belongs to
+   * @param datasetName The name of the dataset to get models from
+   */
+  public void addAllModelsInDataset(String projectId, String datasetName) {
+    this.bigQueryResourceProvider
+        .getAllModelsInDataset(projectId, datasetName)
+        .forEach(
+            procedureInfo ->
+                this.register(
+                    procedureInfo, CreateMode.CREATE_OR_REPLACE, CreateScope.CREATE_DEFAULT_SCOPE));
+  }
+
+  /**
+   * Adds all models in the provided project to this catalog
+   *
+   * @param projectId The project id to get models from
+   */
+  public void addAllModelsInProject(String projectId) {
+    this.bigQueryResourceProvider
+        .getAllModelsInProject(projectId)
+        .forEach(
+            procedureInfo ->
+                this.register(
+                    procedureInfo, CreateMode.CREATE_OR_REPLACE, CreateScope.CREATE_DEFAULT_SCOPE));
+  }
+
+  /**
+   * Adds all the models used in the provided query to this catalog.
+   *
+   * <p>Uses {@link AnalyzerExtensions#extractModelNamesFromScript} to extract the model
+   * names and later uses {@link #addModels(List)} to add them.
+   *
+   * @param query The SQL query from which to get the models that should be added to the catalog
+   */
+  public void addAllModelsUsedInQuery(String query) {
+    Set<String> models =
+        AnalyzerExtensions.extractModelNamesFromScript(query, BigQueryLanguageOptions.get())
+            .stream()
+            .map(modelPath -> String.join(".", modelPath))
+            .collect(Collectors.toSet());
+
+    this.addProcedures(ImmutableList.copyOf((models)));
   }
 
   /**

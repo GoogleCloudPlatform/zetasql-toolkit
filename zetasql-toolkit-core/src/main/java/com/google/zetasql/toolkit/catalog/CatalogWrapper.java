@@ -192,6 +192,15 @@ public interface CatalogWrapper {
   }
 
   /**
+   * Adds a model to this catalog by name.
+   *
+   * @param model The reference to the model to add
+   */
+  default void addModel(String model) {
+    this.addModels(ImmutableList.of(model));
+  }
+
+  /**
    * Creates a copy of this CatalogWrapper.
    *
    * <p>Each implementation is responsible for determining how itself should be copied.

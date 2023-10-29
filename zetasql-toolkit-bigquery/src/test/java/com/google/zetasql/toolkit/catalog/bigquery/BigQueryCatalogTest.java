@@ -27,23 +27,21 @@ import com.google.zetasql.FunctionSignature;
 import com.google.zetasql.NotFoundException;
 import com.google.zetasql.SimpleCatalog;
 import com.google.zetasql.SimpleColumn;
+import com.google.zetasql.SimpleModel;
+import com.google.zetasql.SimpleModel.NameAndType;
 import com.google.zetasql.SimpleTable;
-import com.google.zetasql.TVFRelation;
 import com.google.zetasql.Table;
 import com.google.zetasql.Type;
 import com.google.zetasql.TypeFactory;
 import com.google.zetasql.ZetaSQLFunctions.FunctionEnums.Mode;
-import com.google.zetasql.ZetaSQLFunctions.SignatureArgumentKind;
 import com.google.zetasql.ZetaSQLType.TypeKind;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateScope;
 import com.google.zetasql.toolkit.catalog.CatalogTestUtils;
 import com.google.zetasql.toolkit.catalog.FunctionInfo;
 import com.google.zetasql.toolkit.catalog.ProcedureInfo;
-import com.google.zetasql.toolkit.catalog.TVFInfo;
 import com.google.zetasql.toolkit.catalog.bigquery.exceptions.InvalidBigQueryReference;
 import com.google.zetasql.toolkit.catalog.exceptions.CatalogResourceAlreadyExists;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,16 +55,6 @@ public class BigQueryCatalogTest {
   final String testProjectId = "test-project-id";
   BigQueryCatalog bigQueryCatalog;
   @Mock BigQueryResourceProvider bigQueryResourceProviderMock;
-
-  TVFInfo exampleTVF =
-      TVFInfo.newBuilder()
-          .setNamePath(ImmutableList.of(testProjectId, "dataset", "exampletvf"))
-          .setSignature(
-              new FunctionSignature(
-                  new FunctionArgumentType(SignatureArgumentKind.ARG_TYPE_RELATION), ImmutableList.of(), -1))
-          .setOutputSchema(
-              TVFRelation.createValueTableBased(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)))
-          .build();
 
   ProcedureInfo exampleProcedure =
       new ProcedureInfo(
@@ -400,6 +388,25 @@ public class BigQueryCatalogTest {
         String.format(
             "Expected procedure to exist at path %s",
             String.join(".", exampleProcedure.getNamePath())));
+  }
+
+  @Test
+  void testRegisterModel() {
+    SimpleModel model = new SimpleModel(
+        "project.dataset.model",
+        ImmutableList.of(
+            new NameAndType("input", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))),
+        ImmutableList.of(
+            new NameAndType("output", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))));
+
+    this.bigQueryCatalog.register(
+        model, CreateMode.CREATE_DEFAULT, CreateScope.CREATE_DEFAULT_SCOPE);
+
+    SimpleCatalog underlyingCatalog = this.bigQueryCatalog.getZetaSQLCatalog();
+    assertDoesNotThrow(
+        () -> underlyingCatalog.findModel(ImmutableList.of(model.getFullName())),
+        String.format(
+            "Expected model to exist at path %s", model.getFullName()));
   }
 
   @Test
