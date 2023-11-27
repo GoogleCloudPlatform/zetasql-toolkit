@@ -298,17 +298,12 @@ public class CatalogOperations {
       String nameInCatalog,
       TVFInfo tvfInfo,
       CreateMode createMode) {
-    Preconditions.checkArgument(
-        tvfInfo.getOutputSchema().isPresent(),
-        "Cannot create a a TVF without an output schema");
-
     boolean alreadyExists = tvfExists(catalog, nameInCatalog);
 
-    TableValuedFunction tvf =
-        new FixedOutputSchemaTVF(
-            ImmutableList.of(nameInCatalog),
-            tvfInfo.getSignature(),
-            tvfInfo.getOutputSchema().get());
+    TableValuedFunction tvf = tvfInfo.toBuilder()
+        .setNamePath(ImmutableList.of(nameInCatalog))
+        .build()
+        .toTVF();
 
     createResource(
         nameInCatalog,

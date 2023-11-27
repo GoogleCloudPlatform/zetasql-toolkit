@@ -22,21 +22,28 @@ import com.google.zetasql.FunctionArgumentType;
 import com.google.zetasql.FunctionArgumentType.FunctionArgumentTypeOptions;
 import com.google.zetasql.FunctionSignature;
 import com.google.zetasql.TVFRelation;
+import com.google.zetasql.TableValuedFunction;
+import com.google.zetasql.TableValuedFunction.FixedOutputSchemaTVF;
+import com.google.zetasql.TableValuedFunction.ForwardInputSchemaToOutputSchemaTVF;
 import com.google.zetasql.ZetaSQLFunctions.SignatureArgumentKind;
 import java.util.Optional;
 
 public class TVFInfo {
 
+  public enum TVFType {
+    FIXED_OUTPUT_SCHEMA,
+    FORWARD_INPUT_SCHEMA_TO_OUTPUT_SCHEMA
+  }
+
   private final ImmutableList<String> namePath;
-
+  private final TVFType tvfType;
   private final FunctionSignature signature;
-
   private final TVFRelation outputSchema;
-
   private final String body;
 
   private TVFInfo(Builder builder) {
     this.namePath = builder.getNamePath();
+    this.tvfType = builder.getTVFType();
     this.signature = builder.getSignature();
     this.outputSchema = builder.getOutputSchema().orElse(null);
     this.body = builder.getBody().orElse(null);
@@ -44,6 +51,10 @@ public class TVFInfo {
 
   public ImmutableList<String> getNamePath() {
     return namePath;
+  }
+
+  public TVFType getTvfType() {
+    return tvfType;
   }
 
   public FunctionSignature getSignature() {
@@ -65,9 +76,23 @@ public class TVFInfo {
   public Builder toBuilder() {
     return newBuilder()
         .setNamePath(this.namePath)
+        .setTVFType(this.tvfType)
         .setSignature(this.signature)
         .setOutputSchema(this.getOutputSchema())
         .setBody(this.getBody());
+  }
+
+  public TableValuedFunction toTVF() {
+    if (this.tvfType.equals(TVFType.FIXED_OUTPUT_SCHEMA)) {
+      Preconditions.checkNotNull(
+          this.outputSchema,
+          "Output schema for FIXED_OUTPUT_SCHEMA tvf not set");
+      return new FixedOutputSchemaTVF(this.namePath, this.signature, this.outputSchema);
+    } else if (this.tvfType.equals(TVFType.FORWARD_INPUT_SCHEMA_TO_OUTPUT_SCHEMA)) {
+      return new ForwardInputSchemaToOutputSchemaTVF(this.namePath, this.signature);
+    }
+
+    throw new RuntimeException("Unknown TVF type: " + this.tvfType);
   }
 
   public static Builder newBuilder() {
@@ -77,15 +102,18 @@ public class TVFInfo {
   public static class Builder {
 
     private ImmutableList<String> namePath;
-
+    private TVFType tvfType = TVFType.FIXED_OUTPUT_SCHEMA;
     private FunctionSignature signature;
-
     private Optional<TVFRelation> outputSchema = Optional.empty();
-
     private Optional<String> body = Optional.empty();
 
     public Builder setNamePath(ImmutableList<String> namePath) {
       this.namePath = namePath;
+      return this;
+    }
+
+    public Builder setTVFType(TVFType tvfType) {
+      this.tvfType = tvfType;
       return this;
     }
 
@@ -118,6 +146,10 @@ public class TVFInfo {
 
     public ImmutableList<String> getNamePath() {
       return namePath;
+    }
+
+    public TVFType getTVFType() {
+      return tvfType;
     }
 
     public FunctionSignature getSignature() {

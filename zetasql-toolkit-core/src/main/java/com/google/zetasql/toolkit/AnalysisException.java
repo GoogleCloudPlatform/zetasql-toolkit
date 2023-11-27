@@ -16,8 +16,6 @@
 
 package com.google.zetasql.toolkit;
 
-import com.google.zetasql.SqlException;
-
 /**
  * Exception thrown by the {@link ZetaSQLToolkitAnalyzer} when analysis fails.
  */
@@ -27,7 +25,7 @@ public class AnalysisException extends RuntimeException {
     super(message);
   }
 
-  public AnalysisException(SqlException cause) {
+  public AnalysisException(Exception cause) {
     super(cause.getMessage(), cause);
   }
 
