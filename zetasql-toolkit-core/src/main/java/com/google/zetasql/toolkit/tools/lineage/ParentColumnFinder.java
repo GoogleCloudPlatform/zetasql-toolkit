@@ -74,7 +74,7 @@ import java.util.stream.Collectors;
  * those scopes to correlate the ResolvedWithRefScan columns to their parents in the corresponding
  * ResolvedWithEntry.
  */
-class ParentColumnFinder extends Visitor {
+public class ParentColumnFinder extends Visitor {
 
   private final HashMap<String, List<ResolvedColumn>> columnsToParents = new HashMap<>();
   private final Set<String> terminalColumns = new HashSet<>();

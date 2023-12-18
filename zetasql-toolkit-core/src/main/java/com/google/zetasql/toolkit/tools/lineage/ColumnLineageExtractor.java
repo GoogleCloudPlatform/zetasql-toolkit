@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.zetasql.Table;
 import com.google.zetasql.Type;
 import com.google.zetasql.resolvedast.ResolvedColumn;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedQueryStmt;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedColumnRef;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedCreateTableAsSelectStmt;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedCreateViewBase;
@@ -147,6 +148,19 @@ public class ColumnLineageExtractor {
 
     return extractColumnLevelLineageForOutputColumns(
         fullViewName, outputColumns, createViewBase);
+  }
+
+  /**
+   * Extracts the column-level lineage entries for a {@link ResolvedQueryStmt} statement
+   *
+   * @param statement The ResolvedQueryStmt statement for which to extract lineage
+   * @param outputTable The name of the table the statement write to
+   * @return The set of resulting {@link ColumnLineage} objects
+   */
+  public static Set<ColumnLineage> extractColumnLevelLineage(
+      ResolvedQueryStmt statement, String outputTable) {
+    List<ResolvedOutputColumn> outputColumns = statement.getOutputColumnList();
+    return extractColumnLevelLineageForOutputColumns(outputTable, outputColumns, statement);
   }
 
   /**

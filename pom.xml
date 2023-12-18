@@ -63,9 +63,8 @@
         <maven.deploy.skip>false</maven.deploy.skip>
         <maven.test.skip>true</maven.test.skip>
         <!-- Dependency versions -->
-        <zetasql.version>2023.04.1</zetasql.version>
-        <google.cloud.libraries.version>26.15.0</google.cloud.libraries.version>
-        <slf4j.version>1.7.25</slf4j.version>
+        <zetasql.version>2023.10.1</zetasql.version>
+        <google.cloud.libraries.version>26.24.0</google.cloud.libraries.version>
         <!-- Testing dependency versions -->
         <junit.version>5.9.3</junit.version>
         <mockito.version>4.11.0</mockito.version>
@@ -113,16 +112,6 @@
                 <groupId>com.google.zetasql</groupId>
                 <artifactId>zetasql-jni-channel</artifactId>
                 <version>${zetasql.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>${slf4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-simple</artifactId>
-                <version>${slf4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
