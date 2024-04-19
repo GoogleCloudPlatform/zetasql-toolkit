@@ -413,15 +413,6 @@ public class CatalogOperations {
    * @return The copy of the provided SimpleCatalog.
    */
   public static SimpleCatalog copyCatalog(SimpleCatalog sourceCatalog) {
-    // Simply serializes and deserializes the source catalog to create a copy.
-    // This is the most reliable way of creating a copy of a SimpleCatalog,
-    // as the SimpleCatalog's public interface does not expose enough of the internal
-    // structures to create an accurate copy.
-    FileDescriptorSetsBuilder fileDescriptorSetsBuilder = new FileDescriptorSetsBuilder();
-    SimpleCatalogProto serialized = sourceCatalog.serialize(fileDescriptorSetsBuilder);
-    // TODO: The second argument to SimpleCatalog.deserialize() should be
-    //  fileDescriptorSetsBuilder.getDescriptorPools(), but it is currently not public.
-    //  Doing deserialization this way means some language features cannot be used.
-    return SimpleCatalog.deserialize(serialized, ImmutableList.of());
+    return SimpleCatalogUtil.copyCatalog(sourceCatalog);
   }
 }
