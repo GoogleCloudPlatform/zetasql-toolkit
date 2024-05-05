@@ -36,6 +36,7 @@ class ZetaSQLTypeParserTest {
     Map<String, TypeKind> inputsToExpectedKinds = new HashMap<>();
     inputsToExpectedKinds.put("STRING", TypeKind.TYPE_STRING);
     inputsToExpectedKinds.put("INT64", TypeKind.TYPE_INT64);
+    inputsToExpectedKinds.put("DATE", TypeKind.TYPE_DATE);
     inputsToExpectedKinds.put("NUMERIC", TypeKind.TYPE_NUMERIC);
     inputsToExpectedKinds.put("INTERVAL", TypeKind.TYPE_INTERVAL);
     inputsToExpectedKinds.put("JSON", TypeKind.TYPE_JSON);
@@ -46,8 +47,31 @@ class ZetaSQLTypeParserTest {
                 inputToExpectedKind ->
                     () ->
                         assertEquals(
-                            ZetaSQLTypeParser.parse(inputToExpectedKind.getKey()),
                             TypeFactory.createSimpleType(inputToExpectedKind.getValue()),
+                            ZetaSQLTypeParser.parse(inputToExpectedKind.getKey()),
+                            "Failed to parse type: " + inputToExpectedKind.getKey()));
+
+    assertAll(assertions);
+  }
+
+  @Test
+  void typesAreCaseInsensitive() {
+    Map<String, TypeKind> inputsToExpectedKinds = new HashMap<>();
+    inputsToExpectedKinds.put("string", TypeKind.TYPE_STRING);
+    inputsToExpectedKinds.put("inT64", TypeKind.TYPE_INT64);
+    inputsToExpectedKinds.put("date", TypeKind.TYPE_DATE);
+    inputsToExpectedKinds.put("NuMEric", TypeKind.TYPE_NUMERIC);
+    inputsToExpectedKinds.put("intErval", TypeKind.TYPE_INTERVAL);
+    inputsToExpectedKinds.put("JSOn", TypeKind.TYPE_JSON);
+
+    Stream<Executable> assertions =
+        inputsToExpectedKinds.entrySet().stream()
+            .map(
+                inputToExpectedKind ->
+                    () ->
+                        assertEquals(
+                            TypeFactory.createSimpleType(inputToExpectedKind.getValue()),
+                            ZetaSQLTypeParser.parse(inputToExpectedKind.getKey()),
                             "Failed to parse type: " + inputToExpectedKind.getKey()));
 
     assertAll(assertions);
@@ -58,13 +82,13 @@ class ZetaSQLTypeParserTest {
     assertAll(
         () ->
             assertEquals(
-                ZetaSQLTypeParser.parse("STRING(MAX)"),
                 TypeFactory.createSimpleType(TypeKind.TYPE_STRING),
+                ZetaSQLTypeParser.parse("STRING(MAX)"),
                 "Failed to parse string type with parameter: STRING(10)"),
         () ->
             assertEquals(
-                ZetaSQLTypeParser.parse("NUMERIC(10, 2)"),
                 TypeFactory.createSimpleType(TypeKind.TYPE_NUMERIC),
+                ZetaSQLTypeParser.parse("NUMERIC(10, 2)"),
                 "Failed to parse numeric type with parameters: NUMERIC(10, 2)"));
   }
 
@@ -75,7 +99,7 @@ class ZetaSQLTypeParserTest {
         TypeFactory.createArrayType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING));
 
     assertEquals(
-        ZetaSQLTypeParser.parse(typeStr), expectedType, "Failed to parse type ARRAY<STRING>");
+        expectedType, ZetaSQLTypeParser.parse(typeStr), "Failed to parse type ARRAY<STRING>");
   }
 
   @Test
@@ -88,8 +112,8 @@ class ZetaSQLTypeParserTest {
                 new StructField("f2", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))));
 
     assertEquals(
-        ZetaSQLTypeParser.parse(typeStr),
         expectedType,
+        ZetaSQLTypeParser.parse(typeStr),
         "Failed to parse type STRUCT<f1 STRING, f2 INT64>");
   }
 
@@ -103,8 +127,8 @@ class ZetaSQLTypeParserTest {
                 new StructField("f2", TypeFactory.createSimpleType(TypeKind.TYPE_NUMERIC))));
 
     assertEquals(
-        ZetaSQLTypeParser.parse(typeStr),
         expectedType,
+        ZetaSQLTypeParser.parse(typeStr),
         "Failed to parse struct type STRUCT<f1 STRING, f2 NUMERIC(10, 2)>");
   }
 
@@ -119,8 +143,8 @@ class ZetaSQLTypeParserTest {
     Type expectedType = TypeFactory.createArrayType(structType);
 
     assertEquals(
-        ZetaSQLTypeParser.parse(typeStr),
         expectedType,
+        ZetaSQLTypeParser.parse(typeStr),
         "Failed to array of structs ARRAY<STRUCT<f1 STRING, f2 INT64>>");
   }
 
@@ -139,8 +163,8 @@ class ZetaSQLTypeParserTest {
             ImmutableList.of(new StructField("f1", TypeFactory.createArrayType(innerStructType))));
 
     assertEquals(
-        ZetaSQLTypeParser.parse(typeStr),
         expectedType,
+        ZetaSQLTypeParser.parse(typeStr),
         "Failed to struct with multiple nesting levels "
             + "STRUCT<f1 ARRAY<STRUCT<f1_1 ARRAY<STRING>, f1_2 NUMERIC(10, 2)>>>");
   }
