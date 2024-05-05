@@ -115,7 +115,7 @@ public class ZetaSQLTypeParser {
 
     @Override
     public void exitBasicType(BasicTypeContext ctx) {
-      String basicTypeName = ctx.BASIC_TYPE().getText();
+      String basicTypeName = ctx.BASIC_TYPE().getText().toUpperCase();
       TypeKind kind = simpleTypeMapping.getOrDefault(basicTypeName, TypeKind.TYPE_UNKNOWN);
       Type type = TypeFactory.createSimpleType(kind);
       this.typeStack.push(type);
