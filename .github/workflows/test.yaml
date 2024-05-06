@@ -32,8 +32,8 @@ jobs:
         distribution: 'temurin'
         cache: maven
     - name: Build
-      run: mvn clean compile
+      run: mvn --batch-mode clean compile
     - name: Test
-      run: mvn test -Dmaven.test.skip=false
+      run: mvn --batch-mode test -Dmaven.test.skip=false
     - name: Update dependency graph
       uses: advanced-security/maven-dependency-submission-action@v3
