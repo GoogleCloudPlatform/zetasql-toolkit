@@ -21,16 +21,16 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>com.google.zetasql.toolkit</groupId>
-    <artifactId>zetasql-toolkit</artifactId>
-    <version>0.5.1</version>
-    <relativePath>../pom.xml</relativePath>
-  </parent>
+    <parent>
+        <groupId>com.google.zetasql.toolkit</groupId>
+        <artifactId>zetasql-toolkit</artifactId>
+        <version>0.5.1-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
 
-  <artifactId>zetasql-toolkit-examples</artifactId>
-  <version>0.5.1</version>
-  <name>${project.groupId}:${project.artifactId}</name>
+    <artifactId>zetasql-toolkit-examples</artifactId>
+    <version>0.5.1-SNAPSHOT</version>
+    <name>${project.groupId}:${project.artifactId}</name>
 
   <properties>
     <zetasql.toolkit.version>${project.version}</zetasql.toolkit.version>
