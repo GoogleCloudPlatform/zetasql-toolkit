@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * {@link SpannerResourceProvider} implementation that fetches tables from a local
- * {@link CatalogResources} object.
+ * {@link SpannerResourceProvider} implementation that fetches tables from a local {@link
+ * CatalogResources} object.
  */
 public class LocalSpannerResourceProvider implements SpannerResourceProvider {
 
@@ -19,8 +19,7 @@ public class LocalSpannerResourceProvider implements SpannerResourceProvider {
 
   @Override
   public List<SimpleTable> getTables(List<String> tableNames) {
-    return catalogResources.getTables()
-        .stream()
+    return catalogResources.getTables().stream()
         .filter(table -> tableNames.contains(table.getName()))
         .collect(Collectors.toList());
   }
@@ -29,5 +28,4 @@ public class LocalSpannerResourceProvider implements SpannerResourceProvider {
   public List<SimpleTable> getAllTablesInDatabase() {
     return catalogResources.getTables();
   }
-
 }

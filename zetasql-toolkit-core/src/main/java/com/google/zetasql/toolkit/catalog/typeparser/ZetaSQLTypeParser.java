@@ -38,8 +38,8 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
  * Parser for ZetaSQL types.
  *
  * <p>Allows parsing string representations of SQL types to their corresponding Type objects. For
- * example; it can parse type strings such as "STRING", "ARRAY&lt;INT64&gt;"
- * and "STRUCT&lt;f DECIMAL&gt;".
+ * example; it can parse type strings such as "STRING", "ARRAY&lt;INT64&gt;" and "STRUCT&lt;f
+ * DECIMAL&gt;".
  *
  * <p>Uses an ANTLR4 based parser.
  */
@@ -73,10 +73,8 @@ public class ZetaSQLTypeParser {
 
       return listener.getResult();
     } catch (ParseCancellationException err) {
-      throw new ZetaSQLTypeParseError(
-          String.format("Invalid SQL type: %s", type), err);
+      throw new ZetaSQLTypeParseError(String.format("Invalid SQL type: %s", type), err);
     }
-
   }
 
   /**
@@ -87,7 +85,7 @@ public class ZetaSQLTypeParser {
     private static final Map<String, TypeKind> simpleTypeMapping = new HashMap<>();
     private final Stack<Type> typeStack = new Stack<>();
     private final Stack<List<StructField>> structFieldStack = new Stack<>();
-    
+
     static {
       simpleTypeMapping.put("STRING", TypeKind.TYPE_STRING);
       simpleTypeMapping.put("BYTES", TypeKind.TYPE_BYTES);

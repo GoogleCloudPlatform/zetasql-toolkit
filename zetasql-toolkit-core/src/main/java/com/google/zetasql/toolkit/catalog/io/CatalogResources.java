@@ -24,9 +24,7 @@ import com.google.zetasql.toolkit.catalog.ProcedureInfo;
 import com.google.zetasql.toolkit.catalog.TVFInfo;
 import java.util.List;
 
-/**
- * Dataclass containing the resources of a Catalog
- */
+/** Dataclass containing the resources of a Catalog */
 public class CatalogResources {
 
   private final List<SimpleTable> tables;
@@ -62,7 +60,7 @@ public class CatalogResources {
   }
 
   /**
-   * Deserializes a JSON object representing a Catalog into a {@link CatalogResources} instance. 
+   * Deserializes a JSON object representing a Catalog into a {@link CatalogResources} instance.
    * JSON objects representing catalogs support tables, scalar functions, TVFs and procedures.
    *
    * <pre>
@@ -112,7 +110,7 @@ public class CatalogResources {
    *   ]
    * }
    * </pre>
-   * 
+   *
    * @param json The JSON string for the object to deserialize into {@link CatalogResources}
    * @return The resulting {@link CatalogResources} instance
    * @throws JsonParseException when parsing the JSON catalog fails
@@ -120,5 +118,4 @@ public class CatalogResources {
   public static CatalogResources fromJson(String json) {
     return JsonCatalogDeserializer.readJsonCatalog(json);
   }
-
 }

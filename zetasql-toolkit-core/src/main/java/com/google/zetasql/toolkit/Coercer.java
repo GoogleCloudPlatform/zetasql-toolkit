@@ -26,12 +26,12 @@ import com.google.zetasql.ZetaSQLType.TypeKind;
 import java.util.Optional;
 
 /**
- * Basic (and not complete) implementation of a type coercer for ZetaSQL, based on the
- * <a href="https://github.com/google/zetasql/blob/master/zetasql/public/coercer.cc">C++ Coercer</a>
+ * Basic (and not complete) implementation of a type coercer for ZetaSQL, based on the <a
+ * href="https://github.com/google/zetasql/blob/master/zetasql/public/coercer.cc">C++ Coercer</a>
  *
- * <p> This is not a complete implementation for ZetaSQL; since it doesn't properly implement
- * coercion for protos, enums and other complex types. However, it should suffice for the
- * SQL engines the ZetaSQL toolkit is targeting (primarily BigQuery and Cloud Spanner).
+ * <p>This is not a complete implementation for ZetaSQL; since it doesn't properly implement
+ * coercion for protos, enums and other complex types. However, it should suffice for the SQL
+ * engines the ZetaSQL toolkit is targeting (primarily BigQuery and Cloud Spanner).
  */
 class Coercer {
 
@@ -44,262 +44,399 @@ class Coercer {
   /**
    * List of supported type coercions in ZetaSQL.
    *
-   * <p> Each {@link TypeCoercion} specifies a supported type coercion from one type
-   * (the "from" type) to another (the "to" type). Each coercion has a {@link CoercionMode}
-   * associated to it.
+   * <p>Each {@link TypeCoercion} specifies a supported type coercion from one type (the "from"
+   * type) to another (the "to" type). Each coercion has a {@link CoercionMode} associated to it.
    *
-   * <p> For example:
+   * <p>For example:
    *
    * <ul>
-   *   <li> BOOL implicitly coerces to BOOL (any type coerces implicitly to itself)
-   *   <li> INT32 implicitly coerces to INT64 and DOUBLE
-   *   <li> INT32 explicitly coerces to STRING (it needs to be casted)
+   *   <li>BOOL implicitly coerces to BOOL (any type coerces implicitly to itself)
+   *   <li>INT32 implicitly coerces to INT64 and DOUBLE
+   *   <li>INT32 explicitly coerces to STRING (it needs to be casted)
    * </ul>
    */
-  private static final ImmutableList<TypeCoercion> supportedTypeCoercions = ImmutableList.of(
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BOOL, /*to=*/TypeKind.TYPE_BOOL, CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BOOL, /*to=*/TypeKind.TYPE_INT32, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BOOL, /*to=*/TypeKind.TYPE_INT64, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BOOL, /*to=*/TypeKind.TYPE_UINT32, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BOOL, /*to=*/TypeKind.TYPE_UINT64, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BOOL, /*to=*/TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT32, /*to=*/TypeKind.TYPE_BOOL, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT32, /*to=*/TypeKind.TYPE_INT32, CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT32, /*to=*/TypeKind.TYPE_INT64, CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT32, /*to=*/TypeKind.TYPE_UINT32,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT32, /*to=*/TypeKind.TYPE_UINT64,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT32, /*to=*/TypeKind.TYPE_FLOAT,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT32, /*to=*/TypeKind.TYPE_DOUBLE,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT32, /*to=*/TypeKind.TYPE_STRING,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT32, /*to=*/TypeKind.TYPE_ENUM,
-          CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT32, /*to=*/TypeKind.TYPE_NUMERIC,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT32, /*to=*/TypeKind.TYPE_BIGNUMERIC,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT64, /*to=*/TypeKind.TYPE_BOOL, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT64, /*to=*/TypeKind.TYPE_INT32,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT64, /*to=*/TypeKind.TYPE_INT64, CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT64, /*to=*/TypeKind.TYPE_UINT32,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT64, /*to=*/TypeKind.TYPE_UINT64,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT64, /*to=*/TypeKind.TYPE_FLOAT,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT64, /*to=*/TypeKind.TYPE_DOUBLE,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT64, /*to=*/TypeKind.TYPE_STRING,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT64, /*to=*/TypeKind.TYPE_ENUM,
-          CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT64, /*to=*/TypeKind.TYPE_NUMERIC,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INT64, /*to=*/TypeKind.TYPE_BIGNUMERIC,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT32, /*to=*/TypeKind.TYPE_BOOL, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT32, /*to=*/TypeKind.TYPE_INT32,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT32, /*to=*/TypeKind.TYPE_INT64,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT32, /*to=*/TypeKind.TYPE_UINT32,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT32, /*to=*/TypeKind.TYPE_UINT64,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT32, /*to=*/TypeKind.TYPE_FLOAT,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT32, /*to=*/TypeKind.TYPE_DOUBLE,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT32, /*to=*/TypeKind.TYPE_STRING,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT32, /*to=*/TypeKind.TYPE_ENUM,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT32, /*to=*/TypeKind.TYPE_NUMERIC,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT32, /*to=*/TypeKind.TYPE_BIGNUMERIC,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT64, /*to=*/TypeKind.TYPE_BOOL, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT64, /*to=*/TypeKind.TYPE_INT32,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT64, /*to=*/TypeKind.TYPE_INT64,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT64, /*to=*/TypeKind.TYPE_UINT32,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT64, /*to=*/TypeKind.TYPE_UINT64,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT64, /*to=*/TypeKind.TYPE_FLOAT,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT64, /*to=*/TypeKind.TYPE_DOUBLE,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT64, /*to=*/TypeKind.TYPE_STRING,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT64, /*to=*/TypeKind.TYPE_ENUM,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT64, /*to=*/TypeKind.TYPE_NUMERIC,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_UINT64, /*to=*/TypeKind.TYPE_BIGNUMERIC,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_NUMERIC, /*to=*/TypeKind.TYPE_INT32,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_NUMERIC, /*to=*/TypeKind.TYPE_INT64,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_NUMERIC, /*to=*/TypeKind.TYPE_UINT32,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_NUMERIC, /*to=*/TypeKind.TYPE_UINT64,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_NUMERIC, /*to=*/TypeKind.TYPE_FLOAT,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_NUMERIC, /*to=*/TypeKind.TYPE_DOUBLE,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_NUMERIC, /*to=*/TypeKind.TYPE_STRING,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_NUMERIC, /*to=*/TypeKind.TYPE_NUMERIC,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_NUMERIC, /*to=*/TypeKind.TYPE_BIGNUMERIC,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BIGNUMERIC, /*to=*/TypeKind.TYPE_INT32,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BIGNUMERIC, /*to=*/TypeKind.TYPE_INT64,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BIGNUMERIC, /*to=*/TypeKind.TYPE_UINT32,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BIGNUMERIC, /*to=*/TypeKind.TYPE_UINT64,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BIGNUMERIC, /*to=*/TypeKind.TYPE_FLOAT,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BIGNUMERIC, /*to=*/TypeKind.TYPE_DOUBLE,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BIGNUMERIC, /*to=*/TypeKind.TYPE_STRING,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BIGNUMERIC, /*to=*/TypeKind.TYPE_NUMERIC,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BIGNUMERIC, /*to=*/TypeKind.TYPE_BIGNUMERIC,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_FLOAT, /*to=*/TypeKind.TYPE_INT32, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_FLOAT, /*to=*/TypeKind.TYPE_INT64, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_FLOAT, /*to=*/TypeKind.TYPE_UINT32,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_FLOAT, /*to=*/TypeKind.TYPE_UINT64,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_FLOAT, /*to=*/TypeKind.TYPE_FLOAT, CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_FLOAT, /*to=*/TypeKind.TYPE_DOUBLE,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_FLOAT, /*to=*/TypeKind.TYPE_STRING,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_FLOAT, /*to=*/TypeKind.TYPE_NUMERIC,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_FLOAT, /*to=*/TypeKind.TYPE_BIGNUMERIC,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DOUBLE, /*to=*/TypeKind.TYPE_INT32,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DOUBLE, /*to=*/TypeKind.TYPE_INT64,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DOUBLE, /*to=*/TypeKind.TYPE_UINT32,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DOUBLE, /*to=*/TypeKind.TYPE_UINT64,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DOUBLE, /*to=*/TypeKind.TYPE_FLOAT,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DOUBLE, /*to=*/TypeKind.TYPE_DOUBLE,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DOUBLE, /*to=*/TypeKind.TYPE_STRING,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DOUBLE, /*to=*/TypeKind.TYPE_NUMERIC,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DOUBLE, /*to=*/TypeKind.TYPE_BIGNUMERIC,
-          CoercionMode.EXPLICIT_OR_LITERAL),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_INT32,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_INT64,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_UINT32,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_UINT64,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_FLOAT,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_DOUBLE,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_STRING,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_BYTES,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_DATE,
-          CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_TIMESTAMP,
-          CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_TIME,
-          CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_DATETIME,
-          CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_INTERVAL,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_ENUM,
-          CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_PROTO,
-          CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_BOOL, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_NUMERIC,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_BIGNUMERIC,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_STRING, /*to=*/TypeKind.TYPE_RANGE,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BYTES, /*to=*/TypeKind.TYPE_BYTES, CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BYTES, /*to=*/TypeKind.TYPE_STRING,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_BYTES, /*to=*/TypeKind.TYPE_PROTO,
-          CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DATE, /*to=*/TypeKind.TYPE_DATE, CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DATE, /*to=*/TypeKind.TYPE_DATETIME,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DATE, /*to=*/TypeKind.TYPE_TIMESTAMP,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DATE, /*to=*/TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_TIMESTAMP, /*to=*/TypeKind.TYPE_DATE,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_TIMESTAMP, /*to=*/TypeKind.TYPE_DATETIME,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_TIMESTAMP, /*to=*/TypeKind.TYPE_TIME,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_TIMESTAMP, /*to=*/TypeKind.TYPE_TIMESTAMP,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_TIMESTAMP, /*to=*/TypeKind.TYPE_STRING,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_TIME, /*to=*/TypeKind.TYPE_TIME, CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_TIME, /*to=*/TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DATETIME, /*to=*/TypeKind.TYPE_DATE,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DATETIME, /*to=*/TypeKind.TYPE_DATETIME,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DATETIME, /*to=*/TypeKind.TYPE_STRING,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DATETIME, /*to=*/TypeKind.TYPE_TIME,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_DATETIME, /*to=*/TypeKind.TYPE_TIMESTAMP,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INTERVAL, /*to=*/TypeKind.TYPE_INTERVAL,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_INTERVAL, /*to=*/TypeKind.TYPE_STRING,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_GEOGRAPHY, /*to=*/TypeKind.TYPE_GEOGRAPHY,
-          CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_JSON, /*to=*/TypeKind.TYPE_JSON, CoercionMode.IMPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_ENUM, /*to=*/TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_ENUM, /*to=*/TypeKind.TYPE_INT32, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_ENUM, /*to=*/TypeKind.TYPE_INT64, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_ENUM, /*to=*/TypeKind.TYPE_UINT32, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_ENUM, /*to=*/TypeKind.TYPE_UINT64, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_PROTO, /*to=*/TypeKind.TYPE_STRING,
-          CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_PROTO, /*to=*/TypeKind.TYPE_BYTES, CoercionMode.EXPLICIT),
-      new TypeCoercion(/*from=*/TypeKind.TYPE_RANGE, /*to=*/TypeKind.TYPE_STRING, CoercionMode.EXPLICIT)
-  );
+  private static final ImmutableList<TypeCoercion> supportedTypeCoercions =
+      ImmutableList.of(
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BOOL, /*to=*/ TypeKind.TYPE_BOOL, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BOOL, /*to=*/ TypeKind.TYPE_INT32, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BOOL, /*to=*/ TypeKind.TYPE_INT64, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BOOL, /*to=*/ TypeKind.TYPE_UINT32, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BOOL, /*to=*/ TypeKind.TYPE_UINT64, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BOOL, /*to=*/ TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT32, /*to=*/ TypeKind.TYPE_BOOL, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT32, /*to=*/ TypeKind.TYPE_INT32, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT32, /*to=*/ TypeKind.TYPE_INT64, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT32,
+              /*to=*/ TypeKind.TYPE_UINT32,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT32,
+              /*to=*/ TypeKind.TYPE_UINT64,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT32,
+              /*to=*/ TypeKind.TYPE_FLOAT,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT32, /*to=*/ TypeKind.TYPE_DOUBLE, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT32, /*to=*/ TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT32,
+              /*to=*/ TypeKind.TYPE_ENUM,
+              CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT32, /*to=*/ TypeKind.TYPE_NUMERIC, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT32,
+              /*to=*/ TypeKind.TYPE_BIGNUMERIC,
+              CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT64, /*to=*/ TypeKind.TYPE_BOOL, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT64,
+              /*to=*/ TypeKind.TYPE_INT32,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT64, /*to=*/ TypeKind.TYPE_INT64, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT64,
+              /*to=*/ TypeKind.TYPE_UINT32,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT64,
+              /*to=*/ TypeKind.TYPE_UINT64,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT64,
+              /*to=*/ TypeKind.TYPE_FLOAT,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT64, /*to=*/ TypeKind.TYPE_DOUBLE, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT64, /*to=*/ TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT64,
+              /*to=*/ TypeKind.TYPE_ENUM,
+              CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT64, /*to=*/ TypeKind.TYPE_NUMERIC, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INT64,
+              /*to=*/ TypeKind.TYPE_BIGNUMERIC,
+              CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT32, /*to=*/ TypeKind.TYPE_BOOL, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT32,
+              /*to=*/ TypeKind.TYPE_INT32,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT32, /*to=*/ TypeKind.TYPE_INT64, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT32, /*to=*/ TypeKind.TYPE_UINT32, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT32, /*to=*/ TypeKind.TYPE_UINT64, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT32,
+              /*to=*/ TypeKind.TYPE_FLOAT,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT32, /*to=*/ TypeKind.TYPE_DOUBLE, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT32, /*to=*/ TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT32,
+              /*to=*/ TypeKind.TYPE_ENUM,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT32, /*to=*/ TypeKind.TYPE_NUMERIC, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT32,
+              /*to=*/ TypeKind.TYPE_BIGNUMERIC,
+              CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT64, /*to=*/ TypeKind.TYPE_BOOL, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT64,
+              /*to=*/ TypeKind.TYPE_INT32,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT64,
+              /*to=*/ TypeKind.TYPE_INT64,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT64,
+              /*to=*/ TypeKind.TYPE_UINT32,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT64, /*to=*/ TypeKind.TYPE_UINT64, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT64,
+              /*to=*/ TypeKind.TYPE_FLOAT,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT64, /*to=*/ TypeKind.TYPE_DOUBLE, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT64, /*to=*/ TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT64,
+              /*to=*/ TypeKind.TYPE_ENUM,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT64, /*to=*/ TypeKind.TYPE_NUMERIC, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_UINT64,
+              /*to=*/ TypeKind.TYPE_BIGNUMERIC,
+              CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_NUMERIC, /*to=*/ TypeKind.TYPE_INT32, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_NUMERIC, /*to=*/ TypeKind.TYPE_INT64, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_NUMERIC, /*to=*/ TypeKind.TYPE_UINT32, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_NUMERIC, /*to=*/ TypeKind.TYPE_UINT64, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_NUMERIC, /*to=*/ TypeKind.TYPE_FLOAT, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_NUMERIC, /*to=*/ TypeKind.TYPE_DOUBLE, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_NUMERIC, /*to=*/ TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_NUMERIC,
+              /*to=*/ TypeKind.TYPE_NUMERIC,
+              CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_NUMERIC,
+              /*to=*/ TypeKind.TYPE_BIGNUMERIC,
+              CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BIGNUMERIC,
+              /*to=*/ TypeKind.TYPE_INT32,
+              CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BIGNUMERIC,
+              /*to=*/ TypeKind.TYPE_INT64,
+              CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BIGNUMERIC,
+              /*to=*/ TypeKind.TYPE_UINT32,
+              CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BIGNUMERIC,
+              /*to=*/ TypeKind.TYPE_UINT64,
+              CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BIGNUMERIC,
+              /*to=*/ TypeKind.TYPE_FLOAT,
+              CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BIGNUMERIC,
+              /*to=*/ TypeKind.TYPE_DOUBLE,
+              CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BIGNUMERIC,
+              /*to=*/ TypeKind.TYPE_STRING,
+              CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BIGNUMERIC,
+              /*to=*/ TypeKind.TYPE_NUMERIC,
+              CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BIGNUMERIC,
+              /*to=*/ TypeKind.TYPE_BIGNUMERIC,
+              CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_FLOAT, /*to=*/ TypeKind.TYPE_INT32, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_FLOAT, /*to=*/ TypeKind.TYPE_INT64, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_FLOAT, /*to=*/ TypeKind.TYPE_UINT32, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_FLOAT, /*to=*/ TypeKind.TYPE_UINT64, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_FLOAT, /*to=*/ TypeKind.TYPE_FLOAT, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_FLOAT, /*to=*/ TypeKind.TYPE_DOUBLE, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_FLOAT, /*to=*/ TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_FLOAT, /*to=*/ TypeKind.TYPE_NUMERIC, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_FLOAT,
+              /*to=*/ TypeKind.TYPE_BIGNUMERIC,
+              CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DOUBLE, /*to=*/ TypeKind.TYPE_INT32, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DOUBLE, /*to=*/ TypeKind.TYPE_INT64, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DOUBLE, /*to=*/ TypeKind.TYPE_UINT32, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DOUBLE, /*to=*/ TypeKind.TYPE_UINT64, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DOUBLE,
+              /*to=*/ TypeKind.TYPE_FLOAT,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DOUBLE, /*to=*/ TypeKind.TYPE_DOUBLE, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DOUBLE, /*to=*/ TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DOUBLE,
+              /*to=*/ TypeKind.TYPE_NUMERIC,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DOUBLE,
+              /*to=*/ TypeKind.TYPE_BIGNUMERIC,
+              CoercionMode.EXPLICIT_OR_LITERAL),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING, /*to=*/ TypeKind.TYPE_INT32, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING, /*to=*/ TypeKind.TYPE_INT64, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING, /*to=*/ TypeKind.TYPE_UINT32, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING, /*to=*/ TypeKind.TYPE_UINT64, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING, /*to=*/ TypeKind.TYPE_FLOAT, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING, /*to=*/ TypeKind.TYPE_DOUBLE, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING, /*to=*/ TypeKind.TYPE_STRING, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING, /*to=*/ TypeKind.TYPE_BYTES, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING,
+              /*to=*/ TypeKind.TYPE_DATE,
+              CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING,
+              /*to=*/ TypeKind.TYPE_TIMESTAMP,
+              CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING,
+              /*to=*/ TypeKind.TYPE_TIME,
+              CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING,
+              /*to=*/ TypeKind.TYPE_DATETIME,
+              CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING,
+              /*to=*/ TypeKind.TYPE_INTERVAL,
+              CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING,
+              /*to=*/ TypeKind.TYPE_ENUM,
+              CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING,
+              /*to=*/ TypeKind.TYPE_PROTO,
+              CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING, /*to=*/ TypeKind.TYPE_BOOL, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING, /*to=*/ TypeKind.TYPE_NUMERIC, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING,
+              /*to=*/ TypeKind.TYPE_BIGNUMERIC,
+              CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_STRING, /*to=*/ TypeKind.TYPE_RANGE, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BYTES, /*to=*/ TypeKind.TYPE_BYTES, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BYTES, /*to=*/ TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_BYTES,
+              /*to=*/ TypeKind.TYPE_PROTO,
+              CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DATE, /*to=*/ TypeKind.TYPE_DATE, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DATE, /*to=*/ TypeKind.TYPE_DATETIME, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DATE, /*to=*/ TypeKind.TYPE_TIMESTAMP, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DATE, /*to=*/ TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_TIMESTAMP, /*to=*/ TypeKind.TYPE_DATE, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_TIMESTAMP,
+              /*to=*/ TypeKind.TYPE_DATETIME,
+              CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_TIMESTAMP, /*to=*/ TypeKind.TYPE_TIME, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_TIMESTAMP,
+              /*to=*/ TypeKind.TYPE_TIMESTAMP,
+              CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_TIMESTAMP,
+              /*to=*/ TypeKind.TYPE_STRING,
+              CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_TIME, /*to=*/ TypeKind.TYPE_TIME, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_TIME, /*to=*/ TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DATETIME, /*to=*/ TypeKind.TYPE_DATE, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DATETIME,
+              /*to=*/ TypeKind.TYPE_DATETIME,
+              CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DATETIME,
+              /*to=*/ TypeKind.TYPE_STRING,
+              CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DATETIME, /*to=*/ TypeKind.TYPE_TIME, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_DATETIME,
+              /*to=*/ TypeKind.TYPE_TIMESTAMP,
+              CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INTERVAL,
+              /*to=*/ TypeKind.TYPE_INTERVAL,
+              CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_INTERVAL,
+              /*to=*/ TypeKind.TYPE_STRING,
+              CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_GEOGRAPHY,
+              /*to=*/ TypeKind.TYPE_GEOGRAPHY,
+              CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_JSON, /*to=*/ TypeKind.TYPE_JSON, CoercionMode.IMPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_ENUM, /*to=*/ TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_ENUM, /*to=*/ TypeKind.TYPE_INT32, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_ENUM, /*to=*/ TypeKind.TYPE_INT64, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_ENUM, /*to=*/ TypeKind.TYPE_UINT32, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_ENUM, /*to=*/ TypeKind.TYPE_UINT64, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_PROTO, /*to=*/ TypeKind.TYPE_STRING, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_PROTO, /*to=*/ TypeKind.TYPE_BYTES, CoercionMode.EXPLICIT),
+          new TypeCoercion(
+              /*from=*/ TypeKind.TYPE_RANGE, /*to=*/ TypeKind.TYPE_STRING, CoercionMode.EXPLICIT));
 
   private enum CoercionMode {
     IMPLICIT,
@@ -323,18 +460,14 @@ class Coercer {
 
   /**
    * Returns whether fromType can coerce to toType
-   * 
+   *
    * @param fromType The type to coerce from
    * @param toType The type to coerce to
    * @param isLiteral Whether the expression that's being coerced is a literal
    * @param isParameter Whether the expression that's being coerced is a parameter
-   *
    * @return Whether fromType can coerce to toType
    */
-  public boolean coercesTo(
-      Type fromType, Type toType,
-      boolean isLiteral, boolean isParameter
-  ) {
+  public boolean coercesTo(Type fromType, Type toType, boolean isLiteral, boolean isParameter) {
     if (fromType.isStruct()) {
       return structCoercesTo((StructType) fromType, toType, isLiteral, isParameter);
     }
@@ -350,13 +483,15 @@ class Coercer {
     TypeKind fromKind = fromType.getKind();
     TypeKind toKind = toType.getKind();
 
-    Optional<CoercionMode> maybeCoercionMode = supportedTypeCoercions.stream()
-        .filter(typeCoercion ->
-            typeCoercion.fromKind.equals(fromKind) && typeCoercion.toKind.equals(toKind))
-        .map(typeCoercion -> typeCoercion.coercionMode)
-        .findFirst();
+    Optional<CoercionMode> maybeCoercionMode =
+        supportedTypeCoercions.stream()
+            .filter(
+                typeCoercion ->
+                    typeCoercion.fromKind.equals(fromKind) && typeCoercion.toKind.equals(toKind))
+            .map(typeCoercion -> typeCoercion.coercionMode)
+            .findFirst();
 
-    if(!maybeCoercionMode.isPresent()) {
+    if (!maybeCoercionMode.isPresent()) {
       return false;
     }
 
@@ -373,13 +508,9 @@ class Coercer {
     return supportsImplicitCoercion(coercionMode);
   }
 
-  /**
-   * @see Coercer#coercesTo(Type, Type, boolean, boolean)
-   */
+  /** @see Coercer#coercesTo(Type, Type, boolean, boolean) */
   public boolean structCoercesTo(
-      StructType fromType, Type toType,
-      boolean isLiteral, boolean isParameter
-  ) {
+      StructType fromType, Type toType, boolean isLiteral, boolean isParameter) {
     if (!toType.isStruct() || toType.asStruct().getFieldCount() != fromType.getFieldCount()) {
       return false;
     }
@@ -397,13 +528,9 @@ class Coercer {
     return true;
   }
 
-  /**
-   * @see Coercer#coercesTo(Type, Type, boolean, boolean)
-   */
+  /** @see Coercer#coercesTo(Type, Type, boolean, boolean) */
   public boolean arrayCoercesTo(
-      ArrayType fromType, Type toType,
-      boolean isLiteral, boolean isParameter
-  ) {
+      ArrayType fromType, Type toType, boolean isLiteral, boolean isParameter) {
     if (fromType.equivalent(toType)) {
       return true;
     }
@@ -419,10 +546,7 @@ class Coercer {
 
     if (isLiteral || isParameter) {
       return coercesTo(
-          fromType.getElementType(),
-          toType.asArray().getElementType(),
-          isLiteral,
-          isParameter);
+          fromType.getElementType(), toType.asArray().getElementType(), isLiteral, isParameter);
     }
 
     return false;
@@ -442,5 +566,4 @@ class Coercer {
     return mode.equals(CoercionMode.IMPLICIT)
         || mode.equals(CoercionMode.EXPLICIT_OR_LITERAL_OR_PARAMETER);
   }
-
 }

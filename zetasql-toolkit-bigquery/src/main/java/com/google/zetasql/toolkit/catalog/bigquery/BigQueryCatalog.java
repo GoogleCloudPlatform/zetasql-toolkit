@@ -57,7 +57,6 @@ public class BigQueryCatalog implements CatalogWrapper {
    * default credentials.
    *
    * @deprecated Use {@link BigQueryCatalog#usingBigQueryAPI(String)}
-   *
    * @param defaultProjectId The BigQuery default project id, queries are assumed to be running on
    *     this project
    */
@@ -71,7 +70,6 @@ public class BigQueryCatalog implements CatalogWrapper {
    * BigQuery Client.
    *
    * @deprecated Use {@link BigQueryCatalog#usingBigQueryAPI(String, BigQuery)}
-   *
    * @param defaultProjectId The BigQuery default project id, queries are assumed to be running on
    *     this project
    * @param bigQueryClient The BigQuery client to use for accessing the API
@@ -144,8 +142,8 @@ public class BigQueryCatalog implements CatalogWrapper {
   }
 
   /**
-   * Constructs a BigQueryCatalog that can use the resources in the provided
-   * {@link CatalogResources} object.
+   * Constructs a BigQueryCatalog that can use the resources in the provided {@link
+   * CatalogResources} object.
    *
    * @param defaultProjectId The BigQuery default project id, queries are assumed to be running on
    *     this project
@@ -159,8 +157,7 @@ public class BigQueryCatalog implements CatalogWrapper {
   }
 
   /**
-   * Returns whether the table referenced by the provided reference exists
-   * in the catalog.
+   * Returns whether the table referenced by the provided reference exists in the catalog.
    *
    * @param reference The reference to check (e.g. "project.dataset.table")
    * @return Whether there's a table in the catalog referenced by the reference
@@ -170,8 +167,7 @@ public class BigQueryCatalog implements CatalogWrapper {
   }
 
   /**
-   * Returns whether the function referenced by the provided reference exists
-   * in the catalog.
+   * Returns whether the function referenced by the provided reference exists in the catalog.
    *
    * @param reference The reference to check (e.g. "project.dataset.function")
    * @return Whether there's a function in the catalog referenced by the reference
@@ -186,8 +182,7 @@ public class BigQueryCatalog implements CatalogWrapper {
   }
 
   /**
-   * Returns whether the TVF referenced by the provided reference exists
-   * in the catalog.
+   * Returns whether the TVF referenced by the provided reference exists in the catalog.
    *
    * @param reference The reference to check (e.g. "project.dataset.tvf")
    * @return Whether there's a TVF in the catalog referenced by the reference
@@ -197,8 +192,7 @@ public class BigQueryCatalog implements CatalogWrapper {
   }
 
   /**
-   * Returns whether the procedure referenced by the provided reference exists
-   * in the catalog.
+   * Returns whether the procedure referenced by the provided reference exists in the catalog.
    *
    * @param reference The reference to check (e.g. "project.dataset.procedure")
    * @return Whether there's a procedure in the catalog referenced by the reference
@@ -275,14 +269,14 @@ public class BigQueryCatalog implements CatalogWrapper {
    * Returns the names a resource referenced by the provided string should have in the underlying
    * {@link SimpleCatalog}.
    *
-   * <p> If the reference is qualified, its complete name in the catalog will be in the form of
-   * "project.dataset.resource". If the resource is in the default project, an additional name
-   * in the form of "dataset.resource" will be returned.
+   * <p>If the reference is qualified, its complete name in the catalog will be in the form of
+   * "project.dataset.resource". If the resource is in the default project, an additional name in
+   * the form of "dataset.resource" will be returned.
    *
-   * <p> For unqualified resource (e.g. temporary tables), the name will be used as-is.
+   * <p>For unqualified resource (e.g. temporary tables), the name will be used as-is.
    *
    * @param reference The string used to reference the resource (e.g. "project.dataset.table",
-   * "dataset.function", "tableName")
+   *     "dataset.function", "tableName")
    * @return The list of names the resource should have in the underlying {@link SimpleCatalog}
    */
   private List<String> buildCatalogNamesForResource(String reference) {
@@ -292,8 +286,7 @@ public class BigQueryCatalog implements CatalogWrapper {
       return ImmutableList.of(reference);
     }
 
-    BigQueryReference parsedReference =
-        BigQueryReference.from(this.defaultProjectId, reference);
+    BigQueryReference parsedReference = BigQueryReference.from(this.defaultProjectId, reference);
     boolean isInDefaultProject =
         parsedReference.getProjectId().equalsIgnoreCase(this.defaultProjectId);
 
@@ -319,9 +312,9 @@ public class BigQueryCatalog implements CatalogWrapper {
   /**
    * {@inheritDoc}
    *
-   * <p> If the table is not temporary and is in the catalog's default project, it will be
-   * registered twice. Once as "project.dataset.table" and once as "dataset.table". That way,
-   * queries that omit the project when referencing the table can be analyzed.
+   * <p>If the table is not temporary and is in the catalog's default project, it will be registered
+   * twice. Once as "project.dataset.table" and once as "dataset.table". That way, queries that omit
+   * the project when referencing the table can be analyzed.
    *
    * @throws BigQueryCreateError if a pre-create validation fails
    * @throws CatalogResourceAlreadyExists if the table already exists and CreateMode !=
@@ -334,14 +327,14 @@ public class BigQueryCatalog implements CatalogWrapper {
         ImmutableList.of(CreateScope.CREATE_DEFAULT_SCOPE, CreateScope.CREATE_TEMP),
         table.getFullName(),
         "table");
-    this.validateNamePathForCreation(
-        ImmutableList.of(table.getFullName()), createScope, "table");
+    this.validateNamePathForCreation(ImmutableList.of(table.getFullName()), createScope, "table");
 
     List<String> catalogNamesForTable = buildCatalogNamesForResource(table.getFullName());
 
     try {
-      catalogNamesForTable.forEach(catalogName ->
-          CatalogOperations.createTableInCatalog(catalog, catalogName, table, createMode));
+      catalogNamesForTable.forEach(
+          catalogName ->
+              CatalogOperations.createTableInCatalog(catalog, catalogName, table, createMode));
     } catch (CatalogResourceAlreadyExists alreadyExists) {
       throw this.addCaseInsensitivityWarning(alreadyExists);
     }
@@ -350,7 +343,7 @@ public class BigQueryCatalog implements CatalogWrapper {
   /**
    * {@inheritDoc}
    *
-   * <p> If the function is not temporary and is in the catalog's default project, it will be
+   * <p>If the function is not temporary and is in the catalog's default project, it will be
    * registered twice. Once as "project.dataset.function" and once as "dataset.function". That way,
    * queries that omit the project when referencing the table can be analyzed.
    *
@@ -383,9 +376,10 @@ public class BigQueryCatalog implements CatalogWrapper {
     List<String> catalogNamesForFunction = buildCatalogNamesForResource(fullName);
 
     try {
-      catalogNamesForFunction.forEach(catalogName ->
-          CatalogOperations.createFunctionInCatalog(
-              catalog, catalogName, resolvedFunction, createMode));
+      catalogNamesForFunction.forEach(
+          catalogName ->
+              CatalogOperations.createFunctionInCatalog(
+                  catalog, catalogName, resolvedFunction, createMode));
     } catch (CatalogResourceAlreadyExists alreadyExists) {
       throw this.addCaseInsensitivityWarning(alreadyExists);
     }
@@ -394,7 +388,7 @@ public class BigQueryCatalog implements CatalogWrapper {
   /**
    * {@inheritDoc}
    *
-   * <p> If the function in the catalog's default project, it will be registered twice. Once as
+   * <p>If the function in the catalog's default project, it will be registered twice. Once as
    * "project.dataset.function" and once as "dataset.function". That way, queries that omit the
    * project when referencing the table can be analyzed.
    *
@@ -417,8 +411,10 @@ public class BigQueryCatalog implements CatalogWrapper {
     List<String> catalogNamesForFunction = buildCatalogNamesForResource(fullName);
 
     try {
-      catalogNamesForFunction.forEach(catalogName ->
-          CatalogOperations.createTVFInCatalog(catalog, catalogName, resolvedTvfInfo, createMode));
+      catalogNamesForFunction.forEach(
+          catalogName ->
+              CatalogOperations.createTVFInCatalog(
+                  catalog, catalogName, resolvedTvfInfo, createMode));
     } catch (CatalogResourceAlreadyExists alreadyExists) {
       throw this.addCaseInsensitivityWarning(alreadyExists);
     }
@@ -427,7 +423,7 @@ public class BigQueryCatalog implements CatalogWrapper {
   /**
    * {@inheritDoc}
    *
-   * <p> If the procedure in the catalog's default project, it will be registered twice. Once as
+   * <p>If the procedure in the catalog's default project, it will be registered twice. Once as
    * "project.dataset.procedure" and once as "dataset.procedure". That way, queries that omit the
    * project when referencing the table can be analyzed.
    *
@@ -447,9 +443,10 @@ public class BigQueryCatalog implements CatalogWrapper {
     List<String> catalogNamesForProcedure = buildCatalogNamesForResource(fullName);
 
     try {
-      catalogNamesForProcedure.forEach(catalogName ->
-          CatalogOperations.createProcedureInCatalog(
-              catalog, catalogName, procedureInfo, createMode));
+      catalogNamesForProcedure.forEach(
+          catalogName ->
+              CatalogOperations.createProcedureInCatalog(
+                  catalog, catalogName, procedureInfo, createMode));
     } catch (CatalogResourceAlreadyExists alreadyExists) {
       throw this.addCaseInsensitivityWarning(alreadyExists);
     }
@@ -470,13 +467,13 @@ public class BigQueryCatalog implements CatalogWrapper {
           "BigQuery constants cannot be qualified, was: " + fullName);
     }
 
-    boolean constantExists = this.catalog.getConstantList()
-        .stream()
-        .anyMatch(existingConstant -> existingConstant.getFullName().equalsIgnoreCase(fullName));
+    boolean constantExists =
+        this.catalog.getConstantList().stream()
+            .anyMatch(
+                existingConstant -> existingConstant.getFullName().equalsIgnoreCase(fullName));
 
     if (constantExists) {
-      throw new CatalogResourceAlreadyExists(
-          fullName, "Constant " + fullName + "already exists");
+      throw new CatalogResourceAlreadyExists(fullName, "Constant " + fullName + "already exists");
     }
 
     this.catalog.addConstant(constant);
@@ -486,32 +483,32 @@ public class BigQueryCatalog implements CatalogWrapper {
   public void removeTable(String tableReference) {
     List<String> catalogNamesForTable = buildCatalogNamesForResource(tableReference);
 
-    catalogNamesForTable.forEach(catalogName ->
-        CatalogOperations.deleteTableFromCatalog(catalog, catalogName));
+    catalogNamesForTable.forEach(
+        catalogName -> CatalogOperations.deleteTableFromCatalog(catalog, catalogName));
   }
 
   @Override
   public void removeFunction(String functionReference) {
     List<String> catalogNamesForFunction = buildCatalogNamesForResource(functionReference);
 
-    catalogNamesForFunction.forEach(catalogName ->
-        CatalogOperations.deleteFunctionFromCatalog(catalog, catalogName));
+    catalogNamesForFunction.forEach(
+        catalogName -> CatalogOperations.deleteFunctionFromCatalog(catalog, catalogName));
   }
 
   @Override
   public void removeTVF(String functionReference) {
     List<String> catalogNamesForFunction = buildCatalogNamesForResource(functionReference);
 
-    catalogNamesForFunction.forEach(catalogName ->
-        CatalogOperations.deleteTVFFromCatalog(catalog, catalogName));
+    catalogNamesForFunction.forEach(
+        catalogName -> CatalogOperations.deleteTVFFromCatalog(catalog, catalogName));
   }
 
   @Override
   public void removeProcedure(String procedureReference) {
     List<String> catalogNamesForProcedure = buildCatalogNamesForResource(procedureReference);
 
-    catalogNamesForProcedure.forEach(catalogName ->
-        CatalogOperations.deleteProcedureFromCatalog(catalog, catalogName));
+    catalogNamesForProcedure.forEach(
+        catalogName -> CatalogOperations.deleteProcedureFromCatalog(catalog, catalogName));
   }
 
   /**
@@ -521,9 +518,10 @@ public class BigQueryCatalog implements CatalogWrapper {
    */
   @Override
   public void addTables(List<String> tableReferences) {
-    List<String> tablesNotInCatalog = tableReferences.stream()
-        .filter(tableRef -> !this.tableExistsInCatalog(tableRef))
-        .collect(Collectors.toList());
+    List<String> tablesNotInCatalog =
+        tableReferences.stream()
+            .filter(tableRef -> !this.tableExistsInCatalog(tableRef))
+            .collect(Collectors.toList());
 
     this.bigQueryResourceProvider
         .getTables(this.defaultProjectId, tablesNotInCatalog)
@@ -592,9 +590,10 @@ public class BigQueryCatalog implements CatalogWrapper {
    */
   @Override
   public void addFunctions(List<String> functionReferences) {
-    List<String> functionsNotInCatalog = functionReferences.stream()
-        .filter(functionRef -> !this.functionExistsInCatalog(functionRef))
-        .collect(Collectors.toList());
+    List<String> functionsNotInCatalog =
+        functionReferences.stream()
+            .filter(functionRef -> !this.functionExistsInCatalog(functionRef))
+            .collect(Collectors.toList());
 
     this.bigQueryResourceProvider
         .getFunctions(this.defaultProjectId, functionsNotInCatalog)
@@ -683,9 +682,10 @@ public class BigQueryCatalog implements CatalogWrapper {
    */
   @Override
   public void addTVFs(List<String> functionReferences) {
-    List<String> functionsNotInCatalog = functionReferences.stream()
-        .filter(functionRef -> !this.tvfExistsInCatalog(functionRef))
-        .collect(Collectors.toList());
+    List<String> functionsNotInCatalog =
+        functionReferences.stream()
+            .filter(functionRef -> !this.tvfExistsInCatalog(functionRef))
+            .collect(Collectors.toList());
 
     this.bigQueryResourceProvider
         .getTVFs(this.defaultProjectId, functionsNotInCatalog)
@@ -770,9 +770,10 @@ public class BigQueryCatalog implements CatalogWrapper {
    */
   @Override
   public void addProcedures(List<String> procedureReferences) {
-    List<String> proceduresNotInCatalog = procedureReferences.stream()
-        .filter(procedureRef -> !this.procedureExistsInCatalog(procedureRef))
-        .collect(Collectors.toList());
+    List<String> proceduresNotInCatalog =
+        procedureReferences.stream()
+            .filter(procedureRef -> !this.procedureExistsInCatalog(procedureRef))
+            .collect(Collectors.toList());
 
     this.bigQueryResourceProvider
         .getProcedures(this.defaultProjectId, proceduresNotInCatalog)
@@ -834,9 +835,9 @@ public class BigQueryCatalog implements CatalogWrapper {
    * Adds all the resources used in the provided query to this catalog. Includes tables, functions,
    * TVFs and procedures.
    *
-   * <p> It calls {@link #addAllTablesUsedInQuery(String, AnalyzerOptions)},
-   * {@link #addAllFunctionsUsedInQuery(String)}, {@link #addAllTVFsUsedInQuery(String)}
-   * and {@link #addAllProceduresUsedInQuery(String)}.
+   * <p>It calls {@link #addAllTablesUsedInQuery(String, AnalyzerOptions)}, {@link
+   * #addAllFunctionsUsedInQuery(String)}, {@link #addAllTVFsUsedInQuery(String)} and {@link
+   * #addAllProceduresUsedInQuery(String)}.
    *
    * @param query The SQL query from which to get the resources that should be added to the catalog
    * @param options The ZetaSQL AnalyzerOptions to use when extracting the resource names from the

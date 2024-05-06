@@ -77,8 +77,7 @@ public class BasicCatalogWrapper implements CatalogWrapper {
 
   @Override
   public void register(TVFInfo tvfInfo, CreateMode createMode, CreateScope createScope) {
-    CatalogOperations.createTVFInCatalog(
-        this.catalog, tvfInfo.getFullName(), tvfInfo, createMode);
+    CatalogOperations.createTVFInCatalog(this.catalog, tvfInfo.getFullName(), tvfInfo, createMode);
   }
 
   /**
@@ -102,13 +101,13 @@ public class BasicCatalogWrapper implements CatalogWrapper {
   public void register(Constant constant) {
     String fullName = constant.getFullName();
 
-    boolean constantExists = this.catalog.getConstantList()
-        .stream()
-        .anyMatch(existingConstant -> existingConstant.getFullName().equalsIgnoreCase(fullName));
+    boolean constantExists =
+        this.catalog.getConstantList().stream()
+            .anyMatch(
+                existingConstant -> existingConstant.getFullName().equalsIgnoreCase(fullName));
 
     if (constantExists) {
-      throw new CatalogResourceAlreadyExists(
-          fullName, "Constant " + fullName + "already exists");
+      throw new CatalogResourceAlreadyExists(fullName, "Constant " + fullName + "already exists");
     }
 
     this.catalog.addConstant(constant);

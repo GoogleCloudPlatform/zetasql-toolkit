@@ -39,8 +39,9 @@ public class AnalyzeCloudSpanner {
     // This will use application default credentials to create a Spanner DatabaseClient.
     // You can also provide your own DatabaseClient or a custom implementation
     // of SpannerResourceProvider.
-    SpannerCatalog catalog = SpannerCatalog.usingSpannerClient(
-        spannerProjectId, spannerInstanceName, spannerDatabaseName);
+    SpannerCatalog catalog =
+        SpannerCatalog.usingSpannerClient(
+            spannerProjectId, spannerInstanceName, spannerDatabaseName);
 
     // Step 3: Add your tables to the catalog
     // In this case, we add all the tables in the database.
@@ -61,7 +62,7 @@ public class AnalyzeCloudSpanner {
     ZetaSQLToolkitAnalyzer analyzer = new ZetaSQLToolkitAnalyzer(options);
     analyzer
         .analyzeStatements(query, catalog)
-        .forEachRemaining(statement ->
-            statement.getResolvedStatement().ifPresent(System.out::println));
+        .forEachRemaining(
+            statement -> statement.getResolvedStatement().ifPresent(System.out::println));
   }
 }

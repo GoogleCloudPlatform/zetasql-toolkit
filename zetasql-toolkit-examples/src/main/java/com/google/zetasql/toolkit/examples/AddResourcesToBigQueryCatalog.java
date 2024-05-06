@@ -41,7 +41,8 @@ public class AddResourcesToBigQueryCatalog {
     // For the time being, functions must have an explicit return type (i.e. creating with
     // a RETURNS clause); otherwise adding them will fail.
     catalog.addFunction("project.dataset.function");
-    catalog.addFunctions(ImmutableList.of("project.dataset.function2", "project.dataset.function3"));
+    catalog.addFunctions(
+        ImmutableList.of("project.dataset.function2", "project.dataset.function3"));
 
     // Add all functions in a dataset or project
     // For the time being, functions without an explicit return type are silently ignored
@@ -61,7 +62,8 @@ public class AddResourcesToBigQueryCatalog {
 
     // Add a procedure or a set of procedures by name
     catalog.addProcedure("project.dataset.procedure");
-    catalog.addProcedures(ImmutableList.of("project.dataset.procedure1", "project.dataset.procedure2"));
+    catalog.addProcedures(
+        ImmutableList.of("project.dataset.procedure1", "project.dataset.procedure2"));
 
     // Add all procedures in a dataset or project
     catalog.addAllProceduresInDataset("projectId", "datasetName");

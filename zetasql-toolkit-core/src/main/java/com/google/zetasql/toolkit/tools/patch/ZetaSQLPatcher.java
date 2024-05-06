@@ -31,33 +31,32 @@ import com.google.zetasql.io.grpc.protobuf.ProtoUtils;
 import java.lang.reflect.Field;
 
 /**
- * Implements some reflection-based patches to ZetaSQL. The only patch currently available is
- * {@link #patchMaxProtobufNestingDepth(int)}.
+ * Implements some reflection-based patches to ZetaSQL. The only patch currently available is {@link
+ * #patchMaxProtobufNestingDepth(int)}.
  *
- * <p> These reflection-based patches are brittle by design and should be avoided whenever possible.
+ * <p>These reflection-based patches are brittle by design and should be avoided whenever possible.
  */
 public class ZetaSQLPatcher {
 
   /**
    * Patches the maximum protobuf nesting depth allowed when accessing the ZetaSQL local service
-   * through GRPC. This patch should be applied when working with large SQL statements that
-   * hit GRPC's default nesting limit of 100.
+   * through GRPC. This patch should be applied when working with large SQL statements that hit
+   * GRPC's default nesting limit of 100.
    *
-   * <p> This new max depth is only set for three key RPCs, which result in a lot of nesting when
+   * <p>This new max depth is only set for three key RPCs, which result in a lot of nesting when
    * working with large SQL statements. These RPCs are Parse, Analyze and BuildSql.
    *
-   * <p> This patch should be considered experimental; as it relies on
-   * {@link ProtoUtils#marshallerWithRecursionLimit(Message, int)} from grpc-java, which is
-   * experimental itself.
+   * <p>This patch should be considered experimental; as it relies on {@link
+   * ProtoUtils#marshallerWithRecursionLimit(Message, int)} from grpc-java, which is experimental
+   * itself.
    *
-   * @param maxDepth the maximum nesting depth to set for RPCs to the ZetaSQL local service.
-   *  Should be greater than 100.
+   * @param maxDepth the maximum nesting depth to set for RPCs to the ZetaSQL local service. Should
+   *     be greater than 100.
    * @throws IllegalAccessException if any reflective access performed by this patch produces an
-   *  illegal access.
+   *     illegal access.
    */
   @ExperimentalApi
-  public static void patchMaxProtobufNestingDepth(int maxDepth)
-      throws IllegalAccessException {
+  public static void patchMaxProtobufNestingDepth(int maxDepth) throws IllegalAccessException {
     if (!(maxDepth > 100)) {
       throw new IllegalArgumentException(
           "Invalid max nesting depth for patching protobuf. Should be at least 100, but got: "
@@ -79,14 +78,13 @@ public class ZetaSQLPatcher {
     }
   }
 
-  private static void patchMaxNestingDepthForAnalyze(int maxDepth)
-      throws IllegalAccessException {
+  private static void patchMaxNestingDepthForAnalyze(int maxDepth) throws IllegalAccessException {
     Field getAnalyzeMethod = getLocalServiceField("getAnalyzeMethod");
 
-    Marshaller<AnalyzeRequest> requestMarshaller = ProtoUtils.marshallerWithRecursionLimit(
-        AnalyzeRequest.getDefaultInstance(), maxDepth);
-    Marshaller<AnalyzeResponse> responseMarshaller = ProtoUtils.marshallerWithRecursionLimit(
-        AnalyzeResponse.getDefaultInstance(), maxDepth);
+    Marshaller<AnalyzeRequest> requestMarshaller =
+        ProtoUtils.marshallerWithRecursionLimit(AnalyzeRequest.getDefaultInstance(), maxDepth);
+    Marshaller<AnalyzeResponse> responseMarshaller =
+        ProtoUtils.marshallerWithRecursionLimit(AnalyzeResponse.getDefaultInstance(), maxDepth);
 
     MethodDescriptor<AnalyzeRequest, AnalyzeResponse> newMethodDescriptor =
         ZetaSqlLocalServiceGrpc.getAnalyzeMethod()
@@ -99,14 +97,13 @@ public class ZetaSQLPatcher {
     }
   }
 
-  private static void patchMaxNestingDepthForParse(int maxDepth)
-      throws IllegalAccessException {
+  private static void patchMaxNestingDepthForParse(int maxDepth) throws IllegalAccessException {
     Field getParseMethod = getLocalServiceField("getParseMethod");
 
-    Marshaller<ParseRequest> requestMarshaller = ProtoUtils.marshallerWithRecursionLimit(
-        ParseRequest.getDefaultInstance(), maxDepth);
-    Marshaller<ParseResponse> responseMarshaller = ProtoUtils.marshallerWithRecursionLimit(
-        ParseResponse.getDefaultInstance(), maxDepth);
+    Marshaller<ParseRequest> requestMarshaller =
+        ProtoUtils.marshallerWithRecursionLimit(ParseRequest.getDefaultInstance(), maxDepth);
+    Marshaller<ParseResponse> responseMarshaller =
+        ProtoUtils.marshallerWithRecursionLimit(ParseResponse.getDefaultInstance(), maxDepth);
 
     MethodDescriptor<ParseRequest, ParseResponse> newMethodDescriptor =
         ZetaSqlLocalServiceGrpc.getParseMethod()
@@ -119,14 +116,13 @@ public class ZetaSQLPatcher {
     }
   }
 
-  private static void patchMaxNestingDepthForBuildSql(int maxDepth)
-      throws IllegalAccessException {
+  private static void patchMaxNestingDepthForBuildSql(int maxDepth) throws IllegalAccessException {
     Field getBuildSqlMethod = getLocalServiceField("getBuildSqlMethod");
 
-    Marshaller<BuildSqlRequest> requestMarshaller = ProtoUtils.marshallerWithRecursionLimit(
-        BuildSqlRequest.getDefaultInstance(), maxDepth);
-    Marshaller<BuildSqlResponse> responseMarshaller = ProtoUtils.marshallerWithRecursionLimit(
-        BuildSqlResponse.getDefaultInstance(), maxDepth);
+    Marshaller<BuildSqlRequest> requestMarshaller =
+        ProtoUtils.marshallerWithRecursionLimit(BuildSqlRequest.getDefaultInstance(), maxDepth);
+    Marshaller<BuildSqlResponse> responseMarshaller =
+        ProtoUtils.marshallerWithRecursionLimit(BuildSqlResponse.getDefaultInstance(), maxDepth);
 
     MethodDescriptor<BuildSqlRequest, BuildSqlResponse> newMethodDescriptor =
         ZetaSqlLocalServiceGrpc.getBuildSqlMethod()
@@ -138,5 +134,4 @@ public class ZetaSQLPatcher {
       getBuildSqlMethod.set(null, newMethodDescriptor);
     }
   }
-
 }

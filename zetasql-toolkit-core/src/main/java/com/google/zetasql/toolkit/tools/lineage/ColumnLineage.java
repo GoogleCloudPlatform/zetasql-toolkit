@@ -40,8 +40,7 @@ public class ColumnLineage {
     }
 
     ColumnLineage other = (ColumnLineage) o;
-    return target.equals(other.target)
-        && parents.equals(other.parents);
+    return target.equals(other.target) && parents.equals(other.parents);
   }
 
   @Override

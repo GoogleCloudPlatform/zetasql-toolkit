@@ -100,7 +100,6 @@ import java.util.stream.Collectors;
  *   ]
  * }
  * </pre>
- *
  */
 class JsonCatalogDeserializer {
 
@@ -108,14 +107,15 @@ class JsonCatalogDeserializer {
    * {@link Gson} instance used when deserializing. Registers all custom deserializers defined in
    * this class.
    */
-  private static final Gson gson = new GsonBuilder()
-      .registerTypeAdapter(SimpleTable.class, new TableDeserializer())
-      .registerTypeAdapter(FunctionInfo.class, new FunctionDeserializer())
-      .registerTypeAdapter(FunctionSignature.class, new FunctionSignatureDeserializer())
-      .registerTypeAdapter(FunctionArgumentType.class, new FunctionArgumentTypeDeserializer())
-      .registerTypeAdapter(TVFInfo.class, new TVFDeserializer())
-      .registerTypeAdapter(ProcedureInfo.class, new ProcedureDeserializer())
-      .create();
+  private static final Gson gson =
+      new GsonBuilder()
+          .registerTypeAdapter(SimpleTable.class, new TableDeserializer())
+          .registerTypeAdapter(FunctionInfo.class, new FunctionDeserializer())
+          .registerTypeAdapter(FunctionSignature.class, new FunctionSignatureDeserializer())
+          .registerTypeAdapter(FunctionArgumentType.class, new FunctionArgumentTypeDeserializer())
+          .registerTypeAdapter(TVFInfo.class, new TVFDeserializer())
+          .registerTypeAdapter(ProcedureInfo.class, new ProcedureDeserializer())
+          .create();
 
   /**
    * Deserializes the {@link CatalogResources} represented by the provided JSON object
@@ -166,8 +166,9 @@ class JsonCatalogDeserializer {
     }
 
     JsonPrimitive primitive = field.getAsJsonPrimitive();
-    boolean isTrueOrFalseString = primitive.isString()
-        && ImmutableList.of("true", "false").contains(primitive.getAsString().toLowerCase());
+    boolean isTrueOrFalseString =
+        primitive.isString()
+            && ImmutableList.of("true", "false").contains(primitive.getAsString().toLowerCase());
 
     if (!primitive.isBoolean() && !isTrueOrFalseString) {
       throw new JsonParseException(errorMessage);
@@ -185,18 +186,25 @@ class JsonCatalogDeserializer {
   }
 
   private static SimpleColumn deserializeSimpleColumn(String tableName, JsonObject jsonColumn) {
-    String columnName = getFieldAsString(
-        jsonColumn, "name",
-        "Invalid JSON column " + jsonColumn + ". Field name should be string");
-    String columnType = getFieldAsString(
-        jsonColumn, "type",
-        "Invalid JSON column " + jsonColumn + ". Field type should be string");
+    String columnName =
+        getFieldAsString(
+            jsonColumn,
+            "name",
+            "Invalid JSON column " + jsonColumn + ". Field name should be string");
+    String columnType =
+        getFieldAsString(
+            jsonColumn,
+            "type",
+            "Invalid JSON column " + jsonColumn + ". Field type should be string");
 
     Type parsedType = parseType(columnType);
 
-    boolean isPseudoColumn = jsonColumn.has("isPseudoColumn")
-        && getFieldAsBoolean(jsonColumn, "isPseudoColumn",
-          "Invalid JSON column " + jsonColumn + ". Field isPseudoColumn should be bool");
+    boolean isPseudoColumn =
+        jsonColumn.has("isPseudoColumn")
+            && getFieldAsBoolean(
+                jsonColumn,
+                "isPseudoColumn",
+                "Invalid JSON column " + jsonColumn + ". Field isPseudoColumn should be bool");
 
     boolean isWriteableColumn = !isPseudoColumn;
 
@@ -206,70 +214,72 @@ class JsonCatalogDeserializer {
   private static TVFRelation.Column deserializeTVFOutputColumn(JsonObject jsonColumn) {
     SimpleColumn deserializedSimpleColumn = deserializeSimpleColumn("", jsonColumn);
     return TVFRelation.Column.create(
-        deserializedSimpleColumn.getName(),
-        deserializedSimpleColumn.getType());
+        deserializedSimpleColumn.getName(), deserializedSimpleColumn.getType());
   }
 
-  /**
-   * Gson deserializer for {@link SimpleTable}
-   */
+  /** Gson deserializer for {@link SimpleTable} */
   private static class TableDeserializer implements JsonDeserializer<SimpleTable> {
 
     @Override
     public SimpleTable deserialize(
-        JsonElement jsonElement,
-        java.lang.reflect.Type type,
-        JsonDeserializationContext context
-    ) throws JsonParseException {
-      JsonObject jsonObject = getAsJsonObject(
-          jsonElement,
-          "Invalid JSON table: " + jsonElement + ". Tables should be objects.");
+        JsonElement jsonElement, java.lang.reflect.Type type, JsonDeserializationContext context)
+        throws JsonParseException {
+      JsonObject jsonObject =
+          getAsJsonObject(
+              jsonElement, "Invalid JSON table: " + jsonElement + ". Tables should be objects.");
 
-      String tableName = getFieldAsString(
-          jsonObject, "name",
-          "Invalid JSON table: " + jsonElement + ". Field name should be string.");
+      String tableName =
+          getFieldAsString(
+              jsonObject,
+              "name",
+              "Invalid JSON table: " + jsonElement + ". Field name should be string.");
 
-      JsonArray columns = getFieldAsJsonArray(
-          jsonObject, "columns",
-          "Invalid JSON table: " + jsonElement + ". Field columns should be array of columns.");
+      JsonArray columns =
+          getFieldAsJsonArray(
+              jsonObject,
+              "columns",
+              "Invalid JSON table: " + jsonElement + ". Field columns should be array of columns.");
 
-      List<SimpleColumn> parsedColumns = columns
-          .asList()
-          .stream()
-          .map(jsonColumn ->
-              getAsJsonObject(jsonColumn,
-                  "Invalid JSON column " + jsonColumn + ". Should be JSON object."))
-          .map(jsonColumn -> deserializeSimpleColumn(tableName, jsonColumn))
-          .collect(Collectors.toList());
+      List<SimpleColumn> parsedColumns =
+          columns.asList().stream()
+              .map(
+                  jsonColumn ->
+                      getAsJsonObject(
+                          jsonColumn,
+                          "Invalid JSON column " + jsonColumn + ". Should be JSON object."))
+              .map(jsonColumn -> deserializeSimpleColumn(tableName, jsonColumn))
+              .collect(Collectors.toList());
 
       return new SimpleTable(tableName, parsedColumns);
     }
   }
 
-  /**
-   * Gson deserializer for {@link FunctionInfo}
-   */
+  /** Gson deserializer for {@link FunctionInfo} */
   private static class FunctionDeserializer implements JsonDeserializer<FunctionInfo> {
 
     @Override
     public FunctionInfo deserialize(
-        JsonElement jsonElement,
-        java.lang.reflect.Type type,
-        JsonDeserializationContext context
-    ) throws JsonParseException {
-      JsonObject jsonObject = getAsJsonObject(
-          jsonElement,
-          "Invalid JSON function: " + jsonElement + ". Functions should be objects.");
+        JsonElement jsonElement, java.lang.reflect.Type type, JsonDeserializationContext context)
+        throws JsonParseException {
+      JsonObject jsonObject =
+          getAsJsonObject(
+              jsonElement,
+              "Invalid JSON function: " + jsonElement + ". Functions should be objects.");
 
-      String functionName = getFieldAsString(
-          jsonObject, "name",
-          "Invalid JSON function: " + jsonElement + ". Field name should be string.");
+      String functionName =
+          getFieldAsString(
+              jsonObject,
+              "name",
+              "Invalid JSON function: " + jsonElement + ". Field name should be string.");
 
-      FunctionSignature[] signatures = Optional.ofNullable(jsonObject.get("signatures"))
-          .map(jsonSignatures -> context.deserialize(jsonSignatures, FunctionSignature[].class))
-          .map(FunctionSignature[].class::cast)
-          .orElseThrow(() -> new JsonParseException(
-              "Invalid JSON function: " + jsonElement + ". Signatures missing."));
+      FunctionSignature[] signatures =
+          Optional.ofNullable(jsonObject.get("signatures"))
+              .map(jsonSignatures -> context.deserialize(jsonSignatures, FunctionSignature[].class))
+              .map(FunctionSignature[].class::cast)
+              .orElseThrow(
+                  () ->
+                      new JsonParseException(
+                          "Invalid JSON function: " + jsonElement + ". Signatures missing."));
 
       return FunctionInfo.newBuilder()
           .setNamePath(ImmutableList.of(functionName))
@@ -280,65 +290,70 @@ class JsonCatalogDeserializer {
     }
   }
 
-  /**
-   * Gson deserializer for {@link FunctionSignature}
-   */
-  private static class FunctionSignatureDeserializer implements JsonDeserializer<FunctionSignature> {
+  /** Gson deserializer for {@link FunctionSignature} */
+  private static class FunctionSignatureDeserializer
+      implements JsonDeserializer<FunctionSignature> {
 
     @Override
     public FunctionSignature deserialize(
-        JsonElement jsonElement,
-        java.lang.reflect.Type type,
-        JsonDeserializationContext context
-    ) throws JsonParseException {
-      JsonObject jsonObject = getAsJsonObject(
-          jsonElement,
-          "Invalid JSON function signature: " + jsonElement + ". Should be object.");
+        JsonElement jsonElement, java.lang.reflect.Type type, JsonDeserializationContext context)
+        throws JsonParseException {
+      JsonObject jsonObject =
+          getAsJsonObject(
+              jsonElement,
+              "Invalid JSON function signature: " + jsonElement + ". Should be object.");
 
-      String returnType = getFieldAsString(
-          jsonObject, "returnType",
-          "Invalid JSON function signature: " + jsonElement
-              + ". Field returnType should be string.");
+      String returnType =
+          getFieldAsString(
+              jsonObject,
+              "returnType",
+              "Invalid JSON function signature: "
+                  + jsonElement
+                  + ". Field returnType should be string.");
 
       Type parsedReturnType = parseType(returnType);
 
-      FunctionArgumentType[] arguments = Optional.ofNullable(jsonObject.get("arguments"))
-          .map(jsonArguments -> context.deserialize(jsonArguments, FunctionArgumentType[].class))
-          .map(FunctionArgumentType[].class::cast)
-          .orElseThrow(() -> new JsonParseException(
-              "Invalid JSON function signature: " + jsonElement + ". Arguments missing."));
+      FunctionArgumentType[] arguments =
+          Optional.ofNullable(jsonObject.get("arguments"))
+              .map(
+                  jsonArguments -> context.deserialize(jsonArguments, FunctionArgumentType[].class))
+              .map(FunctionArgumentType[].class::cast)
+              .orElseThrow(
+                  () ->
+                      new JsonParseException(
+                          "Invalid JSON function signature: "
+                              + jsonElement
+                              + ". Arguments missing."));
 
       return new FunctionSignature(
-          new FunctionArgumentType(parsedReturnType),
-          Arrays.asList(arguments),
-          -1);
-
+          new FunctionArgumentType(parsedReturnType), Arrays.asList(arguments), -1);
     }
   }
 
-  /**
-   * Gson deserializer for {@link FunctionArgumentType}
-   */
+  /** Gson deserializer for {@link FunctionArgumentType} */
   private static class FunctionArgumentTypeDeserializer
       implements JsonDeserializer<FunctionArgumentType> {
 
     @Override
     public FunctionArgumentType deserialize(
-        JsonElement jsonElement,
-        java.lang.reflect.Type type,
-        JsonDeserializationContext context
-    ) throws JsonParseException {
-      JsonObject jsonObject = getAsJsonObject(
-          jsonElement,
-          "Invalid JSON function argument: " + jsonElement + ". Should be object.");
+        JsonElement jsonElement, java.lang.reflect.Type type, JsonDeserializationContext context)
+        throws JsonParseException {
+      JsonObject jsonObject =
+          getAsJsonObject(
+              jsonElement,
+              "Invalid JSON function argument: " + jsonElement + ". Should be object.");
 
-      String argumentName = getFieldAsString(
-          jsonObject, "name",
-          "Invalid JSON function argument: " + jsonElement + ". Field name should be string.");
+      String argumentName =
+          getFieldAsString(
+              jsonObject,
+              "name",
+              "Invalid JSON function argument: " + jsonElement + ". Field name should be string.");
 
-      String argumentType = getFieldAsString(
-          jsonObject, "type",
-          "Invalid JSON function argument: " + jsonElement + ". Field type should be string.");
+      String argumentType =
+          getFieldAsString(
+              jsonObject,
+              "type",
+              "Invalid JSON function argument: " + jsonElement + ". Field type should be string.");
 
       Type parsedArgumentType = parseType(argumentType);
 
@@ -347,48 +362,54 @@ class JsonCatalogDeserializer {
           FunctionArgumentTypeOptions.builder()
               .setArgumentName(argumentName, NamedArgumentKind.POSITIONAL_OR_NAMED)
               .build(),
-          1
-      );
+          1);
     }
   }
 
-  /**
-   * Gson deserializer for {@link TVFInfo}
-   */
+  /** Gson deserializer for {@link TVFInfo} */
   private static class TVFDeserializer implements JsonDeserializer<TVFInfo> {
 
     @Override
     public TVFInfo deserialize(
-        JsonElement jsonElement,
-        java.lang.reflect.Type type,
-        JsonDeserializationContext context
-    ) throws JsonParseException {
-      JsonObject jsonObject = getAsJsonObject(
-          jsonElement,
-          "Invalid JSON TVF: " + jsonElement + ". TVFs should be objects.");
+        JsonElement jsonElement, java.lang.reflect.Type type, JsonDeserializationContext context)
+        throws JsonParseException {
+      JsonObject jsonObject =
+          getAsJsonObject(
+              jsonElement, "Invalid JSON TVF: " + jsonElement + ". TVFs should be objects.");
 
-      String functionName = getFieldAsString(
-          jsonObject, "name",
-          "Invalid JSON TVF: " + jsonElement + ". Field name should be string.");
+      String functionName =
+          getFieldAsString(
+              jsonObject,
+              "name",
+              "Invalid JSON TVF: " + jsonElement + ". Field name should be string.");
 
-      FunctionArgumentType[] arguments = Optional.ofNullable(jsonObject.get("arguments"))
-          .map(jsonArguments -> context.deserialize(jsonArguments, FunctionArgumentType[].class))
-          .map(FunctionArgumentType[].class::cast)
-          .orElseThrow(() -> new JsonParseException(
-              "Invalid JSON TVF: " + jsonElement + ". Arguments missing."));
+      FunctionArgumentType[] arguments =
+          Optional.ofNullable(jsonObject.get("arguments"))
+              .map(
+                  jsonArguments -> context.deserialize(jsonArguments, FunctionArgumentType[].class))
+              .map(FunctionArgumentType[].class::cast)
+              .orElseThrow(
+                  () ->
+                      new JsonParseException(
+                          "Invalid JSON TVF: " + jsonElement + ". Arguments missing."));
 
-      JsonArray outputColumns = getFieldAsJsonArray(
-          jsonObject, "outputColumns",
-          "Invalid JSON TVF: " + jsonElement + ". Field outputColumns should be array of columns.");
+      JsonArray outputColumns =
+          getFieldAsJsonArray(
+              jsonObject,
+              "outputColumns",
+              "Invalid JSON TVF: "
+                  + jsonElement
+                  + ". Field outputColumns should be array of columns.");
 
-      List<TVFRelation.Column> parsedOutputColumns = outputColumns
-          .asList()
-          .stream()
-          .map(jsonColumn ->
-              getAsJsonObject(jsonColumn,
-                  "Invalid JSON column " + jsonColumn + ". Should be JSON object."))
-          .map(JsonCatalogDeserializer::deserializeTVFOutputColumn)
-          .collect(Collectors.toList());
+      List<TVFRelation.Column> parsedOutputColumns =
+          outputColumns.asList().stream()
+              .map(
+                  jsonColumn ->
+                      getAsJsonObject(
+                          jsonColumn,
+                          "Invalid JSON column " + jsonColumn + ". Should be JSON object."))
+              .map(JsonCatalogDeserializer::deserializeTVFOutputColumn)
+              .collect(Collectors.toList());
 
       FunctionArgumentType returnType =
           new FunctionArgumentType(
@@ -404,39 +425,40 @@ class JsonCatalogDeserializer {
     }
   }
 
-  /**
-   * Gson deserializer for {@link ProcedureInfo}
-   */
+  /** Gson deserializer for {@link ProcedureInfo} */
   private static class ProcedureDeserializer implements JsonDeserializer<ProcedureInfo> {
 
     @Override
     public ProcedureInfo deserialize(
-        JsonElement jsonElement,
-        java.lang.reflect.Type type,
-        JsonDeserializationContext context
-    ) throws JsonParseException {
-      JsonObject jsonObject = getAsJsonObject(
-          jsonElement,
-          "Invalid JSON procedure: " + jsonElement + ". Preceduress should be objects.");
+        JsonElement jsonElement, java.lang.reflect.Type type, JsonDeserializationContext context)
+        throws JsonParseException {
+      JsonObject jsonObject =
+          getAsJsonObject(
+              jsonElement,
+              "Invalid JSON procedure: " + jsonElement + ". Preceduress should be objects.");
 
-      String procedureName = getFieldAsString(
-          jsonObject, "name",
-          "Invalid JSON procedure: " + jsonElement + ". Field name should be string.");
+      String procedureName =
+          getFieldAsString(
+              jsonObject,
+              "name",
+              "Invalid JSON procedure: " + jsonElement + ". Field name should be string.");
 
-      FunctionArgumentType[] arguments = Optional.ofNullable(jsonObject.get("arguments"))
-          .map(jsonArguments -> context.deserialize(jsonArguments, FunctionArgumentType[].class))
-          .map(FunctionArgumentType[].class::cast)
-          .orElseThrow(() -> new JsonParseException(
-              "Invalid JSON procedure: " + jsonElement + ". Arguments missing."));
+      FunctionArgumentType[] arguments =
+          Optional.ofNullable(jsonObject.get("arguments"))
+              .map(
+                  jsonArguments -> context.deserialize(jsonArguments, FunctionArgumentType[].class))
+              .map(FunctionArgumentType[].class::cast)
+              .orElseThrow(
+                  () ->
+                      new JsonParseException(
+                          "Invalid JSON procedure: " + jsonElement + ". Arguments missing."));
 
       FunctionArgumentType returnType =
           new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING));
 
-      FunctionSignature signature = new FunctionSignature(
-          returnType, Arrays.asList(arguments), -1);
+      FunctionSignature signature = new FunctionSignature(returnType, Arrays.asList(arguments), -1);
 
       return new ProcedureInfo(ImmutableList.of(procedureName), signature);
     }
   }
-
 }

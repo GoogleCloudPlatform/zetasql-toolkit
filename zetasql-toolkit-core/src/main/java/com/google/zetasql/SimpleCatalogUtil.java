@@ -16,17 +16,16 @@
 
 package com.google.zetasql;
 
-/**
- * Only public to make it possible to copy the SimpleCatalog
- */
+/** Only public to make it possible to copy the SimpleCatalog */
 public class SimpleCatalogUtil {
-    public static SimpleCatalog copyCatalog(SimpleCatalog sourceCatalog) {
-        // Simply serializes and deserializes the source catalog to create a copy.
-        // This is the most reliable way of creating a copy of a SimpleCatalog,
-        // as the SimpleCatalog's public interface does not expose enough of the internal
-        // structures to create an accurate copy.
-        FileDescriptorSetsBuilder fileDescriptorSetsBuilder = new FileDescriptorSetsBuilder();
-        SimpleCatalogProtos.SimpleCatalogProto serialized = sourceCatalog.serialize(fileDescriptorSetsBuilder);
-        return SimpleCatalog.deserialize(serialized, fileDescriptorSetsBuilder.getDescriptorPools());
-    }
+  public static SimpleCatalog copyCatalog(SimpleCatalog sourceCatalog) {
+    // Simply serializes and deserializes the source catalog to create a copy.
+    // This is the most reliable way of creating a copy of a SimpleCatalog,
+    // as the SimpleCatalog's public interface does not expose enough of the internal
+    // structures to create an accurate copy.
+    FileDescriptorSetsBuilder fileDescriptorSetsBuilder = new FileDescriptorSetsBuilder();
+    SimpleCatalogProtos.SimpleCatalogProto serialized =
+        sourceCatalog.serialize(fileDescriptorSetsBuilder);
+    return SimpleCatalog.deserialize(serialized, fileDescriptorSetsBuilder.getDescriptorPools());
+  }
 }

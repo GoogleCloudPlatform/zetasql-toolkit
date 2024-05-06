@@ -22,5 +22,4 @@ public class CatalogResourceDoesNotExist extends CatalogException {
   public String getResourceName() {
     return resourceName;
   }
-
 }

@@ -48,35 +48,35 @@ public class LocalBigQueryResourceProvider implements BigQueryResourceProvider {
   public List<SimpleTable> getTables(String projectId, List<String> tableReferences) {
     Set<BigQueryReference> references = parseBigQueryReferences(projectId, tableReferences);
 
-    return catalogResources.getTables()
-        .stream()
-        .filter(table -> {
-          BigQueryReference tableReference = BigQueryReference.from(projectId, table.getName());
-          return references.contains(tableReference);
-        })
+    return catalogResources.getTables().stream()
+        .filter(
+            table -> {
+              BigQueryReference tableReference = BigQueryReference.from(projectId, table.getName());
+              return references.contains(tableReference);
+            })
         .collect(Collectors.toList());
   }
 
   @Override
   public List<SimpleTable> getAllTablesInDataset(String projectId, String datasetName) {
-    return catalogResources.getTables()
-        .stream()
-        .filter(table -> {
-          BigQueryReference tableReference = BigQueryReference.from(projectId, table.getName());
-          return tableReference.getProjectId().equalsIgnoreCase(projectId)
-              && tableReference.getDatasetId().equals(datasetName);
-        })
+    return catalogResources.getTables().stream()
+        .filter(
+            table -> {
+              BigQueryReference tableReference = BigQueryReference.from(projectId, table.getName());
+              return tableReference.getProjectId().equalsIgnoreCase(projectId)
+                  && tableReference.getDatasetId().equals(datasetName);
+            })
         .collect(Collectors.toList());
   }
 
   @Override
   public List<SimpleTable> getAllTablesInProject(String projectId) {
-    return catalogResources.getTables()
-        .stream()
-        .filter(table -> {
-          BigQueryReference tableReference = BigQueryReference.from(projectId, table.getName());
-          return tableReference.getProjectId().equalsIgnoreCase(projectId);
-        })
+    return catalogResources.getTables().stream()
+        .filter(
+            table -> {
+              BigQueryReference tableReference = BigQueryReference.from(projectId, table.getName());
+              return tableReference.getProjectId().equalsIgnoreCase(projectId);
+            })
         .collect(Collectors.toList());
   }
 
@@ -84,38 +84,38 @@ public class LocalBigQueryResourceProvider implements BigQueryResourceProvider {
   public List<FunctionInfo> getFunctions(String projectId, List<String> functionReferences) {
     Set<BigQueryReference> references = parseBigQueryReferences(projectId, functionReferences);
 
-    return catalogResources.getFunctions()
-        .stream()
-        .filter(function -> {
-          BigQueryReference functionReference =
-              BigQueryReference.from(projectId, function.getFullName());
-          return references.contains(functionReference);
-        })
+    return catalogResources.getFunctions().stream()
+        .filter(
+            function -> {
+              BigQueryReference functionReference =
+                  BigQueryReference.from(projectId, function.getFullName());
+              return references.contains(functionReference);
+            })
         .collect(Collectors.toList());
   }
 
   @Override
   public List<FunctionInfo> getAllFunctionsInDataset(String projectId, String datasetName) {
-    return catalogResources.getFunctions()
-        .stream()
-        .filter(function -> {
-          BigQueryReference functionReference =
-              BigQueryReference.from(projectId, function.getFullName());
-          return functionReference.getProjectId().equalsIgnoreCase(projectId)
-              && functionReference.getDatasetId().equals(datasetName);
-        })
+    return catalogResources.getFunctions().stream()
+        .filter(
+            function -> {
+              BigQueryReference functionReference =
+                  BigQueryReference.from(projectId, function.getFullName());
+              return functionReference.getProjectId().equalsIgnoreCase(projectId)
+                  && functionReference.getDatasetId().equals(datasetName);
+            })
         .collect(Collectors.toList());
   }
 
   @Override
   public List<FunctionInfo> getAllFunctionsInProject(String projectId) {
-    return catalogResources.getFunctions()
-        .stream()
-        .filter(function -> {
-          BigQueryReference functionReference =
-              BigQueryReference.from(projectId, function.getFullName());
-          return functionReference.getProjectId().equalsIgnoreCase(projectId);
-        })
+    return catalogResources.getFunctions().stream()
+        .filter(
+            function -> {
+              BigQueryReference functionReference =
+                  BigQueryReference.from(projectId, function.getFullName());
+              return functionReference.getProjectId().equalsIgnoreCase(projectId);
+            })
         .collect(Collectors.toList());
   }
 
@@ -123,38 +123,38 @@ public class LocalBigQueryResourceProvider implements BigQueryResourceProvider {
   public List<TVFInfo> getTVFs(String projectId, List<String> functionReferences) {
     Set<BigQueryReference> references = parseBigQueryReferences(projectId, functionReferences);
 
-    return catalogResources.getTVFs()
-        .stream()
-        .filter(tvf -> {
-          BigQueryReference functionReference =
-              BigQueryReference.from(projectId, tvf.getFullName());
-          return references.contains(functionReference);
-        })
+    return catalogResources.getTVFs().stream()
+        .filter(
+            tvf -> {
+              BigQueryReference functionReference =
+                  BigQueryReference.from(projectId, tvf.getFullName());
+              return references.contains(functionReference);
+            })
         .collect(Collectors.toList());
   }
 
   @Override
   public List<TVFInfo> getAllTVFsInDataset(String projectId, String datasetName) {
-    return catalogResources.getTVFs()
-        .stream()
-        .filter(tvf -> {
-          BigQueryReference functionReference =
-              BigQueryReference.from(projectId, tvf.getFullName());
-          return functionReference.getProjectId().equalsIgnoreCase(projectId)
-              && functionReference.getDatasetId().equals(datasetName);
-        })
+    return catalogResources.getTVFs().stream()
+        .filter(
+            tvf -> {
+              BigQueryReference functionReference =
+                  BigQueryReference.from(projectId, tvf.getFullName());
+              return functionReference.getProjectId().equalsIgnoreCase(projectId)
+                  && functionReference.getDatasetId().equals(datasetName);
+            })
         .collect(Collectors.toList());
   }
 
   @Override
   public List<TVFInfo> getAllTVFsInProject(String projectId) {
-    return catalogResources.getTVFs()
-        .stream()
-        .filter(tvf -> {
-          BigQueryReference functionReference =
-              BigQueryReference.from(projectId, tvf.getFullName());
-          return functionReference.getProjectId().equalsIgnoreCase(projectId);
-        })
+    return catalogResources.getTVFs().stream()
+        .filter(
+            tvf -> {
+              BigQueryReference functionReference =
+                  BigQueryReference.from(projectId, tvf.getFullName());
+              return functionReference.getProjectId().equalsIgnoreCase(projectId);
+            })
         .collect(Collectors.toList());
   }
 
@@ -162,39 +162,38 @@ public class LocalBigQueryResourceProvider implements BigQueryResourceProvider {
   public List<ProcedureInfo> getProcedures(String projectId, List<String> procedureReferences) {
     Set<BigQueryReference> references = parseBigQueryReferences(projectId, procedureReferences);
 
-    return catalogResources.getProcedures()
-        .stream()
-        .filter(procedure -> {
-          BigQueryReference procedureReference =
-              BigQueryReference.from(projectId, procedure.getFullName());
-          return references.contains(procedureReference);
-        })
+    return catalogResources.getProcedures().stream()
+        .filter(
+            procedure -> {
+              BigQueryReference procedureReference =
+                  BigQueryReference.from(projectId, procedure.getFullName());
+              return references.contains(procedureReference);
+            })
         .collect(Collectors.toList());
   }
 
   @Override
   public List<ProcedureInfo> getAllProceduresInDataset(String projectId, String datasetName) {
-    return catalogResources.getProcedures()
-        .stream()
-        .filter(procedure -> {
-          BigQueryReference procedureReference =
-              BigQueryReference.from(projectId, procedure.getFullName());
-          return procedureReference.getProjectId().equalsIgnoreCase(projectId)
-              && procedureReference.getDatasetId().equals(datasetName);
-        })
+    return catalogResources.getProcedures().stream()
+        .filter(
+            procedure -> {
+              BigQueryReference procedureReference =
+                  BigQueryReference.from(projectId, procedure.getFullName());
+              return procedureReference.getProjectId().equalsIgnoreCase(projectId)
+                  && procedureReference.getDatasetId().equals(datasetName);
+            })
         .collect(Collectors.toList());
   }
 
   @Override
   public List<ProcedureInfo> getAllProceduresInProject(String projectId) {
-    return catalogResources.getProcedures()
-        .stream()
-        .filter(procedure -> {
-          BigQueryReference procedureReference =
-              BigQueryReference.from(projectId, procedure.getFullName());
-          return procedureReference.getProjectId().equalsIgnoreCase(projectId);
-        })
+    return catalogResources.getProcedures().stream()
+        .filter(
+            procedure -> {
+              BigQueryReference procedureReference =
+                  BigQueryReference.from(projectId, procedure.getFullName());
+              return procedureReference.getProjectId().equalsIgnoreCase(projectId);
+            })
         .collect(Collectors.toList());
   }
-
 }

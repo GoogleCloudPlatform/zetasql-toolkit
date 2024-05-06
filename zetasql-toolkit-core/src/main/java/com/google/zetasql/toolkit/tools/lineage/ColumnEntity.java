@@ -44,8 +44,7 @@ public class ColumnEntity {
     }
 
     ColumnEntity other = (ColumnEntity) o;
-    return table.equals(other.table)
-        && name.equalsIgnoreCase(other.name);
+    return table.equals(other.table) && name.equalsIgnoreCase(other.name);
   }
 
   @Override

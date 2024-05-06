@@ -19,7 +19,6 @@ package com.google.zetasql.toolkit.tools.patch;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.zetasql.AnalyzerOptions;
-import com.google.zetasql.Parser;
 import com.google.zetasql.toolkit.ZetaSQLToolkitAnalyzer;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +44,7 @@ public class ZetaSQLPatcherTest {
 
     return String.format("SELECT 1 FROM (%s)", generateNestedSelectStatement(times - 1));
   }
+
   @Test
   void testMaxNestingDepthPatch() {
     // The query is a SELECT statement nested 100 times. Parsing or analyzing
@@ -56,13 +56,14 @@ public class ZetaSQLPatcherTest {
     try {
       ZetaSQLPatcher.patchMaxProtobufNestingDepth(1000);
     } catch (IllegalAccessException err) {
-      Assumptions.abort("Aborting test because the patch was not applied successfully due to "
-          + "disallowed reflective access.");
+      Assumptions.abort(
+          "Aborting test because the patch was not applied successfully due to "
+              + "disallowed reflective access.");
     }
 
-    assertDoesNotThrow(() -> {
-      this.analyzer.analyzeStatements(query).next();
-    });
+    assertDoesNotThrow(
+        () -> {
+          this.analyzer.analyzeStatements(query).next();
+        });
   }
-
 }

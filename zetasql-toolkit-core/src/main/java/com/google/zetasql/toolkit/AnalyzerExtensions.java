@@ -276,21 +276,19 @@ public class AnalyzerExtensions {
    * @param options The {@link AnalyzerOptions} to use for analysis
    * @param catalog The {@link SimpleCatalog} to use for analysis
    * @return The {@link ResolvedExpr} resulting from the analysis
-   *
    * @throws SqlException if the analysis fails
    * @throws IllegalArgumentException if the expression's parse location exceeds the SQL string
-   * length. It will not happen if the SQL string is the query the expression was parsed from.
+   *     length. It will not happen if the SQL string is the query the expression was parsed from.
    */
   public static ResolvedExpr analyzeExpression(
-      String sql, ASTExpression expression,
-      AnalyzerOptions options, SimpleCatalog catalog
-  ) {
+      String sql, ASTExpression expression, AnalyzerOptions options, SimpleCatalog catalog) {
     ParseLocationRange expressionRange = expression.getParseLocationRange();
 
     if (expressionRange.end() > sql.length()) {
-      String message = String.format(
-          "Expression parse location %d exceeds SQL query length of %d",
-          expressionRange.end(), sql.length());
+      String message =
+          String.format(
+              "Expression parse location %d exceeds SQL query length of %d",
+              expressionRange.end(), sql.length());
       throw new IllegalArgumentException(message);
     }
 
