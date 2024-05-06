@@ -16,7 +16,6 @@
 
 package com.google.zetasql.toolkit.catalog.basic;
 
-import com.google.common.collect.ImmutableList;
 import com.google.zetasql.Constant;
 import com.google.zetasql.LanguageOptions;
 import com.google.zetasql.SimpleCatalog;
@@ -43,21 +42,10 @@ public class BasicCatalogWrapper implements CatalogWrapper {
 
   private final SimpleCatalog catalog;
 
-  // TODO: Go back to including all language features when possible.
-  //  See CatalogOperations.copyCatalog().
   private static final LanguageOptions languageOptionsForFunctionsAndTypes = new LanguageOptions();
-
-  private static final List<LanguageFeature> excludedLanguageFeatures = ImmutableList.of(
-      LanguageFeature.FEATURE_ROUND_WITH_ROUNDING_MODE,
-      LanguageFeature.FEATURE_V_1_4_ARRAY_ZIP,
-      LanguageFeature.FEATURE_V_1_4_ARRAY_FIND_FUNCTIONS,
-      LanguageFeature.FEATURE_RANGE_TYPE,
-      LanguageFeature.FEATURE_DIFFERENTIAL_PRIVACY_REPORT_FUNCTIONS
-  );
 
   static {
     Arrays.stream(LanguageFeature.values())
-        .filter(feature -> !excludedLanguageFeatures.contains(feature))
         .forEach(languageOptionsForFunctionsAndTypes::enableLanguageFeature);
   }
 
