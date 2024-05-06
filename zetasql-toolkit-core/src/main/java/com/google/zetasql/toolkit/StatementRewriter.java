@@ -51,6 +51,7 @@ import com.google.zetasql.parser.ASTNodes.ASTCreateSnapshotTableStatement;
 import com.google.zetasql.parser.ASTNodes.ASTCreateTableStatement;
 import com.google.zetasql.parser.ASTNodes.ASTCreateViewStatement;
 import com.google.zetasql.parser.ASTNodes.ASTDefineTableStatement;
+import com.google.zetasql.parser.ASTNodes.ASTDeleteStatement;
 import com.google.zetasql.parser.ASTNodes.ASTDescribeStatement;
 import com.google.zetasql.parser.ASTNodes.ASTDropAllRowAccessPoliciesStatement;
 import com.google.zetasql.parser.ASTNodes.ASTDropEntityStatement;
@@ -71,6 +72,7 @@ import com.google.zetasql.parser.ASTNodes.ASTFunctionDeclaration;
 import com.google.zetasql.parser.ASTNodes.ASTGrantStatement;
 import com.google.zetasql.parser.ASTNodes.ASTIdentifier;
 import com.google.zetasql.parser.ASTNodes.ASTImportStatement;
+import com.google.zetasql.parser.ASTNodes.ASTInsertStatement;
 import com.google.zetasql.parser.ASTNodes.ASTMergeStatement;
 import com.google.zetasql.parser.ASTNodes.ASTModelClause;
 import com.google.zetasql.parser.ASTNodes.ASTModuleStatement;
@@ -89,6 +91,7 @@ import com.google.zetasql.parser.ASTNodes.ASTTableClause;
 import com.google.zetasql.parser.ASTNodes.ASTTablePathExpression;
 import com.google.zetasql.parser.ASTNodes.ASTTruncateStatement;
 import com.google.zetasql.parser.ASTNodes.ASTUndropStatement;
+import com.google.zetasql.parser.ASTNodes.ASTUpdateStatement;
 import com.google.zetasql.parser.ParseTreeVisitor;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -103,7 +106,62 @@ import java.util.stream.Collectors;
  * <p>These rewrites are done at the query level because the parsed tree is immutable and can't be
  * modified itself.
  */
-class StatementRewriter {
+public class StatementRewriter {
+
+  /**
+   * Represents a rewrite that can be applied to a query string. When applied
+   * using {@link #applyRewrites(String, List)}, the StatementRewriter replaces
+   * the substring between index from and to (exclusive) with the content.
+   */
+  public static class Rewrite {
+    public final int from;
+    public final int to;
+    public final String content;
+
+    public Rewrite(int from, int to, String content) {
+      this.from = from;
+      this.to = to;
+      this.content = content;
+    }
+  }
+
+  /**
+   * Applies a set of {@link Rewrite}s to a query string.
+   *
+   * @param query The query string to apply rewrites to
+   * @param rewrites The list of rewrites to apply
+   * @return The new query string with the rewrites applied
+   * @throws IllegalArgumentException if there are any overlapping rewrites
+   */
+  public static String applyRewrites(String query, List<Rewrite> rewrites) {
+    StringBuilder builder = new StringBuilder(query);
+    List<Rewrite> sortedRewrites = rewrites.stream()
+        .sorted(Comparator.comparing(rewrite -> rewrite.from))
+        .collect(Collectors.toList());
+
+    int rewritingOffset = 0;
+    int previousRewriteTo = -1;
+    for (Rewrite rewrite : sortedRewrites) {
+      if (rewrite.to < previousRewriteTo) {
+        throw new IllegalArgumentException("Found overlapping rewrites when applying");
+      }
+
+      int rewriteStartPosition = rewrite.from + rewritingOffset;
+      int rewriteEndPosition = rewrite.to + rewritingOffset;
+
+      String replacedString = "";
+      if (rewrite.from == query.length()) {
+        builder.append(rewrite.content);
+      } else {
+        builder.replace(rewriteStartPosition, rewriteEndPosition, rewrite.content);
+        replacedString = query.substring(rewrite.from, rewrite.to);
+        rewritingOffset += (rewrite.content.length() - replacedString.length());
+        previousRewriteTo = rewrite.to;
+      }
+    }
+
+    return builder.toString();
+  }
 
   /**
    * Rewrites the query text to ensure all resource name paths present in a parsed statement from
@@ -119,30 +177,15 @@ class StatementRewriter {
    * @return The rewritten version of the query
    */
   public static String quoteNamePaths(String query, ASTStatement parsedStatement) {
-    List<ASTPathExpression> pathExpressions =
+    List<Rewrite> rewrites =
         getResourcePathExpressionFromParseTree(parsedStatement).stream()
-            .sorted(Comparator.comparing(expression -> expression.getParseLocationRange().start()))
+            .map(pathExpression -> new Rewrite(
+                pathExpression.getParseLocationRange().start(),
+                pathExpression.getParseLocationRange().end(),
+                buildQuotedNamePath(pathExpression)))
             .collect(Collectors.toList());
 
-    StringBuilder builder = new StringBuilder(query);
-
-    int rewritingOffset = 0;
-    for (ASTPathExpression pathExpression : pathExpressions) {
-      int startPosition = pathExpression.getParseLocationRange().start();
-      int endPosition = pathExpression.getParseLocationRange().end();
-
-      String originalNamePath = query.substring(startPosition, endPosition);
-      String quotedNamePath = buildQuotedNamePath(pathExpression);
-
-      int rewriteStartPosition = startPosition + rewritingOffset;
-      int rewriteEndPosition = endPosition + rewritingOffset;
-
-      builder.replace(rewriteStartPosition, rewriteEndPosition, quotedNamePath);
-
-      rewritingOffset += (quotedNamePath.length() - originalNamePath.length());
-    }
-
-    return builder.toString();
+    return applyRewrites(query, rewrites);
   }
 
   /**
@@ -152,10 +195,7 @@ class StatementRewriter {
    * @return The fully quoted representation of the path expression
    */
   private static String buildQuotedNamePath(ASTPathExpression pathExpression) {
-    String fullName =
-        pathExpression.getNames().stream()
-            .map(ASTIdentifier::getIdString)
-            .collect(Collectors.joining("."));
+    String fullName = ParseTreeUtils.pathExpressionToString(pathExpression);
     return "`" + fullName + "`";
   }
 

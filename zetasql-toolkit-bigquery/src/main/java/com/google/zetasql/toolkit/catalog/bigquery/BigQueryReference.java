@@ -27,11 +27,11 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 /** Dataclass representing a reference to a BigQuery resource. */
-class BigQueryReference {
+public class BigQueryReference {
 
   private static final Pattern PROJECT_PATTERN = Pattern.compile("[a-zA-Z0-9\\.\\-\\:]+");
   private static final Pattern DATASET_PATTERN = Pattern.compile("[a-zA-Z0-9\\_]+");
-  private static final Pattern RESOURCE_PATTERN = Pattern.compile("[a-zA-Z0-9\\_-]+");
+  private static final Pattern RESOURCE_PATTERN = Pattern.compile("[a-zA-Z0-9\\_-]+\\*?");
   private final String projectId;
   private final String datasetId;
   private final String resourceName;
