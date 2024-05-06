@@ -182,7 +182,7 @@ public class ZetaSQLToolkitAnalyzer {
      */
     @Override
     public AnalyzedStatement next() {
-      int startLocation = parseResumeLocation.getBytePosition();
+      int startPosition = parseResumeLocation.getBytePosition();
 
       ASTStatement parsedStatement = parseNextStatement(parseResumeLocation);
 
@@ -206,9 +206,12 @@ public class ZetaSQLToolkitAnalyzer {
         return new AnalyzedStatement(parsedStatement, Optional.empty());
       }
 
-      parseResumeLocation.setBytePosition(startLocation);
+      String rewrittenQuery =
+          StatementRewriter.quoteNamePaths(query, parsedStatement);
+      ParseResumeLocation analysisParseResumeLocation = new ParseResumeLocation(rewrittenQuery);
+      analysisParseResumeLocation.setBytePosition(startPosition);
 
-      ResolvedStatement resolvedStatement = analyzeNextStatement(parseResumeLocation);
+      ResolvedStatement resolvedStatement = analyzeNextStatement(analysisParseResumeLocation);
 
       this.applyCatalogMutation(resolvedStatement);
 

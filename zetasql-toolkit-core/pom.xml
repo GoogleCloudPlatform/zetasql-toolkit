@@ -22,12 +22,12 @@
     <parent>
         <groupId>com.google.zetasql.toolkit</groupId>
         <artifactId>zetasql-toolkit</artifactId>
-        <version>0.4.1</version>
+        <version>0.5.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>zetasql-toolkit-core</artifactId>
-    <version>0.4.1</version>
+    <version>0.5.0</version>
     <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
@@ -104,14 +104,6 @@
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-spanner</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

@@ -107,6 +107,10 @@ class BigQueryReference {
         "%s.%s.%s", this.getProjectId(), this.getDatasetId(), this.getResourceName());
   }
 
+  public String getNameWithDataset() {
+    return String.format("%s.%s", this.getDatasetId(), this.getResourceName());
+  }
+
   public ImmutableList<String> getNamePath() {
     return ImmutableList.of(this.getProjectId(), this.getDatasetId(), this.getResourceName());
   }

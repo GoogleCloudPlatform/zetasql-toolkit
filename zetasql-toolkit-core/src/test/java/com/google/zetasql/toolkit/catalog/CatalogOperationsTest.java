@@ -41,47 +41,6 @@ class CatalogOperationsTest {
                     "sample", "column", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
     catalog.addSimpleTable(sampleTable);
 
-    Function function =
-        new Function(
-            ImmutableList.of("function"),
-            "UDF",
-            ZetaSQLFunctions.FunctionEnums.Mode.SCALAR,
-            ImmutableList.of(
-                new FunctionSignature(
-                    new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
-                    ImmutableList.of(),
-                    -1)));
-    catalog.addFunction(function);
-
-    TVFRelation tvfOutputSchema =
-        TVFRelation.createColumnBased(
-            ImmutableList.of(
-                TVFRelation.Column.create(
-                    "output", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
-    TableValuedFunction tvf =
-        new TableValuedFunction.FixedOutputSchemaTVF(
-            ImmutableList.of("tvf"),
-            new FunctionSignature(
-                new FunctionArgumentType(
-                    ZetaSQLFunctions.SignatureArgumentKind.ARG_TYPE_RELATION,
-                    FunctionArgumentType.FunctionArgumentTypeOptions.builder()
-                        .setRelationInputSchema(tvfOutputSchema)
-                        .build(),
-                    1),
-                ImmutableList.of(),
-                -1),
-            tvfOutputSchema);
-    catalog.addTableValuedFunction(tvf);
-
-    Procedure procedure =
-        new Procedure(
-            ImmutableList.of("procedure"),
-            new FunctionSignature(
-                new FunctionArgumentType(ZetaSQLFunctions.SignatureArgumentKind.ARG_TYPE_VOID),
-                ImmutableList.of(),
-                -1));
-    catalog.addProcedure(procedure);
-
     return catalog;
   }
 
@@ -112,38 +71,21 @@ class CatalogOperationsTest {
                     tableName, "column", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
     newTable.setFullName(fullTableName);
 
-    List<String> newTablePath1 = ImmutableList.of("newTable");
-    List<String> newTablePath2 = ImmutableList.of("qualified", "newTable");
-    List<List<String>> newTablePaths = ImmutableList.of(newTablePath1, newTablePath2);
-
     CatalogOperations.createTableInCatalog(
-        this.testCatalog,
-        newTablePaths,
-        fullTableName,
-        newTable.getColumnList(),
-        CreateMode.CREATE_DEFAULT);
+        this.testCatalog, newTable.getFullName(), newTable, CreateMode.CREATE_DEFAULT);
 
-    assertAll(
-        () -> assertTableExists(this.testCatalog, newTablePath1, "Expected created table to exist"),
-        () ->
-            assertTableExists(this.testCatalog, newTablePath2, "Expected created table to exist"));
+    assertTableExists(this.testCatalog, ImmutableList.of("qualified.newTable"), "Expected created table to exist");
   }
 
   @Test
   void testDeleteTableFromCatalog() {
-    List<String> sampleTablePath = ImmutableList.of("sample");
-    List<String> nestedSampleTablePath = ImmutableList.of("nested", "sample");
 
-    List<List<String>> tablePathsToDelete = ImmutableList.of(sampleTablePath, nestedSampleTablePath);
-    CatalogOperations.deleteTableFromCatalog(this.testCatalog, tablePathsToDelete);
+    CatalogOperations.deleteTableFromCatalog(this.testCatalog, "sample");
 
-    assertAll(
-        () ->
-            assertTableDoesNotExist(
-                this.testCatalog, sampleTablePath, "Expected table to have been deleted"),
-        () ->
-            assertTableDoesNotExist(
-                this.testCatalog, nestedSampleTablePath, "Expected table to have been deleted"));
+    assertTableDoesNotExist(
+        this.testCatalog, ImmutableList.of("sample"),
+        "Expected table to have been deleted");
+
   }
 
   @Test
@@ -156,17 +98,11 @@ class CatalogOperationsTest {
                 new SimpleColumn(
                     tableName, "column", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))));
 
-    List<String> tablePath = ImmutableList.of("sample");
-
     assertThrows(
         CatalogResourceAlreadyExists.class,
         () ->
             CatalogOperations.createTableInCatalog(
-                this.testCatalog,
-                ImmutableList.of(tablePath),
-                "sample",
-                newTable.getColumnList(),
-                CreateMode.CREATE_DEFAULT));
+                this.testCatalog, newTable.getFullName(), newTable, CreateMode.CREATE_DEFAULT));
   }
 
   @Test
@@ -179,17 +115,12 @@ class CatalogOperationsTest {
                 new SimpleColumn(
                     tableName, "column", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))));
 
-    List<String> tablePath = ImmutableList.of("sample");
 
     CatalogOperations.createTableInCatalog(
-        this.testCatalog,
-        ImmutableList.of(tablePath),
-        "sample",
-        newTable.getColumnList(),
-        CreateMode.CREATE_OR_REPLACE);
+        this.testCatalog, newTable.getFullName(), newTable, CreateMode.CREATE_OR_REPLACE);
 
-    Table foundTable =
-        assertTableExists(this.testCatalog, tablePath, "Expected replaced table to exist");
+    Table foundTable = assertTableExists(
+        this.testCatalog, ImmutableList.of("sample"), "Expected replaced table to exist");
 
     assertEquals(
         foundTable.getColumn(0).getType(),
@@ -212,11 +143,7 @@ class CatalogOperationsTest {
     Table originalTable = this.testCatalog.findTable(sampleTablePath);
 
     CatalogOperations.createTableInCatalog(
-        this.testCatalog,
-        ImmutableList.of(sampleTablePath),
-        "sample",
-        newTable.getColumnList(),
-        CreateMode.CREATE_IF_NOT_EXISTS);
+        this.testCatalog, newTable.getFullName(), newTable, CreateMode.CREATE_IF_NOT_EXISTS);
 
     Table foundTable =
         assertTableExists(
@@ -240,16 +167,13 @@ class CatalogOperationsTest {
                 new SimpleColumn(
                     tableName, "column", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))));
 
-    List<String> newTablePath = ImmutableList.of("newTable");
-
     CatalogOperations.createTableInCatalog(
-        this.testCatalog,
-        ImmutableList.of(newTablePath),
-        "newTable",
-        newTable.getColumnList(),
-        CreateMode.CREATE_IF_NOT_EXISTS);
+        this.testCatalog, newTable.getFullName(), newTable, CreateMode.CREATE_IF_NOT_EXISTS);
 
-    assertTableExists(this.testCatalog, newTablePath, "Expected table to have been created");
+    assertTableExists(
+        this.testCatalog,
+        ImmutableList.of("newTable"),
+        "Expected table to have been created");
   }
 
   private Function assertFunctionExists(SimpleCatalog catalog, String fullName, String message) {
@@ -268,7 +192,7 @@ class CatalogOperationsTest {
   void testCreateFunctionInCatalog() {
     FunctionInfo newFunction =
         FunctionInfo.newBuilder()
-            .setNamePath(ImmutableList.of("newFunction"))
+            .setNamePath(ImmutableList.of("qualified.newFunction"))
             .setGroup("UDF")
             .setMode(ZetaSQLFunctions.FunctionEnums.Mode.SCALAR)
             .setSignatures(
@@ -280,46 +204,39 @@ class CatalogOperationsTest {
                         -1)))
             .build();
 
-    List<String> newFunctionPath1 = ImmutableList.of("newFunction");
-    List<String> newFunctionPath2 = ImmutableList.of("qualified", "newFunction");
-    List<List<String>> newFunctionPaths = ImmutableList.of(newFunctionPath1, newFunctionPath2);
-
     CatalogOperations.createFunctionInCatalog(
-        this.testCatalog, newFunctionPaths, newFunction, CreateMode.CREATE_DEFAULT);
+        this.testCatalog, "qualified.newFunction", newFunction, CreateMode.CREATE_DEFAULT);
 
-    SimpleCatalog qualifiedNestedCatalog = this.testCatalog.getCatalog("qualified", null);
+    assertFunctionExists(
+        this.testCatalog, "UDF:qualified.newFunction", "Expected created function to exist");
 
-    assertNotNull(
-        qualifiedNestedCatalog,
-        "Expected the nested catalog to exist after creating a resource in it");
-
-    assertAll(
-        () ->
-            assertFunctionExists(
-                this.testCatalog, "UDF:newFunction", "Expected created function to exist"),
-        () ->
-            assertFunctionExists(
-                qualifiedNestedCatalog, "UDF:newFunction", "Expected created function to exist"));
   }
 
   @Test
   void testDeleteFunctionFromCatalog() {
-    List<String> sampleFunctionPath = ImmutableList.of("function");
-    List<String> nestedSampleFunctionPath = ImmutableList.of("nested", "function");
+    FunctionInfo newFunction =
+        FunctionInfo.newBuilder()
+            .setNamePath(ImmutableList.of("qualified.newFunction"))
+            .setGroup("UDF")
+            .setMode(ZetaSQLFunctions.FunctionEnums.Mode.SCALAR)
+            .setSignatures(
+                ImmutableList.of(
+                    new FunctionSignature(
+                        new FunctionArgumentType(
+                            TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
+                        ImmutableList.of(),
+                        -1)))
+            .build();
 
-    List<List<String>> functionPathsToDelete =
-        ImmutableList.of(sampleFunctionPath, nestedSampleFunctionPath);
-    CatalogOperations.deleteFunctionFromCatalog(this.testCatalog, functionPathsToDelete);
+    CatalogOperations.createFunctionInCatalog(
+        this.testCatalog, "qualified.newFunction", newFunction, CreateMode.CREATE_DEFAULT);
+    CatalogOperations.deleteFunctionFromCatalog(this.testCatalog, "qualified.newFunction");
 
-    assertAll(
-        () ->
-            assertFunctionDoesNotExist(
-                this.testCatalog.getCatalog("nested", null),
-                "UDF:function",
-                "Expected function to have been deleted"),
-        () ->
-            assertFunctionDoesNotExist(
-                this.testCatalog, "UDF:function", "Expected function to have been deleted"));
+    assertFunctionDoesNotExist(
+        this.testCatalog,
+        "UDF:qualified.newFunction",
+        "Expected function to have been deleted");
+
   }
 
   private TableValuedFunction assertTVFExists(SimpleCatalog catalog, String name, String message) {
@@ -338,7 +255,7 @@ class CatalogOperationsTest {
   void testCreateTVFInCatalog() {
     TVFInfo newTVF =
         TVFInfo.newBuilder()
-            .setNamePath(ImmutableList.of("newTVF"))
+            .setNamePath(ImmutableList.of("qualified.newTVF"))
             .setSignature(
                 new FunctionSignature(
                     new FunctionArgumentType(
@@ -350,44 +267,33 @@ class CatalogOperationsTest {
                     TypeFactory.createSimpleType(TypeKind.TYPE_STRING)))
             .build();
 
-    List<String> newFunctionPath1 = ImmutableList.of("newTVF");
-    List<String> newFunctionPath2 = ImmutableList.of("qualified", "newTVF");
-    List<List<String>> newFunctionPaths = ImmutableList.of(newFunctionPath1, newFunctionPath2);
-
     CatalogOperations.createTVFInCatalog(
-        this.testCatalog, newFunctionPaths, newTVF, CreateMode.CREATE_DEFAULT);
+        this.testCatalog, "qualified.newTVF", newTVF, CreateMode.CREATE_DEFAULT);
 
-    SimpleCatalog qualifiedNestedCatalog = this.testCatalog.getCatalog("qualified", null);
-
-    assertNotNull(
-        qualifiedNestedCatalog,
-        "Expected the nested catalog to exist after creating a resource in it");
-
-    assertAll(
-        () -> assertTVFExists(this.testCatalog, "newTVF", "Expected created function to exist"),
-        () ->
-            assertTVFExists(
-                qualifiedNestedCatalog, "newTVF", "Expected created function to exist"));
+    assertTVFExists(testCatalog, "qualified.newTVF", "Expected created function to exist");
   }
 
   @Test
   void testDeleteTVFFromCatalog() {
-    List<String> sampleFunctionPath = ImmutableList.of("tvf");
-    List<String> nestedSampleFunctionPath = ImmutableList.of("nested", "tvf");
+    TVFInfo tvf = TVFInfo.newBuilder()
+        .setNamePath(ImmutableList.of("qualified.newTVF"))
+        .setSignature(
+            new FunctionSignature(
+                new FunctionArgumentType(
+                    ZetaSQLFunctions.SignatureArgumentKind.ARG_TYPE_RELATION),
+                ImmutableList.of(),
+                -1))
+        .setOutputSchema(
+            TVFRelation.createValueTableBased(
+                TypeFactory.createSimpleType(TypeKind.TYPE_STRING)))
+        .build();
 
-    List<List<String>> functionPathsToDelete =
-        ImmutableList.of(sampleFunctionPath, nestedSampleFunctionPath);
-    CatalogOperations.deleteTVFFromCatalog(this.testCatalog, functionPathsToDelete);
+    CatalogOperations.createTVFInCatalog(
+        this.testCatalog, "qualified.newTVF", tvf, CreateMode.CREATE_DEFAULT);
+    CatalogOperations.deleteTVFFromCatalog(this.testCatalog, "qualified.newTVF");
 
-    assertAll(
-        () ->
-            assertTVFDoesNotExist(
-                this.testCatalog.getCatalog("nested", null),
-                "tvf",
-                "Expected function to have been deleted"),
-        () ->
-            assertTVFDoesNotExist(
-                this.testCatalog, "tvf", "Expected function to have been deleted"));
+    assertTVFDoesNotExist(
+        this.testCatalog, "qualified.newTVF", "Expected function to have been deleted");
   }
 
   private Procedure assertProcedureExists(
@@ -404,18 +310,17 @@ class CatalogOperationsTest {
   void testCreateProcedureInCatalog() {
     ProcedureInfo newProcedure =
         new ProcedureInfo(
-            ImmutableList.of("newProcedure"),
+            ImmutableList.of("qualified.newProcedure"),
             new FunctionSignature(
                 new FunctionArgumentType(ZetaSQLFunctions.SignatureArgumentKind.ARG_TYPE_VOID),
                 ImmutableList.of(),
                 -1));
 
-    List<String> newProcedurePath1 = ImmutableList.of("newProcedure");
+    List<String> newProcedurePath1 = ImmutableList.of("qualified.newProcedure");
     List<String> newProcedurePath2 = ImmutableList.of("qualified", "newProcedure");
-    List<List<String>> newProcedurePaths = ImmutableList.of(newProcedurePath1, newProcedurePath2);
 
     CatalogOperations.createProcedureInCatalog(
-        this.testCatalog, newProcedurePaths, newProcedure, CreateMode.CREATE_DEFAULT);
+        this.testCatalog, "qualified.newProcedure", newProcedure, CreateMode.CREATE_DEFAULT);
 
     assertAll(
         () ->
@@ -428,20 +333,30 @@ class CatalogOperationsTest {
 
   @Test
   void testDeleteProcedureFromCatalog() {
-    List<String> sampleProcedurePath = ImmutableList.of("procedure");
-    List<String> nestedSampleProcedurePath = ImmutableList.of("nested", "procedure");
+    ProcedureInfo newProcedure =
+        new ProcedureInfo(
+            ImmutableList.of("qualified.newProcedure"),
+            new FunctionSignature(
+                new FunctionArgumentType(ZetaSQLFunctions.SignatureArgumentKind.ARG_TYPE_VOID),
+                ImmutableList.of(),
+                -1));
 
-    List<List<String>> pathsToDelete = ImmutableList.of(sampleProcedurePath, nestedSampleProcedurePath);
-    CatalogOperations.deleteProcedureFromCatalog(this.testCatalog, pathsToDelete);
+    CatalogOperations.createProcedureInCatalog(
+        this.testCatalog, "qualified.newProcedure", newProcedure, CreateMode.CREATE_DEFAULT);
+
+    List<String> procedurePath1 = ImmutableList.of("newProcedure");
+    List<String> procedurePath2 = ImmutableList.of("qualified", "newProcedure");
+
+    CatalogOperations.deleteProcedureFromCatalog(this.testCatalog, "qualified.newProcedure");
 
     assertAll(
         () ->
             assertProcedureDoesNotExist(
-                this.testCatalog, sampleProcedurePath, "Expected procedure to have been deleted"),
+                this.testCatalog, procedurePath1, "Expected procedure to have been deleted"),
         () ->
             assertProcedureDoesNotExist(
                 this.testCatalog,
-                nestedSampleProcedurePath,
+                procedurePath2,
                 "Expected procedure to have been deleted"));
   }
 

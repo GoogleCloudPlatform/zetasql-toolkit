@@ -116,7 +116,7 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
       case INT64:
         return TypeKind.TYPE_INT64;
       case FLOAT64:
-        return TypeKind.TYPE_FLOAT;
+        return TypeKind.TYPE_DOUBLE;
       case NUMERIC:
         return TypeKind.TYPE_NUMERIC;
       case BIGNUMERIC:

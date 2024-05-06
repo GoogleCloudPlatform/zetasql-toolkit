@@ -107,6 +107,7 @@ public class SpannerCatalog implements CatalogWrapper {
    * @param projectId The Spanner project id
    * @param instance The Spanner instance name
    * @param database The Spanner database name
+   * @return the new SpannerCatalog instance
    */
   public static SpannerCatalog usingSpannerClient(
       String projectId, String instance, String database) {
@@ -123,6 +124,7 @@ public class SpannerCatalog implements CatalogWrapper {
    * @param instance The Spanner instance name
    * @param database The Spanner database name
    * @param spannerClient The Spanner client to use
+   * @return the new SpannerCatalog instance
    */
   public static SpannerCatalog usingSpannerClient(
       String projectId, String instance, String database, Spanner spannerClient) {
@@ -136,6 +138,7 @@ public class SpannerCatalog implements CatalogWrapper {
    * {@link CatalogResources} object.
    *
    * @param resources The {@link CatalogResources} object from which this catalog will get tables
+   * @return the new SpannerCatalog instance
    */
   public static SpannerCatalog usingResources(CatalogResources resources) {
     SpannerResourceProvider resourceProvider = new LocalSpannerResourceProvider(resources);
@@ -151,18 +154,13 @@ public class SpannerCatalog implements CatalogWrapper {
    */
   @Override
   public void register(SimpleTable table, CreateMode createMode, CreateScope createScope) {
-    String tableName = table.getName();
+    String fullName = table.getFullName();
 
-    if (tableName.contains(".")) {
-      throw new InvalidSpannerTableName(tableName);
+    if (fullName.contains(".")) {
+      throw new InvalidSpannerTableName(fullName);
     }
 
-    CatalogOperations.createTableInCatalog(
-        this.catalog,
-        ImmutableList.of(ImmutableList.of(table.getName())),
-        table.getName(),
-        table.getColumnList(),
-        createMode);
+    CatalogOperations.createTableInCatalog(this.catalog, table.getFullName(), table, createMode);
   }
 
   @Override
@@ -191,7 +189,7 @@ public class SpannerCatalog implements CatalogWrapper {
   @Override
   public void removeTable(String table) {
     this.validateSpannerTableNames(ImmutableList.of(table));
-    CatalogOperations.deleteTableFromCatalog(this.catalog, ImmutableList.of(ImmutableList.of(table)));
+    CatalogOperations.deleteTableFromCatalog(this.catalog, table);
   }
 
   @Override

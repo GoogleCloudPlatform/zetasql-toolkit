@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.zetasql.Table;
 import com.google.zetasql.Type;
 import com.google.zetasql.resolvedast.ResolvedColumn;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedQueryStmt;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedColumnRef;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedCreateTableAsSelectStmt;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedCreateViewBase;
@@ -49,6 +50,7 @@ import java.util.stream.IntStream;
  * Implements extraction of column-level lineage from ZetaSQL {@link ResolvedStatement}s.
  * Supported statements:
  * <ul>
+ *   <li> SELECT
  *   <li> CREATE TABLE AS SELECT
  *   <li> CREATE [MATERIALIZED] VIEW AS SELECT
  *   <li> INSERT
@@ -122,7 +124,7 @@ public class ColumnLineageExtractor {
    * @param createTableAsSelectStmt The ResolvedCreateTableAsSelectStmt for which to extract lineage
    * @return The set of resulting {@link ColumnLineage} objects
    */
-  private static Set<ColumnLineage> extractColumnLevelLineage(
+  public static Set<ColumnLineage> extractColumnLevelLineage(
       ResolvedCreateTableAsSelectStmt createTableAsSelectStmt) {
 
     String fullTableName = String.join(".", createTableAsSelectStmt.getNamePath());
@@ -139,7 +141,7 @@ public class ColumnLineageExtractor {
    * @param createViewBase The ResolvedCreateViewBase statement for which to extract lineage
    * @return The set of resulting {@link ColumnLineage} objects
    */
-  private static Set<ColumnLineage> extractColumnLevelLineage(
+  public static Set<ColumnLineage> extractColumnLevelLineage(
       ResolvedCreateViewBase createViewBase) {
     String fullViewName = String.join(".", createViewBase.getNamePath());
 
@@ -150,12 +152,25 @@ public class ColumnLineageExtractor {
   }
 
   /**
+   * Extracts the column-level lineage entries for a {@link ResolvedQueryStmt} statement
+   *
+   * @param statement The ResolvedQueryStmt statement for which to extract lineage
+   * @param outputTable The name of the table the statement write to
+   * @return The set of resulting {@link ColumnLineage} objects
+   */
+  public static Set<ColumnLineage> extractColumnLevelLineage(
+      ResolvedQueryStmt statement, String outputTable) {
+    List<ResolvedOutputColumn> outputColumns = statement.getOutputColumnList();
+    return extractColumnLevelLineageForOutputColumns(outputTable, outputColumns, statement);
+  }
+
+  /**
    * Extracts the column-level lineage entries for a {@link ResolvedInsertStmt}
    *
    * @param insertStmt The ResolvedInsertStmt for which to extract lineage
    * @return The set of resulting {@link ColumnLineage} objects
    */
-  private static Set<ColumnLineage> extractColumnLevelLineage(ResolvedInsertStmt insertStmt) {
+  public static Set<ColumnLineage> extractColumnLevelLineage(ResolvedInsertStmt insertStmt) {
     if (Objects.isNull(insertStmt.getQuery())) {
       // The statement is inserting rows manually using "INSERT INTO ... VALUES ..."
       // Since it does not query any tables, it does not produce lineage
@@ -255,7 +270,7 @@ public class ColumnLineageExtractor {
    * @param updateStmt The ResolvedUpdateStmt for which to extract lineage
    * @return The set of resulting {@link ColumnLineage} objects
    */
-  private static Set<ColumnLineage> extractColumnLevelLineage(ResolvedUpdateStmt updateStmt) {
+  public static Set<ColumnLineage> extractColumnLevelLineage(ResolvedUpdateStmt updateStmt) {
     Table targetTable = updateStmt.getTableScan().getTable();
     List<ResolvedUpdateItem> updateItems = updateStmt.getUpdateItemList();
 
@@ -317,7 +332,7 @@ public class ColumnLineageExtractor {
    * @param mergeStmt The ResolvedMergeStmt for which to extract lineage
    * @return The set of resulting {@link ColumnLineage} objects
    */
-  private static Set<ColumnLineage> extractColumnLevelLineage(ResolvedMergeStmt mergeStmt) {
+  public static Set<ColumnLineage> extractColumnLevelLineage(ResolvedMergeStmt mergeStmt) {
     Table targetTable = mergeStmt.getTableScan().getTable();
 
     return mergeStmt.getWhenClauseList()
@@ -325,36 +340,6 @@ public class ColumnLineageExtractor {
         .map(mergeWhen -> extractColumnLevelLineage(targetTable, mergeWhen, mergeStmt))
         .flatMap(Set::stream)
         .collect(Collectors.toSet());
-  }
-
-  /**
-   * Extracts the column-level lineage entries for a {@link ResolvedStatement}.
-   * Supported statements:
-   * <ul>
-   *   <li> CREATE TABLE AS SELECT
-   *   <li> CREATE [MATERIALIZED] VIEW AS SELECT
-   *   <li> INSERT
-   *   <li> UPDATE
-   *   <li> MERGE
-   * </ul>
-   *
-   * @param statement The ResolvedStatement for which to extract lineage
-   * @return The set of resulting {@link ColumnLineage} objects. Empty for unsupported statements.
-   */
-  public static Set<ColumnLineage> extractColumnLevelLineage(ResolvedStatement statement) {
-    if (statement instanceof ResolvedCreateTableAsSelectStmt) {
-      return extractColumnLevelLineage((ResolvedCreateTableAsSelectStmt) statement);
-    } else if (statement instanceof ResolvedInsertStmt) {
-      return extractColumnLevelLineage((ResolvedInsertStmt) statement);
-    } else if (statement instanceof ResolvedUpdateStmt) {
-      return extractColumnLevelLineage((ResolvedUpdateStmt) statement);
-    } else if (statement instanceof ResolvedMergeStmt) {
-      return extractColumnLevelLineage((ResolvedMergeStmt) statement);
-    } else if (statement instanceof ResolvedCreateViewBase) {
-      return extractColumnLevelLineage((ResolvedCreateViewBase) statement);
-    }
-
-    return ImmutableSet.of();
   }
 
 }

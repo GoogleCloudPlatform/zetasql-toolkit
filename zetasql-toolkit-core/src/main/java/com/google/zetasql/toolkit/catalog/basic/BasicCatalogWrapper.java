@@ -16,11 +16,12 @@
 
 package com.google.zetasql.toolkit.catalog.basic;
 
-import com.google.common.collect.ImmutableList;
 import com.google.zetasql.Constant;
+import com.google.zetasql.LanguageOptions;
 import com.google.zetasql.SimpleCatalog;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.ZetaSQLBuiltinFunctionOptions;
+import com.google.zetasql.ZetaSQLOptions.LanguageFeature;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateScope;
 import com.google.zetasql.toolkit.catalog.CatalogOperations;
@@ -30,10 +31,8 @@ import com.google.zetasql.toolkit.catalog.ProcedureInfo;
 import com.google.zetasql.toolkit.catalog.TVFInfo;
 import com.google.zetasql.toolkit.catalog.exceptions.CatalogException;
 import com.google.zetasql.toolkit.catalog.exceptions.CatalogResourceAlreadyExists;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Basic implementation of CatalogWrapper which does not implement the semantics of any particular
@@ -43,9 +42,17 @@ public class BasicCatalogWrapper implements CatalogWrapper {
 
   private final SimpleCatalog catalog;
 
+  private static final LanguageOptions languageOptionsForFunctionsAndTypes = new LanguageOptions();
+
+  static {
+    Arrays.stream(LanguageFeature.values())
+        .forEach(languageOptionsForFunctionsAndTypes::enableLanguageFeature);
+  }
+
   public BasicCatalogWrapper() {
     this.catalog = new SimpleCatalog("catalog");
-    this.catalog.addZetaSQLFunctionsAndTypes(new ZetaSQLBuiltinFunctionOptions());
+    this.catalog.addZetaSQLFunctionsAndTypes(
+        new ZetaSQLBuiltinFunctionOptions(languageOptionsForFunctionsAndTypes));
   }
 
   public BasicCatalogWrapper(SimpleCatalog initialCatalog) {
@@ -59,24 +66,19 @@ public class BasicCatalogWrapper implements CatalogWrapper {
    */
   @Override
   public void register(SimpleTable table, CreateMode createMode, CreateScope createScope) {
-    CatalogOperations.createTableInCatalog(
-        this.catalog,
-        ImmutableList.of(ImmutableList.of(table.getFullName())),
-        table.getFullName(),
-        table.getColumnList(),
-        createMode);
+    CatalogOperations.createTableInCatalog(this.catalog, table.getFullName(), table, createMode);
   }
 
   @Override
   public void register(FunctionInfo function, CreateMode createMode, CreateScope createScope) {
     CatalogOperations.createFunctionInCatalog(
-        this.catalog, ImmutableList.of(function.getNamePath()), function, createMode);
+        this.catalog, function.getFullName(), function, createMode);
   }
 
   @Override
   public void register(TVFInfo tvfInfo, CreateMode createMode, CreateScope createScope) {
     CatalogOperations.createTVFInCatalog(
-        this.catalog, ImmutableList.of(tvfInfo.getNamePath()), tvfInfo, createMode);
+        this.catalog, tvfInfo.getFullName(), tvfInfo, createMode);
   }
 
   /**
@@ -87,24 +89,8 @@ public class BasicCatalogWrapper implements CatalogWrapper {
   @Override
   public void register(
       ProcedureInfo procedureInfo, CreateMode createMode, CreateScope createScope) {
-    if (procedureInfo.getNamePath().size() > 1) {
-      throw new CatalogException("Procedure name paths should have a single item");
-    }
-
-    List<String> namePath =
-        procedureInfo.getNamePath().stream()
-            .flatMap(pathElement -> Arrays.stream(pathElement.split("\\.")))
-            .collect(Collectors.toList());
-    String fullName = String.join(".", namePath);
-
-    List<List<String>> procedurePaths = new ArrayList<>();
-    procedurePaths.add(namePath);
-    if (namePath.size() > 1) {
-      procedurePaths.add(ImmutableList.of(fullName));
-    }
-
     CatalogOperations.createProcedureInCatalog(
-        this.catalog, procedurePaths, procedureInfo, createMode);
+        this.catalog, procedureInfo.getFullName(), procedureInfo, createMode);
   }
 
   /**
@@ -130,22 +116,22 @@ public class BasicCatalogWrapper implements CatalogWrapper {
 
   @Override
   public void removeTable(String fullTableName) {
-    CatalogOperations.deleteTableFromCatalog(this.catalog, ImmutableList.of(ImmutableList.of(fullTableName)));
+    CatalogOperations.deleteTableFromCatalog(this.catalog, fullTableName);
   }
 
   @Override
   public void removeFunction(String function) {
-    CatalogOperations.deleteFunctionFromCatalog(this.catalog, ImmutableList.of(ImmutableList.of(function)));
+    CatalogOperations.deleteFunctionFromCatalog(this.catalog, function);
   }
 
   @Override
   public void removeTVF(String function) {
-    CatalogOperations.deleteTVFFromCatalog(this.catalog, ImmutableList.of(ImmutableList.of(function)));
+    CatalogOperations.deleteTVFFromCatalog(this.catalog, function);
   }
 
   @Override
   public void removeProcedure(String procedure) {
-    CatalogOperations.deleteProcedureFromCatalog(this.catalog, ImmutableList.of(ImmutableList.of(procedure)));
+    CatalogOperations.deleteProcedureFromCatalog(this.catalog, procedure);
   }
 
   @Override
