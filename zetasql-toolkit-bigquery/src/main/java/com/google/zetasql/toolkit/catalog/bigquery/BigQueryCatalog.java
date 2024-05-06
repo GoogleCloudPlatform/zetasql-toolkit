@@ -119,6 +119,7 @@ public class BigQueryCatalog implements CatalogWrapper {
    *
    * @param defaultProjectId The BigQuery default project id, queries are assumed to be running on
    *     this project
+   * @return the new BigQueryCatalog instance
    */
   public static BigQueryCatalog usingBigQueryAPI(String defaultProjectId) {
     BigQueryResourceProvider resourceProvider = BigQueryAPIResourceProvider.buildDefault();
@@ -135,6 +136,7 @@ public class BigQueryCatalog implements CatalogWrapper {
    * @param defaultProjectId The BigQuery default project id, queries are assumed to be running on
    *     this project
    * @param bigQueryClient The BigQuery client to use for accessing the API
+   * @return the new BigQueryCatalog instance
    */
   public static BigQueryCatalog usingBigQueryAPI(String defaultProjectId, BigQuery bigQueryClient) {
     BigQueryResourceProvider resourceProvider = BigQueryAPIResourceProvider.build(bigQueryClient);
@@ -148,6 +150,7 @@ public class BigQueryCatalog implements CatalogWrapper {
    * @param defaultProjectId The BigQuery default project id, queries are assumed to be running on
    *     this project
    * @param resources The {@link CatalogResources} object from which this catalog will get resources
+   * @return the new BigQueryCatalog instance
    */
   public static BigQueryCatalog usingResources(String defaultProjectId, CatalogResources resources)
       throws JsonParseException {
