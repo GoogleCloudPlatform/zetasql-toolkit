@@ -36,4 +36,5 @@ jobs:
     - name: Test
       run: mvn --batch-mode test -Dmaven.test.skip=false
     - name: Update dependency graph
+      if: github.ref == 'refs/heads/main'
       uses: advanced-security/maven-dependency-submission-action@v4
