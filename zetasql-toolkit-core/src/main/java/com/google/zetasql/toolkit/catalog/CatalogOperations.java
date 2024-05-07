@@ -19,7 +19,6 @@ package com.google.zetasql.toolkit.catalog;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.zetasql.*;
-import com.google.zetasql.SimpleCatalogProtos.SimpleCatalogProto;
 import com.google.zetasql.TableValuedFunction.FixedOutputSchemaTVF;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.toolkit.catalog.exceptions.CatalogResourceAlreadyExists;
@@ -143,9 +142,12 @@ public class CatalogOperations {
    * @param deleter A Runnable that will delete the resource from the catalog if run
    */
   private static void createResource(
-      String nameInCatalog, CreateMode createMode, String resourceType,
-      boolean alreadyExists, Runnable creator, Runnable deleter
-  ) {
+      String nameInCatalog,
+      CreateMode createMode,
+      String resourceType,
+      boolean alreadyExists,
+      Runnable creator,
+      Runnable deleter) {
     if (createMode.equals(CreateMode.CREATE_IF_NOT_EXISTS) && alreadyExists) {
       return;
     }
@@ -156,8 +158,7 @@ public class CatalogOperations {
 
     if (createMode.equals(CreateMode.CREATE_DEFAULT) && alreadyExists) {
       String errorMessage =
-          String.format(
-              "%s %s already exists in catalog", resourceType, nameInCatalog);
+          String.format("%s %s already exists in catalog", resourceType, nameInCatalog);
       throw new CatalogResourceAlreadyExists(nameInCatalog, errorMessage);
     }
 
@@ -181,8 +182,8 @@ public class CatalogOperations {
   }
 
   /**
-   * Creates a table in a {@link SimpleCatalog} using the provided paths and complying with
-   * the provided CreateMode.
+   * Creates a table in a {@link SimpleCatalog} using the provided paths and complying with the
+   * provided CreateMode.
    *
    * @param catalog The catalog in which to create the table
    * @param nameInCatalog The name under which the table will be registered in the catalog
@@ -192,10 +193,7 @@ public class CatalogOperations {
    *     and CreateMode != CREATE_OR_REPLACE.
    */
   public static void createTableInCatalog(
-      SimpleCatalog catalog,
-      String nameInCatalog,
-      SimpleTable table,
-      CreateMode createMode) {
+      SimpleCatalog catalog, String nameInCatalog, SimpleTable table, CreateMode createMode) {
 
     boolean alreadyExists = tableExists(catalog, nameInCatalog);
 
@@ -205,8 +203,7 @@ public class CatalogOperations {
         "Table",
         alreadyExists,
         /*creator=*/ () -> catalog.addSimpleTable(nameInCatalog, table),
-        /*deleter=*/ () -> deleteTableFromCatalog(catalog, nameInCatalog)
-    );
+        /*deleter=*/ () -> deleteTableFromCatalog(catalog, nameInCatalog));
   }
 
   /**
@@ -222,15 +219,14 @@ public class CatalogOperations {
     Optional<String> fullNameToDelete =
         catalog.getFunctionNameList().stream()
             .filter(
-                name ->
-                    removeGroupFromFunctionName(name).equalsIgnoreCase(fullNameWithoutGroup))
+                name -> removeGroupFromFunctionName(name).equalsIgnoreCase(fullNameWithoutGroup))
             .findFirst();
 
     if (fullNameToDelete.isPresent()) {
       catalog.removeFunction(fullNameToDelete.get());
     } else {
-      String errorMessage = String.format(
-          "Tried to delete function which does not exist: %s", fullName);
+      String errorMessage =
+          String.format("Tried to delete function which does not exist: %s", fullName);
       throw new CatalogResourceDoesNotExist(fullName, errorMessage);
     }
   }
@@ -241,8 +237,8 @@ public class CatalogOperations {
    *
    * @param catalog The catalog in which to create the function
    * @param nameInCatalog The name under which the function will be registered in the catalog
-   * @param functionInfo The {@link FunctionInfo} object representing the function that
-   * should be created
+   * @param functionInfo The {@link FunctionInfo} object representing the function that should be
+   *     created
    * @param createMode The CreateMode to use
    * @throws CatalogResourceAlreadyExists if the function already exists at any of the provided
    *     paths and CreateMode != CREATE_OR_REPLACE.
@@ -268,8 +264,7 @@ public class CatalogOperations {
         "Function",
         alreadyExists,
         /*creator=*/ () -> catalog.addFunction(function),
-        /*deleter=*/ () -> deleteFunctionFromCatalog(catalog, nameInCatalog)
-    );
+        /*deleter=*/ () -> deleteFunctionFromCatalog(catalog, nameInCatalog));
   }
 
   /**
@@ -296,17 +291,13 @@ public class CatalogOperations {
    * @param nameInCatalog The name under which the TVF will be registered in the catalog
    * @param tvfInfo The {@link TVFInfo} object representing the TVF that should be created
    * @param createMode The CreateMode to use
-   * @throws CatalogResourceAlreadyExists if the TVF already exists at any of the provided
-   *     paths and CreateMode != CREATE_OR_REPLACE.
+   * @throws CatalogResourceAlreadyExists if the TVF already exists at any of the provided paths and
+   *     CreateMode != CREATE_OR_REPLACE.
    */
   public static void createTVFInCatalog(
-      SimpleCatalog catalog,
-      String nameInCatalog,
-      TVFInfo tvfInfo,
-      CreateMode createMode) {
+      SimpleCatalog catalog, String nameInCatalog, TVFInfo tvfInfo, CreateMode createMode) {
     Preconditions.checkArgument(
-        tvfInfo.getOutputSchema().isPresent(),
-        "Cannot create a a TVF without an output schema");
+        tvfInfo.getOutputSchema().isPresent(), "Cannot create a a TVF without an output schema");
 
     boolean alreadyExists = tvfExists(catalog, nameInCatalog);
 
@@ -321,15 +312,14 @@ public class CatalogOperations {
         createMode,
         "TVF",
         alreadyExists,
-        /*creator=*/() -> catalog.addTableValuedFunction(tvf),
-        /*deleter=*/() -> deleteTVFFromCatalog(catalog, nameInCatalog)
-    );
+        /*creator=*/ () -> catalog.addTableValuedFunction(tvf),
+        /*deleter=*/ () -> deleteTVFFromCatalog(catalog, nameInCatalog));
   }
 
   private static void deleteProcedureFromCatalogImpl(SimpleCatalog catalog, String fullName) {
     if (!procedureExists(catalog, fullName)) {
-      String errorMessage = String.format(
-          "Tried to delete procedure which does not exist: %s", fullName);
+      String errorMessage =
+          String.format("Tried to delete procedure which does not exist: %s", fullName);
       throw new CatalogResourceDoesNotExist(fullName, errorMessage);
     }
 
@@ -339,8 +329,8 @@ public class CatalogOperations {
   /**
    * Deletes a procedure with the provided name from the {@link SimpleCatalog}
    *
-   * <p> Qualified procedures need to be registered two times in the catalog for analysis to
-   * work as expected. This method takes care of deleting both copies of the procedure if necessary.
+   * <p>Qualified procedures need to be registered two times in the catalog for analysis to work as
+   * expected. This method takes care of deleting both copies of the procedure if necessary.
    *
    * @param catalog The catalog from which to delete the procedure
    * @param fullName The full name of the procedure in the catalog
@@ -358,10 +348,10 @@ public class CatalogOperations {
   }
 
   /**
-   * Creates a procedure in a {@link SimpleCatalog} using the provided name and complying with
-   * the provided CreateMode.
+   * Creates a procedure in a {@link SimpleCatalog} using the provided name and complying with the
+   * provided CreateMode.
    *
-   * <p> Qualified procedures will be registered two times in the catalog for analysis to work as
+   * <p>Qualified procedures will be registered two times in the catalog for analysis to work as
    * expected. A procedure with name "project.dataset.table" will be registered at name paths:
    * ["project.dataset.table"] and ["project", "dataset", "table"].
    *
@@ -380,20 +370,21 @@ public class CatalogOperations {
 
     boolean alreadyExists = procedureExists(catalog, nameInCatalog);
 
-    Runnable creatorFunction = () -> {
-      Procedure procedure =
-          new Procedure(ImmutableList.of(nameInCatalog), procedureInfo.getSignature());
-      catalog.addProcedure(procedure);
+    Runnable creatorFunction =
+        () -> {
+          Procedure procedure =
+              new Procedure(ImmutableList.of(nameInCatalog), procedureInfo.getSignature());
+          catalog.addProcedure(procedure);
 
-      if (nameInCatalog.contains(".")) {
-        List<String> nameComponents = Arrays.asList(nameInCatalog.split("\\."));
-        String nestedName = nameComponents.get(nameComponents.size() - 1);
-        SimpleCatalog nestedCatalog = getSubCatalogForResource(catalog, nameComponents);
-        Procedure nestedProcedure =
-            new Procedure(ImmutableList.of(nestedName), procedureInfo.getSignature());
-        nestedCatalog.addProcedure(nestedProcedure);
-      }
-    };
+          if (nameInCatalog.contains(".")) {
+            List<String> nameComponents = Arrays.asList(nameInCatalog.split("\\."));
+            String nestedName = nameComponents.get(nameComponents.size() - 1);
+            SimpleCatalog nestedCatalog = getSubCatalogForResource(catalog, nameComponents);
+            Procedure nestedProcedure =
+                new Procedure(ImmutableList.of(nestedName), procedureInfo.getSignature());
+            nestedCatalog.addProcedure(nestedProcedure);
+          }
+        };
 
     createResource(
         nameInCatalog,
@@ -401,9 +392,7 @@ public class CatalogOperations {
         "Procedure",
         alreadyExists,
         /*creator=*/ creatorFunction,
-        /*deleter=*/ () -> deleteProcedureFromCatalog(catalog, nameInCatalog)
-    );
-
+        /*deleter=*/ () -> deleteProcedureFromCatalog(catalog, nameInCatalog));
   }
 
   /**

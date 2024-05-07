@@ -103,12 +103,11 @@ public class ZetaSQLToolkitAnalyzer {
   }
 
   /**
-   * Analyze a SQL query or script, using the provided {@link CatalogWrapper} to manage the
-   * catalog.
+   * Analyze a SQL query or script, using the provided {@link CatalogWrapper} to manage the catalog.
    *
-   * <p>This toolkit includes two implementations, the BigQueryCatalog and the SpannerCatalog;
-   * which can be used to run the analyzer following BigQuery or Spanner catalog semantics
-   * respectively. For other use-cases, you can provide your own CatalogWrapper implementation.
+   * <p>This toolkit includes two implementations, the BigQueryCatalog and the SpannerCatalog; which
+   * can be used to run the analyzer following BigQuery or Spanner catalog semantics respectively.
+   * For other use-cases, you can provide your own CatalogWrapper implementation.
    *
    * @param query The SQL query or script to analyze
    * @param catalog The CatalogWrapper implementation to use when managing the catalog
@@ -129,21 +128,22 @@ public class ZetaSQLToolkitAnalyzer {
    * ZetaSQL Toolkit. It implements Iterator&lt;{@link AnalyzedStatement}&gt;, and consuming the
    * iterator will lazily perform SQL analysis statement by statement.
    *
-   * <p> For each statement in the query, it will:
+   * <p>For each statement in the query, it will:
+   *
    * <ol>
-   *   <li> Parse the statement using the {@link Parser}
-   *   <li> If it is a variable declaration or an assignment, validate it and update the catalog
-   *   <li> Resolve the statement if possible, using the {@link Analyzer}
-   *   <li> Return the corresponding {@link AnalyzedStatement} object; containing the parsed
-   *      {@link ASTStatement} and, optionally, the resolved {@link ResolvedStatement}
+   *   <li>Parse the statement using the {@link Parser}
+   *   <li>If it is a variable declaration or an assignment, validate it and update the catalog
+   *   <li>Resolve the statement if possible, using the {@link Analyzer}
+   *   <li>Return the corresponding {@link AnalyzedStatement} object; containing the parsed {@link
+   *       ASTStatement} and, optionally, the resolved {@link ResolvedStatement}
    * </ol>
    *
-   * <p> Resolution will only happen for a statement if it is supported by the Analyzer (i.e.
-   * it is not a script statement). If a complex script statement is encountered (e.g. IFs, LOOPs),
+   * <p>Resolution will only happen for a statement if it is supported by the Analyzer (i.e. it is
+   * not a script statement). If a complex script statement is encountered (e.g. IFs, LOOPs),
    * statement resolution will stop altogether and not be performed for the rest of this query.
    *
-   * <p> If parsing, resolution or validations fail while analyzing a statement,
-   * an {@link AnalysisException} will be thrown.
+   * <p>If parsing, resolution or validations fail while analyzing a statement, an {@link
+   * AnalysisException} will be thrown.
    */
   private static class StatementAnalyzer implements Iterator<AnalyzedStatement> {
 
@@ -155,8 +155,8 @@ public class ZetaSQLToolkitAnalyzer {
     private final ParseResumeLocation parseResumeLocation;
     private boolean reachedComplexScriptStatement = false;
 
-    public StatementAnalyzer(String query, CatalogWrapper catalog,
-        AnalyzerOptions analyzerOptions) {
+    public StatementAnalyzer(
+        String query, CatalogWrapper catalog, AnalyzerOptions analyzerOptions) {
       this.query = query;
       this.catalog = catalog;
       this.analyzerOptions = analyzerOptions;
@@ -176,9 +176,9 @@ public class ZetaSQLToolkitAnalyzer {
      * Analyze the next statement in the query, following the steps outlined in this class's
      * javadoc.
      *
-     * @return An {@link AnalyzedStatement} for the next statement of the query. It will include
-     * the parsed statement and, optionally, the resolved statement. See this class's javadoc
-     * to know when a statement is resolved.
+     * @return An {@link AnalyzedStatement} for the next statement of the query. It will include the
+     *     parsed statement and, optionally, the resolved statement. See this class's javadoc to
+     *     know when a statement is resolved.
      */
     @Override
     public AnalyzedStatement next() {
@@ -189,7 +189,8 @@ public class ZetaSQLToolkitAnalyzer {
       this.reachedComplexScriptStatement =
           this.reachedComplexScriptStatement || isComplexScriptStatement(parsedStatement);
 
-      // If the statement is a variable declaration, we need to validate it and create a Constant
+      // If the statement is a variable declaration, we need to validate it and create a
+      // Constant
       // in the catalog
       if (parsedStatement instanceof ASTVariableDeclaration) {
         this.applyVariableDeclaration((ASTVariableDeclaration) parsedStatement);
@@ -206,8 +207,7 @@ public class ZetaSQLToolkitAnalyzer {
         return new AnalyzedStatement(parsedStatement, Optional.empty());
       }
 
-      String rewrittenQuery =
-          StatementRewriter.quoteNamePaths(query, parsedStatement);
+      String rewrittenQuery = StatementRewriter.quoteNamePaths(query, parsedStatement);
       ParseResumeLocation analysisParseResumeLocation = new ParseResumeLocation(rewrittenQuery);
       analysisParseResumeLocation.setBytePosition(startPosition);
 
@@ -249,23 +249,17 @@ public class ZetaSQLToolkitAnalyzer {
     }
 
     private Type parseASTType(ASTType astType) {
-      String typeString = query.substring(
-          astType.getParseLocationRange().start(),
-          astType.getParseLocationRange().end()
-      );
+      String typeString =
+          query.substring(
+              astType.getParseLocationRange().start(), astType.getParseLocationRange().end());
       return ZetaSQLTypeParser.parse(typeString);
     }
 
     private Constant buildConstant(String name, Type type) {
-      SimpleConstantProto proto = SimpleConstantProto.newBuilder()
-          .addNamePath(name)
-          .setType(type.serialize())
-          .build();
+      SimpleConstantProto proto =
+          SimpleConstantProto.newBuilder().addNamePath(name).setType(type.serialize()).build();
 
-      return Constant.deserialize(
-          proto,
-          ImmutableList.of(),
-          TypeFactory.nonUniqueNames());
+      return Constant.deserialize(proto, ImmutableList.of(), TypeFactory.nonUniqueNames());
     }
 
     private void coerceExpressionToType(Type type, ResolvedExpr resolvedExpr) {
@@ -276,20 +270,22 @@ public class ZetaSQLToolkitAnalyzer {
       boolean coerces = this.coercer.coercesTo(expressionType, type, isLiteral, isParameter);
 
       if (!coerces) {
-        String message = String.format(
-            "Cannot coerce expression of type %s to type %s",
-            type, expressionType);
+        String message =
+            String.format("Cannot coerce expression of type %s to type %s", type, expressionType);
         throw new AnalysisException(message);
       }
     }
 
     private void applyVariableDeclaration(ASTVariableDeclaration declaration) {
-      Optional<Type> explicitType = Optional.ofNullable(declaration.getType())
-          .map(this::parseASTType);
+      Optional<Type> explicitType =
+          Optional.ofNullable(declaration.getType()).map(this::parseASTType);
 
-      Optional<ResolvedExpr> defaultValueExpr = Optional.ofNullable(declaration.getDefaultValue())
-          .map(expression -> AnalyzerExtensions.analyzeExpression(
-              query, expression, analyzerOptions, catalog.getZetaSQLCatalog()));
+      Optional<ResolvedExpr> defaultValueExpr =
+          Optional.ofNullable(declaration.getDefaultValue())
+              .map(
+                  expression ->
+                      AnalyzerExtensions.analyzeExpression(
+                          query, expression, analyzerOptions, catalog.getZetaSQLCatalog()));
 
       if (!explicitType.isPresent() && !defaultValueExpr.isPresent()) {
         // Should not happen, since this is enforced by the parser
@@ -303,9 +299,7 @@ public class ZetaSQLToolkitAnalyzer {
 
       Type variableType = explicitType.orElseGet(() -> defaultValueExpr.get().getType());
 
-      declaration.getVariableList()
-          .getIdentifierList()
-          .stream()
+      declaration.getVariableList().getIdentifierList().stream()
           .map(ASTIdentifier::getIdString)
           .map(variableName -> this.buildConstant(variableName, variableType))
           .forEach(catalog::register);
@@ -315,11 +309,13 @@ public class ZetaSQLToolkitAnalyzer {
       String assignmentTarget = singleAssignment.getVariable().getIdString();
       ASTExpression expression = singleAssignment.getExpression();
 
-      ResolvedExpr analyzedExpression = AnalyzerExtensions.analyzeExpression(
-          query, expression, analyzerOptions, catalog.getZetaSQLCatalog());
+      ResolvedExpr analyzedExpression =
+          AnalyzerExtensions.analyzeExpression(
+              query, expression, analyzerOptions, catalog.getZetaSQLCatalog());
 
       try {
-        Constant constant = catalog.getZetaSQLCatalog().findConstant(ImmutableList.of(assignmentTarget));
+        Constant constant =
+            catalog.getZetaSQLCatalog().findConstant(ImmutableList.of(assignmentTarget));
         this.coerceExpressionToType(constant.getType(), analyzedExpression);
       } catch (NotFoundException e) {
         throw new AnalysisException("Undeclared variable: " + assignmentTarget);
@@ -331,48 +327,50 @@ public class ZetaSQLToolkitAnalyzer {
     }
 
     private void validateProcedureAndTVFReferences(ASTStatement parsedStatement) {
-      parsedStatement.accept(new ParseTreeVisitor() {
+      parsedStatement.accept(
+          new ParseTreeVisitor() {
 
-        public void visit(ASTCallStatement callStatement) {
-          List<String> procedureNames = callStatement.getProcedureName().getNames()
-              .stream()
-              .map(ASTIdentifier::getIdString)
-              .collect(Collectors.toList());
+            public void visit(ASTCallStatement callStatement) {
+              List<String> procedureNames =
+                  callStatement.getProcedureName().getNames().stream()
+                      .map(ASTIdentifier::getIdString)
+                      .collect(Collectors.toList());
 
-          if (procedureNames.size() > 1) {
-            String foundProcedureName = procedureNames.stream()
-                .map(name -> "`" + name + "`")
-                .collect(Collectors.joining("."));
-            String expectedProcedureName = "`" + String.join(".", procedureNames) + "`";
+              if (procedureNames.size() > 1) {
+                String foundProcedureName =
+                    procedureNames.stream()
+                        .map(name -> "`" + name + "`")
+                        .collect(Collectors.joining("."));
+                String expectedProcedureName = "`" + String.join(".", procedureNames) + "`";
 
-            String message = String.format(
-                "Procedures in CALL statements should be fully quoted. Expected %s, found %s.",
-                expectedProcedureName, foundProcedureName);
-            throw new AnalysisException(message);
-          }
-        }
+                String message =
+                    String.format(
+                        "Procedures in CALL statements should be fully quoted. Expected %s, found %s.",
+                        expectedProcedureName, foundProcedureName);
+                throw new AnalysisException(message);
+              }
+            }
 
-        public void visit(ASTTVF astTvf) {
-          List<String> tvfNames = astTvf.getName().getNames()
-              .stream()
-              .map(ASTIdentifier::getIdString)
-              .collect(Collectors.toList());
-          if (tvfNames.size() > 1) {
-            String foundTvfName = tvfNames.stream()
-                .map(name -> "`" + name + "`")
-                .collect(Collectors.joining("."));
-            String expectedTvfName = "`" + String.join(".", tvfNames) + "`";
+            public void visit(ASTTVF astTvf) {
+              List<String> tvfNames =
+                  astTvf.getName().getNames().stream()
+                      .map(ASTIdentifier::getIdString)
+                      .collect(Collectors.toList());
+              if (tvfNames.size() > 1) {
+                String foundTvfName =
+                    tvfNames.stream()
+                        .map(name -> "`" + name + "`")
+                        .collect(Collectors.joining("."));
+                String expectedTvfName = "`" + String.join(".", tvfNames) + "`";
 
-            String message = String.format(
-                "TVF calls should be fully quoted. Expected %s, found %s.",
-                expectedTvfName, foundTvfName);
-            throw new AnalysisException(message);
-          }
-        }
-
-      });
+                String message =
+                    String.format(
+                        "TVF calls should be fully quoted. Expected %s, found %s.",
+                        expectedTvfName, foundTvfName);
+                throw new AnalysisException(message);
+              }
+            }
+          });
     }
-
   }
-
 }

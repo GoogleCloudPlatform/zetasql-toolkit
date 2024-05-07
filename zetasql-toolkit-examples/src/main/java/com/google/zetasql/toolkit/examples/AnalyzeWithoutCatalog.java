@@ -18,7 +18,6 @@ package com.google.zetasql.toolkit.examples;
 
 import com.google.zetasql.AnalyzerOptions;
 import com.google.zetasql.LanguageOptions;
-import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
 import com.google.zetasql.toolkit.AnalyzedStatement;
 import com.google.zetasql.toolkit.ZetaSQLToolkitAnalyzer;
 import java.util.Iterator;
@@ -36,7 +35,8 @@ public class AnalyzeWithoutCatalog {
     // LanguageOptions are ZetaSQL's way of customizing the SQL dialect the analyzer accepts.
     // Using LanguageOptions, we can:
     //  * enable or disable language features, such as whether TVFs are accepted
-    //  * enable or disable statement kinds, for example, whether ALTER TABLE statements are allowed
+    //  * enable or disable statement kinds, for example, whether ALTER TABLE statements are
+    // allowed
     // This toolkit includes properly configured LanguageOptions for BigQuery and Cloud Spanner
     LanguageOptions languageOptions = new LanguageOptions().enableMaximumLanguageFeatures();
     languageOptions.setSupportsAllStatementKinds();
@@ -54,7 +54,7 @@ public class AnalyzeWithoutCatalog {
     Iterator<AnalyzedStatement> statementIterator = analyzer.analyzeStatements(query);
 
     // Step 3: Consume the previous iterator and use the ResolvedStatements however you need
-    statementIterator.forEachRemaining(statement ->
-        statement.getResolvedStatement().ifPresent(System.out::println));
+    statementIterator.forEachRemaining(
+        statement -> statement.getResolvedStatement().ifPresent(System.out::println));
   }
 }

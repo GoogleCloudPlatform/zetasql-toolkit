@@ -21,7 +21,6 @@ import com.google.zetasql.StructType;
 import com.google.zetasql.Type;
 import com.google.zetasql.resolvedast.ResolvedColumn;
 import com.google.zetasql.resolvedast.ResolvedNode;
-import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedAnalyticScan;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedArrayScan;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedComputedColumn;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedExpr;
@@ -51,27 +50,27 @@ import java.util.stream.Collectors;
  * statement. Only "terminal" columns are considered to be parents, meaning columns that read
  * directly from a table. Intermediate computed columns in the statement are not considered.
  *
- * <p> Column A being a parent of column B means the content of A is (either directly or indirectly)
- * used to write to B. For example: "SELECT A AS B", "UPDATE ... SET B = UPPER(A)",
- * "INSERT INTO t(B) SELECT something FROM (SELECT A AS something)", etc.
+ * <p>Column A being a parent of column B means the content of A is (either directly or indirectly)
+ * used to write to B. For example: "SELECT A AS B", "UPDATE ... SET B = UPPER(A)", "INSERT INTO
+ * t(B) SELECT something FROM (SELECT A AS something)", etc.
  *
- * <p> The parent columns of an expression E are the terminal parents of all the columns E uses
- * as output. For example, the parents of expression E = "UPPER(A, B)" are A and B. If A or B happen
- * to not be terminal columns, the parents of E are the terminal parents of A and B themselves.
- * Another example; the parents for "IF(condition, trueCase, falseCase)" are all the parents from
- * the trueCase and the falseCase, but not the parents from the condition since the condition
- * is not used as output.
+ * <p>The parent columns of an expression E are the terminal parents of all the columns E uses as
+ * output. For example, the parents of expression E = "UPPER(A, B)" are A and B. If A or B happen to
+ * not be terminal columns, the parents of E are the terminal parents of A and B themselves. Another
+ * example; the parents for "IF(condition, trueCase, falseCase)" are all the parents from the
+ * trueCase and the falseCase, but not the parents from the condition since the condition is not
+ * used as output.
  *
- * <p> Finding parent columns is implemented by traversing the statement the column or expression
+ * <p>Finding parent columns is implemented by traversing the statement the column or expression
  * belongs to. When a {@link ResolvedComputedColumn} node is found; it is registered in the
- * columnsToParents Map, together with its direct parents. After traversal, the columnsToParents
- * map is used to find all terminal parents for the column or expression in question.
+ * columnsToParents Map, together with its direct parents. After traversal, the columnsToParents map
+ * is used to find all terminal parents for the column or expression in question.
  *
- * <p> There's a special case for WITH statements, since each reference to a WITH entry creates
- * a new unique set of {@link ResolvedColumn}s instead of referencing the ones created in the WITH
- * subquery. While traversing the statement, this visitor maintains a stack of the
- * {@link ResolvedWithEntry}s in scope. When visiting a {@link ResolvedWithRefScan} it uses
- * those scopes to correlate the ResolvedWithRefScan columns to their parents in the corresponding
+ * <p>There's a special case for WITH statements, since each reference to a WITH entry creates a new
+ * unique set of {@link ResolvedColumn}s instead of referencing the ones created in the WITH
+ * subquery. While traversing the statement, this visitor maintains a stack of the {@link
+ * ResolvedWithEntry}s in scope. When visiting a {@link ResolvedWithRefScan} it uses those scopes to
+ * correlate the ResolvedWithRefScan columns to their parents in the corresponding
  * ResolvedWithEntry.
  */
 public class ParentColumnFinder extends Visitor {
@@ -115,7 +114,8 @@ public class ParentColumnFinder extends Visitor {
 
   public List<ResolvedColumn> findImpl(ResolvedNode containerNode, ResolvedColumn column) {
     // 1. Traverse the containerNode.
-    // This will populate this.columnsToParents with the ResolvedColumns in the containerNode and
+    // This will populate this.columnsToParents with the ResolvedColumns in the containerNode
+    // and
     // the direct parents for each of them.
     // columnsToParents can be thought of as a tree where the root node is the original
     // ResolvedColumn and the leaves are its terminal parents.
@@ -162,10 +162,7 @@ public class ParentColumnFinder extends Visitor {
   private ResolvedColumn buildColumnSubfield(
       ResolvedColumn column, String fieldName, Type fieldType) {
     return new ResolvedColumn(
-        column.getId(),
-        column.getTableName(),
-        column.getName() + "." + fieldName,
-        fieldType);
+        column.getId(), column.getTableName(), column.getName() + "." + fieldName, fieldType);
   }
 
   private List<ResolvedColumn> expandColumn(ResolvedColumn column) {
@@ -175,8 +172,7 @@ public class ParentColumnFinder extends Visitor {
     Type type = column.getType();
 
     if (type.isStruct()) {
-      type.asStruct().getFieldList()
-          .stream()
+      type.asStruct().getFieldList().stream()
           .map(field -> buildColumnSubfield(column, field.getName(), field.getType()))
           .flatMap(subColumn -> expandColumn(subColumn).stream())
           .forEachOrdered(result::add);
@@ -197,9 +193,10 @@ public class ParentColumnFinder extends Visitor {
     if (expression instanceof ResolvedMakeStruct) {
       expandMakeStruct(column, (ResolvedMakeStruct) expression);
     } else {
-      List<ResolvedColumn> expressionParents = ExpressionParentFinder.findDirectParentsForExpression(expression);
-      columnsBeingComputed.forEach(columnBeingComputed ->
-          addParentsToColumn(columnBeingComputed, expressionParents));
+      List<ResolvedColumn> expressionParents =
+          ExpressionParentFinder.findDirectParentsForExpression(expression);
+      columnsBeingComputed.forEach(
+          columnBeingComputed -> addParentsToColumn(columnBeingComputed, expressionParents));
     }
 
     columnsBeingComputed.pop();
@@ -218,8 +215,8 @@ public class ParentColumnFinder extends Visitor {
       columnsBeingComputed.push(fieldColumn);
       List<ResolvedColumn> expressionParents =
           ExpressionParentFinder.findDirectParentsForExpression(fieldExpression);
-      columnsBeingComputed.forEach(columnBeingComputed ->
-          addParentsToColumn(columnBeingComputed, expressionParents));
+      columnsBeingComputed.forEach(
+          columnBeingComputed -> addParentsToColumn(columnBeingComputed, expressionParents));
       columnsBeingComputed.pop();
 
       if (fieldExpression instanceof ResolvedMakeStruct) {
@@ -262,9 +259,10 @@ public class ParentColumnFinder extends Visitor {
     for (int i = withEntryScopes.size() - 1; i >= 0; i--) {
       List<ResolvedWithEntry> inScopeWithEntries = withEntryScopes.get(i);
 
-      maybeWithEntry = inScopeWithEntries.stream()
-          .filter(withEntry -> withEntry.getWithQueryName().equalsIgnoreCase(name))
-          .findFirst();
+      maybeWithEntry =
+          inScopeWithEntries.stream()
+              .filter(withEntry -> withEntry.getWithQueryName().equalsIgnoreCase(name))
+              .findFirst();
 
       if (maybeWithEntry.isPresent()) {
         break;
@@ -303,9 +301,7 @@ public class ParentColumnFinder extends Visitor {
       for (int j = 0; j < expandedRefScanColumn.size(); j++) {
         addParentToColumn(expandedRefScanColumn.get(j), expandedMatchingWithEntryColumn.get(j));
       }
-
     }
-
   }
 
   public void visit(ResolvedArrayScan arrayScan) {
@@ -326,16 +322,16 @@ public class ParentColumnFinder extends Visitor {
     for (int i = 0; i < generatedColumns.size(); i++) {
       int columnIndex = i;
       ResolvedColumn generatedColumn = generatedColumns.get(columnIndex);
-      List<ResolvedColumn> parentColumns = setOperationItems.stream()
-          .map(ResolvedSetOperationItem::getOutputColumnList)
-          .map(outputColumnList -> outputColumnList.get(columnIndex))
-          .collect(Collectors.toList());
+      List<ResolvedColumn> parentColumns =
+          setOperationItems.stream()
+              .map(ResolvedSetOperationItem::getOutputColumnList)
+              .map(outputColumnList -> outputColumnList.get(columnIndex))
+              .collect(Collectors.toList());
       addParentsToColumn(generatedColumn, parentColumns);
     }
 
     setOperationItems.stream()
         .map(ResolvedSetOperationItem::getScan)
-        .forEach(innerScan ->  innerScan.accept(this));
+        .forEach(innerScan -> innerScan.accept(this));
   }
-
 }

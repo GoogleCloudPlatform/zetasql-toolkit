@@ -27,7 +27,6 @@ import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateScope;
 import com.google.zetasql.toolkit.catalog.CatalogTestUtils;
 import com.google.zetasql.toolkit.catalog.exceptions.CatalogResourceAlreadyExists;
 import com.google.zetasql.toolkit.catalog.spanner.exceptions.InvalidSpannerTableName;
-import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,8 +39,7 @@ public class SpannerCatalogTest {
 
   SpannerCatalog spannerCatalog;
 
-  @Mock
-  SpannerResourceProvider spannerResourceProviderMock;
+  @Mock SpannerResourceProvider spannerResourceProviderMock;
 
   SimpleTable exampleTable =
       new SimpleTable(
@@ -61,8 +59,7 @@ public class SpannerCatalogTest {
 
   @BeforeEach
   void init() {
-    this.spannerCatalog =
-        new SpannerCatalog(spannerResourceProviderMock);
+    this.spannerCatalog = new SpannerCatalog(spannerResourceProviderMock);
   }
 
   private Table assertTableExistsInCatalog(SpannerCatalog catalog, SimpleTable table) {
@@ -74,7 +71,8 @@ public class SpannerCatalogTest {
   private void assertTableDoesNotExistInCatalog(SpannerCatalog catalog, String tableName) {
     SimpleCatalog underlyingCatalog = catalog.getZetaSQLCatalog();
 
-    assertThrows(NotFoundException.class, () -> underlyingCatalog.findTable(ImmutableList.of(tableName)));
+    assertThrows(
+        NotFoundException.class, () -> underlyingCatalog.findTable(ImmutableList.of(tableName)));
   }
 
   @Test
@@ -151,7 +149,8 @@ public class SpannerCatalogTest {
   @Test
   void testAddTablesByName() {
     // When SpannerResourceProvider.getTables() is called, return the test table
-    when(spannerResourceProviderMock.getTables(anyList())).thenReturn(ImmutableList.of(exampleTable));
+    when(spannerResourceProviderMock.getTables(anyList()))
+        .thenReturn(ImmutableList.of(exampleTable));
 
     // Add the tables by name
     spannerCatalog.addTables(ImmutableList.of(exampleTable.getName()));
@@ -170,7 +169,8 @@ public class SpannerCatalogTest {
   @Test
   void testAddAllTablesInDatabase() {
     // When SpannerResourceProvider.getAllTablesInDatabase() is called, return the test table
-    when(spannerResourceProviderMock.getAllTablesInDatabase()).thenReturn(ImmutableList.of(exampleTable));
+    when(spannerResourceProviderMock.getAllTablesInDatabase())
+        .thenReturn(ImmutableList.of(exampleTable));
 
     // Add the tables by name
     spannerCatalog.addAllTablesInDatabase();

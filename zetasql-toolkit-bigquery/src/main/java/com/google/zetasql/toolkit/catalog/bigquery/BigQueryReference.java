@@ -143,5 +143,4 @@ class BigQueryReference {
   public int hashCode() {
     return Objects.hash(projectId.toLowerCase(), datasetId, resourceName);
   }
-
 }

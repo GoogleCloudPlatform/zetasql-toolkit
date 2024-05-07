@@ -39,11 +39,10 @@ import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-/**
- * Implements finding the direct {@link ResolvedColumn} parent of a {@link ResolvedExpr}.
- */
+/** Implements finding the direct {@link ResolvedColumn} parent of a {@link ResolvedExpr}. */
 class ExpressionParentFinder extends Visitor {
   private final Stack<ResolvedColumn> result = new Stack<>();
+
   public static List<ResolvedColumn> findDirectParentsForExpression(ResolvedExpr expression) {
     ExpressionParentFinder extractor = new ExpressionParentFinder();
     expression.accept(extractor);
@@ -76,19 +75,23 @@ class ExpressionParentFinder extends Visitor {
 
     switch (function.getName().toLowerCase()) {
       case "$case_no_value":
-        // Must keep all odd arguments (the WHEN expressions), plus the last one (the ELSE expr)
-        expressionsToVisit = IntStream.range(0, numberOfArguments)
-            .filter(i -> i % 2 == 1 || i == numberOfArguments - 1)
-            .mapToObj(arguments::get)
-            .collect(Collectors.toList());
+        // Must keep all odd arguments (the WHEN expressions), plus the last one (the ELSE
+        // expr)
+        expressionsToVisit =
+            IntStream.range(0, numberOfArguments)
+                .filter(i -> i % 2 == 1 || i == numberOfArguments - 1)
+                .mapToObj(arguments::get)
+                .collect(Collectors.toList());
         break;
       case "$case_with_value":
-        // Must keep all even arguments (the WHEN expressions) but the first one (the CASE value),
+        // Must keep all even arguments (the WHEN expressions) but the first one (the CASE
+        // value),
         // plus the last one (the ELSE expr)
-        expressionsToVisit = IntStream.range(0, numberOfArguments)
-            .filter(i -> (i != 0 && i % 2 == 0) || i == numberOfArguments - 1)
-            .mapToObj(arguments::get)
-            .collect(Collectors.toList());
+        expressionsToVisit =
+            IntStream.range(0, numberOfArguments)
+                .filter(i -> (i != 0 && i % 2 == 0) || i == numberOfArguments - 1)
+                .mapToObj(arguments::get)
+                .collect(Collectors.toList());
         break;
       case "if":
         // Remove the first argument (the condition)
@@ -128,32 +131,41 @@ class ExpressionParentFinder extends Visitor {
     String accessedFieldName = structExpressionType.getField(accessedFieldIndex).getName();
 
     if (structExpression instanceof ResolvedMakeStruct) {
-      // If the user made a STRUCT and immediately accessed a field in it, only consider the parent
+      // If the user made a STRUCT and immediately accessed a field in it, only consider the
+      // parent
       // columns of the corresponding field.
       ResolvedMakeStruct makeStructExpression = (ResolvedMakeStruct) structExpression;
       StructType makeStructExpressionType = makeStructExpression.getType().asStruct();
       int numberOfFields = makeStructExpressionType.getFieldCount();
 
-      int fieldIndex = IntStream.range(0, numberOfFields)
-          .filter(index ->
-              makeStructExpressionType.getField(index).getName().equals(accessedFieldName))
-          .findFirst()
-          .orElseThrow(() -> new IllegalArgumentException(
-              "Field " + accessedFieldName + " does not exist in STRUCT of type: "
-                  + makeStructExpressionType));
+      int fieldIndex =
+          IntStream.range(0, numberOfFields)
+              .filter(
+                  index ->
+                      makeStructExpressionType.getField(index).getName().equals(accessedFieldName))
+              .findFirst()
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException(
+                          "Field "
+                              + accessedFieldName
+                              + " does not exist in STRUCT of type: "
+                              + makeStructExpressionType));
       ResolvedExpr fieldExpression = makeStructExpression.getFieldList().get(fieldIndex);
 
-      List<ResolvedColumn> parentColumns = ExpressionParentFinder.findDirectParentsForExpression(fieldExpression);
+      List<ResolvedColumn> parentColumns =
+          ExpressionParentFinder.findDirectParentsForExpression(fieldExpression);
       parentColumns.forEach(result::push);
     } else {
       structExpression.accept(this);
 
       ResolvedColumn structColumn = result.pop();
-      ResolvedColumn parentColumn = new ResolvedColumn(
-          structColumn.getId(),
-          structColumn.getTableName(),
-          structColumn.getName() + "." + accessedFieldName,
-          getStructField.getType());
+      ResolvedColumn parentColumn =
+          new ResolvedColumn(
+              structColumn.getId(),
+              structColumn.getTableName(),
+              structColumn.getName() + "." + accessedFieldName,
+              getStructField.getType());
       this.result.push(parentColumn);
     }
   }
@@ -163,5 +175,4 @@ class ExpressionParentFinder extends Visitor {
   }
 
   private ExpressionParentFinder() {}
-
 }

@@ -74,7 +74,10 @@ class CatalogOperationsTest {
     CatalogOperations.createTableInCatalog(
         this.testCatalog, newTable.getFullName(), newTable, CreateMode.CREATE_DEFAULT);
 
-    assertTableExists(this.testCatalog, ImmutableList.of("qualified.newTable"), "Expected created table to exist");
+    assertTableExists(
+        this.testCatalog,
+        ImmutableList.of("qualified.newTable"),
+        "Expected created table to exist");
   }
 
   @Test
@@ -83,9 +86,7 @@ class CatalogOperationsTest {
     CatalogOperations.deleteTableFromCatalog(this.testCatalog, "sample");
 
     assertTableDoesNotExist(
-        this.testCatalog, ImmutableList.of("sample"),
-        "Expected table to have been deleted");
-
+        this.testCatalog, ImmutableList.of("sample"), "Expected table to have been deleted");
   }
 
   @Test
@@ -115,12 +116,12 @@ class CatalogOperationsTest {
                 new SimpleColumn(
                     tableName, "column", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))));
 
-
     CatalogOperations.createTableInCatalog(
         this.testCatalog, newTable.getFullName(), newTable, CreateMode.CREATE_OR_REPLACE);
 
-    Table foundTable = assertTableExists(
-        this.testCatalog, ImmutableList.of("sample"), "Expected replaced table to exist");
+    Table foundTable =
+        assertTableExists(
+            this.testCatalog, ImmutableList.of("sample"), "Expected replaced table to exist");
 
     assertEquals(
         foundTable.getColumn(0).getType(),
@@ -171,9 +172,7 @@ class CatalogOperationsTest {
         this.testCatalog, newTable.getFullName(), newTable, CreateMode.CREATE_IF_NOT_EXISTS);
 
     assertTableExists(
-        this.testCatalog,
-        ImmutableList.of("newTable"),
-        "Expected table to have been created");
+        this.testCatalog, ImmutableList.of("newTable"), "Expected table to have been created");
   }
 
   private Function assertFunctionExists(SimpleCatalog catalog, String fullName, String message) {
@@ -209,7 +208,6 @@ class CatalogOperationsTest {
 
     assertFunctionExists(
         this.testCatalog, "UDF:qualified.newFunction", "Expected created function to exist");
-
   }
 
   @Test
@@ -233,10 +231,7 @@ class CatalogOperationsTest {
     CatalogOperations.deleteFunctionFromCatalog(this.testCatalog, "qualified.newFunction");
 
     assertFunctionDoesNotExist(
-        this.testCatalog,
-        "UDF:qualified.newFunction",
-        "Expected function to have been deleted");
-
+        this.testCatalog, "UDF:qualified.newFunction", "Expected function to have been deleted");
   }
 
   private TableValuedFunction assertTVFExists(SimpleCatalog catalog, String name, String message) {
@@ -275,18 +270,19 @@ class CatalogOperationsTest {
 
   @Test
   void testDeleteTVFFromCatalog() {
-    TVFInfo tvf = TVFInfo.newBuilder()
-        .setNamePath(ImmutableList.of("qualified.newTVF"))
-        .setSignature(
-            new FunctionSignature(
-                new FunctionArgumentType(
-                    ZetaSQLFunctions.SignatureArgumentKind.ARG_TYPE_RELATION),
-                ImmutableList.of(),
-                -1))
-        .setOutputSchema(
-            TVFRelation.createValueTableBased(
-                TypeFactory.createSimpleType(TypeKind.TYPE_STRING)))
-        .build();
+    TVFInfo tvf =
+        TVFInfo.newBuilder()
+            .setNamePath(ImmutableList.of("qualified.newTVF"))
+            .setSignature(
+                new FunctionSignature(
+                    new FunctionArgumentType(
+                        ZetaSQLFunctions.SignatureArgumentKind.ARG_TYPE_RELATION),
+                    ImmutableList.of(),
+                    -1))
+            .setOutputSchema(
+                TVFRelation.createValueTableBased(
+                    TypeFactory.createSimpleType(TypeKind.TYPE_STRING)))
+            .build();
 
     CatalogOperations.createTVFInCatalog(
         this.testCatalog, "qualified.newTVF", tvf, CreateMode.CREATE_DEFAULT);
@@ -355,9 +351,7 @@ class CatalogOperationsTest {
                 this.testCatalog, procedurePath1, "Expected procedure to have been deleted"),
         () ->
             assertProcedureDoesNotExist(
-                this.testCatalog,
-                procedurePath2,
-                "Expected procedure to have been deleted"));
+                this.testCatalog, procedurePath2, "Expected procedure to have been deleted"));
   }
 
   @Test

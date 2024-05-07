@@ -35,7 +35,6 @@ import com.google.zetasql.toolkit.catalog.CatalogTestUtils;
 import com.google.zetasql.toolkit.catalog.CatalogWrapper;
 import com.google.zetasql.toolkit.catalog.FunctionInfo;
 import com.google.zetasql.toolkit.catalog.TVFInfo;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -119,7 +118,9 @@ public class CatalogUpdaterVisitorTest {
                         .build()))
             .setOutputColumnList(ImmutableList.of(resolvedOutputColumn))
             .setQuery(
-                ResolvedSingleRowScan.builder().setColumnList(ImmutableList.of(resolvedColumn)).build())
+                ResolvedSingleRowScan.builder()
+                    .setColumnList(ImmutableList.of(resolvedColumn))
+                    .build())
             .setIsValueTable(false)
             .build();
 
@@ -175,7 +176,9 @@ public class CatalogUpdaterVisitorTest {
             .setCreateMode(CreateMode.CREATE_DEFAULT)
             .setOutputColumnList(ImmutableList.of(resolvedOutputColumn))
             .setQuery(
-                ResolvedSingleRowScan.builder().setColumnList(ImmutableList.of(resolvedColumn)).build())
+                ResolvedSingleRowScan.builder()
+                    .setColumnList(ImmutableList.of(resolvedColumn))
+                    .build())
             .setIsValueTable(false)
             .setHasExplicitColumns(true)
             .setRecursive(false)
@@ -206,7 +209,9 @@ public class CatalogUpdaterVisitorTest {
             .setCreateMode(CreateMode.CREATE_DEFAULT)
             .setOutputColumnList(ImmutableList.of(resolvedOutputColumn))
             .setQuery(
-                ResolvedSingleRowScan.builder().setColumnList(ImmutableList.of(resolvedColumn)).build())
+                ResolvedSingleRowScan.builder()
+                    .setColumnList(ImmutableList.of(resolvedColumn))
+                    .build())
             .setIsValueTable(false)
             .setHasExplicitColumns(true)
             .setRecursive(false)
@@ -227,7 +232,8 @@ public class CatalogUpdaterVisitorTest {
     FunctionSignature signature =
         new FunctionSignature(
             new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_STRING)),
-            ImmutableList.of(new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_INT64))),
+            ImmutableList.of(
+                new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_INT64))),
             -1);
 
     Function expectedFunction =
@@ -269,12 +275,14 @@ public class CatalogUpdaterVisitorTest {
     FunctionSignature signature =
         new FunctionSignature(
             new FunctionArgumentType(SignatureArgumentKind.ARG_TYPE_RELATION),
-            ImmutableList.of(new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_INT64))),
+            ImmutableList.of(
+                new FunctionArgumentType(TypeFactory.createSimpleType(TypeKind.TYPE_INT64))),
             -1);
 
     TVFRelation tvfOutputSchema =
         TVFRelation.createColumnBased(
-            ImmutableList.of(Column.create("output", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
+            ImmutableList.of(
+                Column.create("output", TypeFactory.createSimpleType(TypeKind.TYPE_STRING))));
 
     TVFInfo expectedFunction =
         TVFInfo.newBuilder()

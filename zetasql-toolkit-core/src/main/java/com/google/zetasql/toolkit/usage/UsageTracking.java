@@ -41,7 +41,8 @@ public class UsageTracking {
         properties.load(propertiesInputStream);
         revision = properties.getProperty("zetasql.toolkit.version", "UNSET");
       }
-    } catch (IOException ignored) {}
+    } catch (IOException ignored) {
+    }
 
     CURRENT_REVISION = revision;
     USER_AGENT_VALUE = String.format("google-pso-tool/zetasql-helper/%s", revision);

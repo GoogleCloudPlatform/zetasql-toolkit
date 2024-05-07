@@ -68,8 +68,7 @@ public class ZetaSQLToolkitTest {
 
   @Test
   void testTableDDL() {
-    String query = "CREATE TEMP TABLE t AS (SELECT 1 AS column);\n"
-        + "SELECT * FROM t;";
+    String query = "CREATE TEMP TABLE t AS (SELECT 1 AS column);\n" + "SELECT * FROM t;";
     SimpleCatalog catalog = new SimpleCatalog("catalog");
 
     Iterator<AnalyzedStatement> statementIterator =
@@ -83,8 +82,7 @@ public class ZetaSQLToolkitTest {
     assertAll(
         () -> assertEquals("t", table.getName()),
         () -> assertEquals(1, table.getColumnList().size()),
-        () -> assertEquals("column", table.getColumnList().get(0).getName())
-    );
+        () -> assertEquals("column", table.getColumnList().get(0).getName()));
 
     // Just check that the second statement was analyzed successfully
     AnalyzedStatement second = statementIterator.next();
@@ -94,8 +92,7 @@ public class ZetaSQLToolkitTest {
 
   @Test
   void testVariableDeclaration() {
-    String query = "DECLARE x INT64 DEFAULT 1;\n"
-        + "SELECT x;";
+    String query = "DECLARE x INT64 DEFAULT 1;\n" + "SELECT x;";
     SimpleCatalog catalog = new SimpleCatalog("catalog");
 
     Iterator<AnalyzedStatement> statementIterator =
@@ -131,11 +128,9 @@ public class ZetaSQLToolkitTest {
     assertThrows(AnalysisException.class, statementIterator::next);
 
     // Invalid type for SET statement
-    query = "DECLARE x INT64;\n"
-      + "SET x = 'ASD';";
+    query = "DECLARE x INT64;\n" + "SET x = 'ASD';";
     statementIterator = this.analyzer.analyzeStatements(query);
     statementIterator.next();
     assertThrows(AnalysisException.class, statementIterator::next);
   }
-
 }

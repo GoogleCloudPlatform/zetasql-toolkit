@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.zetasql.Table;
 import com.google.zetasql.Type;
 import com.google.zetasql.resolvedast.ResolvedColumn;
-import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedQueryStmt;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedColumnRef;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedCreateTableAsSelectStmt;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedCreateViewBase;
@@ -32,6 +31,7 @@ import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedInsertStmt;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedMergeStmt;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedMergeWhen;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedOutputColumn;
+import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedQueryStmt;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedScan;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedStatement;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedUpdateItem;
@@ -47,15 +47,16 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * Implements extraction of column-level lineage from ZetaSQL {@link ResolvedStatement}s.
- * Supported statements:
+ * Implements extraction of column-level lineage from ZetaSQL {@link ResolvedStatement}s. Supported
+ * statements:
+ *
  * <ul>
- *   <li> SELECT
- *   <li> CREATE TABLE AS SELECT
- *   <li> CREATE [MATERIALIZED] VIEW AS SELECT
- *   <li> INSERT
- *   <li> UPDATE
- *   <li> MERGE
+ *   <li>SELECT
+ *   <li>CREATE TABLE AS SELECT
+ *   <li>CREATE [MATERIALIZED] VIEW AS SELECT
+ *   <li>INSERT
+ *   <li>UPDATE
+ *   <li>MERGE
  * </ul>
  */
 public class ColumnLineageExtractor {
@@ -63,10 +64,8 @@ public class ColumnLineageExtractor {
   private static ColumnLineage buildColumnLineage(
       String targetTableName, String targetColumnName, Collection<ResolvedColumn> parentColumns) {
     ColumnEntity target = new ColumnEntity(targetTableName, targetColumnName);
-    Set<ColumnEntity> parents = parentColumns
-        .stream()
-        .map(ColumnEntity::forResolvedColumn)
-        .collect(Collectors.toSet());
+    Set<ColumnEntity> parents =
+        parentColumns.stream().map(ColumnEntity::forResolvedColumn).collect(Collectors.toSet());
     return new ColumnLineage(target, parents);
   }
 
@@ -75,8 +74,7 @@ public class ColumnLineageExtractor {
     Type type = column.getType();
 
     if (type.isStruct()) {
-      return type.asStruct().getFieldList()
-          .stream()
+      return type.asStruct().getFieldList().stream()
           .map(field -> buildColumnSubfield(column, field.getName(), field.getType()))
           .map(ColumnLineageExtractor::expandColumn)
           .flatMap(List::stream)
@@ -87,8 +85,8 @@ public class ColumnLineageExtractor {
   }
 
   /**
-   * Extracts the column-level lineage entries for a set of {@link ResolvedOutputColumn}s,
-   * given the {@link ResolvedStatement} they belong to.
+   * Extracts the column-level lineage entries for a set of {@link ResolvedOutputColumn}s, given the
+   * {@link ResolvedStatement} they belong to.
    *
    * @param targetTableName The name of the table the output columns write to
    * @param outputColumns The output columns to find lineage for
@@ -115,7 +113,6 @@ public class ColumnLineageExtractor {
     }
 
     return result;
-
   }
 
   /**
@@ -147,8 +144,7 @@ public class ColumnLineageExtractor {
 
     List<ResolvedOutputColumn> outputColumns = createViewBase.getOutputColumnList();
 
-    return extractColumnLevelLineageForOutputColumns(
-        fullViewName, outputColumns, createViewBase);
+    return extractColumnLevelLineageForOutputColumns(fullViewName, outputColumns, createViewBase);
   }
 
   /**
@@ -179,23 +175,28 @@ public class ColumnLineageExtractor {
 
     Table targetTable = insertStmt.getTableScan().getTable();
     ResolvedScan query = insertStmt.getQuery();
-    List<ResolvedColumn> insertedColumns = insertStmt.getInsertColumnList()
-        .stream()
-        .map(ColumnLineageExtractor::expandColumn)
-        .flatMap(List::stream)
-        .collect(Collectors.toList());
-    List<ResolvedColumn> matchingColumnsInQuery = query.getColumnList()
-        .stream()
-        .map(ColumnLineageExtractor::expandColumn)
-        .flatMap(List::stream)
-        .collect(Collectors.toList());
+    List<ResolvedColumn> insertedColumns =
+        insertStmt.getInsertColumnList().stream()
+            .map(ColumnLineageExtractor::expandColumn)
+            .flatMap(List::stream)
+            .collect(Collectors.toList());
+    List<ResolvedColumn> matchingColumnsInQuery =
+        query.getColumnList().stream()
+            .map(ColumnLineageExtractor::expandColumn)
+            .flatMap(List::stream)
+            .collect(Collectors.toList());
 
     return IntStream.range(0, insertedColumns.size())
-        .mapToObj(index -> new SimpleEntry<>(
-            insertedColumns.get(index),
-            ParentColumnFinder.findParentsForColumn(insertStmt, matchingColumnsInQuery.get(index))))
-        .map(entry -> buildColumnLineage(
-            targetTable.getFullName(), entry.getKey().getName(), entry.getValue()))
+        .mapToObj(
+            index ->
+                new SimpleEntry<>(
+                    insertedColumns.get(index),
+                    ParentColumnFinder.findParentsForColumn(
+                        insertStmt, matchingColumnsInQuery.get(index))))
+        .map(
+            entry ->
+                buildColumnLineage(
+                    targetTable.getFullName(), entry.getKey().getName(), entry.getValue()))
         .collect(Collectors.toSet());
   }
 
@@ -203,10 +204,7 @@ public class ColumnLineageExtractor {
   private static ResolvedColumn buildColumnSubfield(
       ResolvedColumn column, String fieldName, Type fieldType) {
     return new ResolvedColumn(
-        column.getId(),
-        column.getTableName(),
-        column.getName() + "." + fieldName,
-        fieldType);
+        column.getId(), column.getTableName(), column.getName() + "." + fieldName, fieldType);
   }
 
   private static Optional<ResolvedColumn> resolveUpdateItemTarget(ResolvedExpr updateTarget) {
@@ -216,11 +214,8 @@ public class ColumnLineageExtractor {
     } else if (updateTarget instanceof ResolvedGetStructField) {
       ResolvedGetStructField getStructField = (ResolvedGetStructField) updateTarget;
       int structFieldIdx = (int) getStructField.getFieldIdx();
-      String fieldName = getStructField.getExpr()
-          .getType()
-          .asStruct()
-          .getField(structFieldIdx)
-          .getName();
+      String fieldName =
+          getStructField.getExpr().getType().asStruct().getField(structFieldIdx).getName();
       return resolveUpdateItemTarget(getStructField.getExpr())
           .map(target -> buildColumnSubfield(target, fieldName, getStructField.getType()));
     }
@@ -234,15 +229,13 @@ public class ColumnLineageExtractor {
    *
    * @param targetTable The {@link Table} this update item writes to
    * @param updateItem The ResolvedUpdateItem to return lineage for
-   * @param originalStatement The {@link ResolvedStatement} the update item belongs to. Used
-   *    *  to resolve the parent columns of the update expression.
+   * @param originalStatement The {@link ResolvedStatement} the update item belongs to. Used * to
+   *     resolve the parent columns of the update expression.
    * @return An optional instance of {@link ColumnLineage}, empty if the update item assigns to
-   *  something other than a column directly.
+   *     something other than a column directly.
    */
   private static Optional<ColumnLineage> extractColumnLevelLineageForUpdateItem(
-      Table targetTable,
-      ResolvedUpdateItem updateItem,
-      ResolvedStatement originalStatement) {
+      Table targetTable, ResolvedUpdateItem updateItem, ResolvedStatement originalStatement) {
 
     ResolvedExpr targetExpression = updateItem.getTarget();
     ResolvedExpr updateExpression = updateItem.getSetValue().getValue();
@@ -258,8 +251,8 @@ public class ColumnLineageExtractor {
     List<ResolvedColumn> parents =
         ParentColumnFinder.findParentsForExpression(originalStatement, updateExpression);
 
-    ColumnLineage result = buildColumnLineage(
-        targetTable.getFullName(), targetColumn.getName(), parents);
+    ColumnLineage result =
+        buildColumnLineage(targetTable.getFullName(), targetColumn.getName(), parents);
 
     return Optional.of(result);
   }
@@ -275,8 +268,9 @@ public class ColumnLineageExtractor {
     List<ResolvedUpdateItem> updateItems = updateStmt.getUpdateItemList();
 
     return updateItems.stream()
-        .map(updateItem ->
-            extractColumnLevelLineageForUpdateItem(targetTable, updateItem, updateStmt))
+        .map(
+            updateItem ->
+                extractColumnLevelLineageForUpdateItem(targetTable, updateItem, updateStmt))
         .filter(Optional::isPresent)
         .map(Optional::get)
         .collect(Collectors.toSet());
@@ -289,13 +283,11 @@ public class ColumnLineageExtractor {
    * @param targetTable The {@link Table} this merge statement item writes to.
    * @param mergeWhen The ResolvedMergeWhen to return lineage for.
    * @param originalStatement The {@link ResolvedMergeStmt} the ResolvedMergeWhen belongs to. Used
-   *  to resolve the lineage of the INSERT/UPDATE operations the ResolvedMergeWhen contains.
+   *     to resolve the lineage of the INSERT/UPDATE operations the ResolvedMergeWhen contains.
    * @return The set of resulting {@link ColumnLineage} objects.
    */
   private static Set<ColumnLineage> extractColumnLevelLineage(
-      Table targetTable,
-      ResolvedMergeWhen mergeWhen,
-      ResolvedMergeStmt originalStatement) {
+      Table targetTable, ResolvedMergeWhen mergeWhen, ResolvedMergeStmt originalStatement) {
 
     List<ResolvedColumn> insertedColumns = mergeWhen.getInsertColumnList();
     ResolvedInsertRow insertRow = mergeWhen.getInsertRow();
@@ -304,20 +296,28 @@ public class ColumnLineageExtractor {
     if (Objects.nonNull(insertRow)) {
       // WHEN ... THEN INSERT
       return IntStream.range(0, insertedColumns.size())
-          .mapToObj(index -> new SimpleEntry<>(
-              insertedColumns.get(index),
-              insertRow.getValueList().get(index).getValue()))
-          .map(entry -> new SimpleEntry<>(
-              entry.getKey(),
-              ParentColumnFinder.findParentsForExpression(originalStatement, entry.getValue())))
-          .map(entry -> buildColumnLineage(
-              targetTable.getFullName(), entry.getKey().getName(), entry.getValue()))
+          .mapToObj(
+              index ->
+                  new SimpleEntry<>(
+                      insertedColumns.get(index), insertRow.getValueList().get(index).getValue()))
+          .map(
+              entry ->
+                  new SimpleEntry<>(
+                      entry.getKey(),
+                      ParentColumnFinder.findParentsForExpression(
+                          originalStatement, entry.getValue())))
+          .map(
+              entry ->
+                  buildColumnLineage(
+                      targetTable.getFullName(), entry.getKey().getName(), entry.getValue()))
           .collect(Collectors.toSet());
     } else if (Objects.nonNull(updateItems)) {
       // WHEN ... THEN UPDATE
       return updateItems.stream()
-          .map(updateItem ->
-              extractColumnLevelLineageForUpdateItem(targetTable, updateItem, originalStatement))
+          .map(
+              updateItem ->
+                  extractColumnLevelLineageForUpdateItem(
+                      targetTable, updateItem, originalStatement))
           .filter(Optional::isPresent)
           .map(Optional::get)
           .collect(Collectors.toSet());
@@ -335,11 +335,9 @@ public class ColumnLineageExtractor {
   public static Set<ColumnLineage> extractColumnLevelLineage(ResolvedMergeStmt mergeStmt) {
     Table targetTable = mergeStmt.getTableScan().getTable();
 
-    return mergeStmt.getWhenClauseList()
-        .stream()
+    return mergeStmt.getWhenClauseList().stream()
         .map(mergeWhen -> extractColumnLevelLineage(targetTable, mergeWhen, mergeStmt))
         .flatMap(Set::stream)
         .collect(Collectors.toSet());
   }
-
 }
