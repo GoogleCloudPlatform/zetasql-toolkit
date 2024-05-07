@@ -19,5 +19,7 @@ updates:
   schedule:
     interval: daily
   ignore:
+    # Ignore dependencies which no longer support JDK 8 in their latest release
     - dependency-name: org.mockito:*
     - dependency-name: com.diffplug.spotless:*
+    - dependency-name: org.antlr:*
