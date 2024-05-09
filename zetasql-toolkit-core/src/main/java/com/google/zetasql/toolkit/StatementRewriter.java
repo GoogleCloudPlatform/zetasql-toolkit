@@ -142,19 +142,22 @@ public class StatementRewriter {
     int rewritingOffset = 0;
     int previousRewriteTo = -1;
     for (Rewrite rewrite : sortedRewrites) {
-      if (rewrite.to <= previousRewriteTo) {
+      if (rewrite.to < previousRewriteTo) {
         throw new IllegalArgumentException("Found overlapping rewrites when applying");
       }
-
-      String replacedString = query.substring(rewrite.from, rewrite.to);
 
       int rewriteStartPosition = rewrite.from + rewritingOffset;
       int rewriteEndPosition = rewrite.to + rewritingOffset;
 
-      builder.replace(rewriteStartPosition, rewriteEndPosition, rewrite.content);
-
-      rewritingOffset += (rewrite.content.length() - replacedString.length());
-      previousRewriteTo = rewrite.to;
+      String replacedString = "";
+      if (rewrite.from == query.length()) {
+        builder.append(rewrite.content);
+      } else {
+        builder.replace(rewriteStartPosition, rewriteEndPosition, rewrite.content);
+        replacedString = query.substring(rewrite.from, rewrite.to);
+        rewritingOffset += (rewrite.content.length() - replacedString.length());
+        previousRewriteTo = rewrite.to;
+      }
     }
 
     return builder.toString();
@@ -192,10 +195,7 @@ public class StatementRewriter {
    * @return The fully quoted representation of the path expression
    */
   private static String buildQuotedNamePath(ASTPathExpression pathExpression) {
-    String fullName =
-        pathExpression.getNames().stream()
-            .map(ASTIdentifier::getIdString)
-            .collect(Collectors.joining("."));
+    String fullName = ParseTreeUtils.pathExpressionToString(pathExpression);
     return "`" + fullName + "`";
   }
 
