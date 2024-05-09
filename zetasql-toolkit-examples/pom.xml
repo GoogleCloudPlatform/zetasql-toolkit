@@ -62,6 +62,7 @@
         <configuration>
           <container>
             <mainClass>${container.mainClass}</mainClass>
+            <expandClasspathDependencies>true</expandClasspathDependencies>
           </container>
         </configuration>
       </plugin>
