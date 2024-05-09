@@ -83,7 +83,7 @@
     <!-- Plugin versions -->
     <maven.source.plugin.version>3.3.1</maven.source.plugin.version>
     <maven.javadoc.plugin.version>3.6.3</maven.javadoc.plugin.version>
-    <maven.gpg.plugin.version>3.1.0</maven.gpg.plugin.version>
+    <maven.gpg.plugin.version>3.2.4</maven.gpg.plugin.version>
     <maven.surefire.version>3.2.5</maven.surefire.version>
     <spotless.version>2.30.0</spotless.version>
   </properties>
