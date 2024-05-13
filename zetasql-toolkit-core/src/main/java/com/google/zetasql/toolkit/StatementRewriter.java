@@ -93,6 +93,7 @@ import com.google.zetasql.parser.ParseTreeVisitor;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -172,7 +173,10 @@ class StatementRewriter {
         new ParseTreeVisitor() {
 
           public void visit(ASTTablePathExpression node) {
-            result.add(node.getPathExpr());
+            if (Objects.nonNull(node.getPathExpr())) {
+              result.add(node.getPathExpr());
+            }
+            super.visit(node);
           }
 
           public void visit(ASTFunctionCall node) {
