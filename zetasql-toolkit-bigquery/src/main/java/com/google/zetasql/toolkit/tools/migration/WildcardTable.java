@@ -32,14 +32,14 @@ import java.util.regex.Pattern;
 /**
  * Represents a wildcard table that was referenced in a query.
  *
- * <p> This assumes that all wildcard table names follow the pattern "table_name_YYYYMMDD" and that
+ * <p>This assumes that all wildcard table names follow the pattern "table_name_YYYYMMDD" and that
  * references to a wildcard table in a query will match one of these patterns:
  *
  * <ul>
- *   <li> `[project].dataset.table_name_*`
- *   <li> `[project].dataset.table_name_YYYY*`
- *   <li> `[project].dataset.table_name_YYYYMM*`
- *   <li> `[project].dataset.table_name_YYYYMMDD`
+ *   <li>`[project].dataset.table_name_*`
+ *   <li>`[project].dataset.table_name_YYYY*`
+ *   <li>`[project].dataset.table_name_YYYYMM*`
+ *   <li>`[project].dataset.table_name_YYYYMMDD`
  * </ul>
  */
 class WildcardTable {
@@ -47,27 +47,21 @@ class WildcardTable {
   /**
    * The full name of the table, with the wildcard prefix removed.
    *
-   * <p> E.g. "p.d.table_*" and "p.d.table_20240517" both have the prefix "p.d.table".
+   * <p>E.g. "p.d.table_*" and "p.d.table_20240517" both have the prefix "p.d.table".
    */
   public final String fullNamePrefix;
-  /**
-   * The {@link Type} of this wildcard table.
-   */
+  /** The {@link Type} of this wildcard table. */
   public final Type type;
   /**
    * The concrete filter used at the end of the wildcard table.
    *
-   * <p> E.g. "p.d.table_20240517" has the concreteFilter "20240517". "p.d.table_202405*" has
+   * <p>E.g. "p.d.table_20240517" has the concreteFilter "20240517". "p.d.table_202405*" has
    * "202405".
    */
   public final String concreteFilter;
-  /**
-   * The {@link ASTPathExpression} that references this table.
-   */
+  /** The {@link ASTPathExpression} that references this table. */
   public final ASTPathExpression parseTreeNode;
-  /**
-   * Optionally, the alias this table was given when referenced.
-   */
+  /** Optionally, the alias this table was given when referenced. */
   public final Optional<String> alias;
 
   /** Use {@link #tryBuild(String, ASTTablePathExpression)} */
@@ -89,23 +83,24 @@ class WildcardTable {
   }
 
   /**
-   * Returns a filter expression using the partition column that has the same filtering effect
-   * this wildcard reference did. This filter expression should be added to the query's WHERE
-   * clause. Returns an empty optional if no filter should be added.
+   * Returns a filter expression using the partition column that has the same filtering effect this
+   * wildcard reference did. This filter expression should be added to the query's WHERE clause.
+   * Returns an empty optional if no filter should be added.
    *
-   * <p> E.g. the wildcard table "p.d.table_20240517" will add the filter expression
+   * <p>E.g. the wildcard table "p.d.table_20240517" will add the filter expression
    * "DATE([PARTITION_COLUMN]) = '2024-05-17'".
    *
    * @param partitionColumnName the name of the partition column for this table
    * @return The filter expression that should be added to the query's WHERE clause, an empty
-   *  optional if no filter should be added.
+   *     optional if no filter should be added.
    */
   public Optional<String> getEquivalentWhereFilter(String partitionColumnName) {
     Objects.requireNonNull(partitionColumnName);
 
-    String dateColumn = this.alias
-        .map(alias -> String.format("DATE(%s.%s)", alias, partitionColumnName))
-        .orElse(String.format("DATE(%s)", partitionColumnName));
+    String dateColumn =
+        this.alias
+            .map(alias -> String.format("DATE(%s.%s)", alias, partitionColumnName))
+            .orElse(String.format("DATE(%s)", partitionColumnName));
 
     String filter = null;
 
@@ -124,14 +119,10 @@ class WildcardTable {
         }
         break;
       case WILDCARD_DAY:
-        filter = String.format(
-            "FORMAT_DATE('%%Y%%m', %s) = '%s'",
-            dateColumn, this.concreteFilter);
+        filter = String.format("FORMAT_DATE('%%Y%%m', %s) = '%s'", dateColumn, this.concreteFilter);
         break;
       case WILDCARD_MONTH_DAY:
-        filter = String.format(
-            "FORMAT_DATE('%%Y', %s) = '%s'",
-            dateColumn, this.concreteFilter);
+        filter = String.format("FORMAT_DATE('%%Y', %s) = '%s'", dateColumn, this.concreteFilter);
         break;
       case WILDCARD_DATE:
         break;
@@ -141,22 +132,23 @@ class WildcardTable {
   }
 
   /**
-   * Returns an expression using the partition column that's equivalent what _TABLE_SUFFIX would
-   * be in this wildcard table.
+   * Returns an expression using the partition column that's equivalent what _TABLE_SUFFIX would be
+   * in this wildcard table.
    *
-   * <p> E.g. the wildcard table "p.d.table_*" will return the expression
-   *  FORMAT_DATE('%Y%m%d', [PARTITION_COLUMN]).
+   * <p>E.g. the wildcard table "p.d.table_*" will return the expression FORMAT_DATE('%Y%m%d',
+   * [PARTITION_COLUMN]).
    *
    * @param partitionColumnName the name of the partition column for this table
-   * @return an expression using the partition column that's equivalent to what _TABLE_SUFFIX
-   *  would be in this wildcard table.
+   * @return an expression using the partition column that's equivalent to what _TABLE_SUFFIX would
+   *     be in this wildcard table.
    */
   public String getTableSuffixEquivalent(String partitionColumnName) {
     Objects.requireNonNull(partitionColumnName);
 
-    String dateColumn = this.alias
-        .map(alias -> String.format("DATE(%s.%s)", alias, partitionColumnName))
-        .orElse(String.format("DATE(%s)", partitionColumnName));
+    String dateColumn =
+        this.alias
+            .map(alias -> String.format("DATE(%s.%s)", alias, partitionColumnName))
+            .orElse(String.format("DATE(%s)", partitionColumnName));
 
     String dateFormat = null;
 
@@ -178,28 +170,28 @@ class WildcardTable {
   }
 
   /**
-   * Tries to build a WildcardTable based on an {@link ASTTablePathExpression} referencing it
-   * and the GCP project id the query would be run on. Returns an empty optional if this isn't a
+   * Tries to build a WildcardTable based on an {@link ASTTablePathExpression} referencing it and
+   * the GCP project id the query would be run on. Returns an empty optional if this isn't a
    * reference to a wildcard table.
    *
    * @param projectId the GCP project id the query would be run on
    * @param tablePathExpression the ASTTablePathExpression which potentially references a wildcard
-   *  table
+   *     table
    * @return The built WildCardTable, an empty optional if this isn't a reference to a wildcard
-   *  table
+   *     table
    */
   public static Optional<WildcardTable> tryBuild(
       String projectId, ASTTablePathExpression tablePathExpression) {
     ASTPathExpression pathExpression = tablePathExpression.getPathExpr();
 
-    Optional<BigQueryReference> maybeBigQueryReference = Optional.ofNullable(pathExpression)
-        .map(ParseTreeUtils::pathExpressionToString)
-        .filter(BigQueryReference::isQualified)
-        .map(pathName -> BigQueryReference.from(projectId, pathName));
+    Optional<BigQueryReference> maybeBigQueryReference =
+        Optional.ofNullable(pathExpression)
+            .map(ParseTreeUtils::pathExpressionToString)
+            .filter(BigQueryReference::isQualified)
+            .map(pathName -> BigQueryReference.from(projectId, pathName));
 
-    Optional<Type> maybeType = maybeBigQueryReference
-        .map(BigQueryReference::getResourceName)
-        .flatMap(Type::getType);
+    Optional<Type> maybeType =
+        maybeBigQueryReference.map(BigQueryReference::getResourceName).flatMap(Type::getType);
 
     if (!maybeBigQueryReference.isPresent() || !maybeType.isPresent()) {
       return Optional.empty();
@@ -209,30 +201,31 @@ class WildcardTable {
     Type type = maybeType.get();
 
     String tableNamePrefix = type.extractNamePrefix(bigQueryReference.getResourceName());
-    String fullNamePrefix = String.format(
-        "%s.%s.%s",
-        bigQueryReference.getProjectId(), bigQueryReference.getDatasetId(), tableNamePrefix);
+    String fullNamePrefix =
+        String.format(
+            "%s.%s.%s",
+            bigQueryReference.getProjectId(), bigQueryReference.getDatasetId(), tableNamePrefix);
     String concreteFilter = type.extractConcreteFilter(bigQueryReference.getResourceName());
 
-    return Optional.of(new WildcardTable(
-        fullNamePrefix,
-        concreteFilter,
-        type,
-        pathExpression,
-        Optional.ofNullable(tablePathExpression.getAlias())
-            .map(ASTAlias::getIdentifier)
-            .map(ASTIdentifier::getIdString)
-    ));
+    return Optional.of(
+        new WildcardTable(
+            fullNamePrefix,
+            concreteFilter,
+            type,
+            pathExpression,
+            Optional.ofNullable(tablePathExpression.getAlias())
+                .map(ASTAlias::getIdentifier)
+                .map(ASTIdentifier::getIdString)));
   }
 
   /**
    * Represents the type of a wildcard table reference. Supported types:
    *
    * <ul>
-   *   <li> CONCRETE (`[project].dataset.table_name_YYYYMMDD`)
-   *   <li> WILDCARD_DAY (`[project].dataset.table_name_YYYYMM*`)
-   *   <li> WILDCARD_MONTH_DAY (`[project].dataset.table_name_YYYY*`)
-   *   <li> WILDCARD_DATE (`[project].dataset.table_name_*`)
+   *   <li>CONCRETE (`[project].dataset.table_name_YYYYMMDD`)
+   *   <li>WILDCARD_DAY (`[project].dataset.table_name_YYYYMM*`)
+   *   <li>WILDCARD_MONTH_DAY (`[project].dataset.table_name_YYYY*`)
+   *   <li>WILDCARD_DATE (`[project].dataset.table_name_*`)
    * </ul>
    */
   private enum Type {
@@ -248,19 +241,17 @@ class WildcardTable {
     }
 
     /**
-     * Gets the type of a wildcard table reference based on the name used to reference it.
-     * Returns an empty optional if the name does not follow any of the supported formats.
+     * Gets the type of a wildcard table reference based on the name used to reference it. Returns
+     * an empty optional if the name does not follow any of the supported formats.
      *
      * @param referenceName the name used to reference the table
      * @return the type of wildcard table referenced, an empty optional if the name does not follow
-     *  any of the supported formats
+     *     any of the supported formats
      */
     public static Optional<Type> getType(String referenceName) {
       // We need to check in this order, since the patterns conflict with
       // each other otherwise.
-      Type[] types = {
-          WILDCARD_DATE, WILDCARD_MONTH_DAY, WILDCARD_DAY, CONCRETE
-      };
+      Type[] types = {WILDCARD_DATE, WILDCARD_MONTH_DAY, WILDCARD_DAY, CONCRETE};
       for (Type type : types) {
         Matcher matcher = type.pattern.matcher(referenceName);
         if (matcher.find()) {
@@ -275,10 +266,8 @@ class WildcardTable {
       Matcher matcher = this.pattern.matcher(referenceName);
 
       if (!matcher.find()) {
-        throw new IllegalArgumentException(String.format(
-            "Invalid wildcard table %s for type %s",
-            referenceName, this.name()
-        ));
+        throw new IllegalArgumentException(
+            String.format("Invalid wildcard table %s for type %s", referenceName, this.name()));
       }
 
       return matcher;
@@ -287,7 +276,7 @@ class WildcardTable {
     /**
      * Extracts the name prefix from the name used to reference a wildcard table of this type.
      *
-     * <p> E.g. "table_*" and "table_20240517" both have the prefix "table".
+     * <p>E.g. "table_*" and "table_20240517" both have the prefix "table".
      *
      * @param referenceName The name used to reference a wildcard table of this type
      * @return The table's name prefix
@@ -297,11 +286,10 @@ class WildcardTable {
     }
 
     /**
-     * Extracts the concrete filter applied when referencing a wildcard table of this type from
-     * the name used to reference it
+     * Extracts the concrete filter applied when referencing a wildcard table of this type from the
+     * name used to reference it
      *
-     * <p> E.g. "table_20240517" has the concreteFilter "20240517". "table_202405*" has
-     *  "202405".
+     * <p>E.g. "table_20240517" has the concreteFilter "20240517". "table_202405*" has "202405".
      *
      * @param referenceName The name used to reference a wildcard table of this type
      * @return The table's concrete filter

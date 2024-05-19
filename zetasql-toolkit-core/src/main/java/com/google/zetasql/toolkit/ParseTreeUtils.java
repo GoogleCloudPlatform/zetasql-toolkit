@@ -28,24 +28,23 @@ public class ParseTreeUtils {
 
   public static <T> List<T> findDescendantSubtreesWithKind(ASTNode tree, Class<T> kind) {
     List<T> result = new ArrayList<>();
-    tree.accept(new ParseTreeVisitor() {
-      @Override
-      protected void defaultVisit(ASTNode node) {
-        if (kind.isAssignableFrom(node.getClass())) {
-          result.add(kind.cast(node));
-        }
-        super.defaultVisit(node);
-      }
-    });
+    tree.accept(
+        new ParseTreeVisitor() {
+          @Override
+          protected void defaultVisit(ASTNode node) {
+            if (kind.isAssignableFrom(node.getClass())) {
+              result.add(kind.cast(node));
+            }
+            super.defaultVisit(node);
+          }
+        });
 
     return result;
   }
 
   public static String pathExpressionToString(ASTPathExpression pathExpression) {
-    return pathExpression.getNames()
-        .stream()
+    return pathExpression.getNames().stream()
         .map(ASTIdentifier::getIdString)
         .collect(Collectors.joining("."));
   }
-
 }

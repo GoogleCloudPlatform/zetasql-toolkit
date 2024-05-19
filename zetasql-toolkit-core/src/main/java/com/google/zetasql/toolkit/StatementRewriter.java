@@ -51,7 +51,6 @@ import com.google.zetasql.parser.ASTNodes.ASTCreateSnapshotTableStatement;
 import com.google.zetasql.parser.ASTNodes.ASTCreateTableStatement;
 import com.google.zetasql.parser.ASTNodes.ASTCreateViewStatement;
 import com.google.zetasql.parser.ASTNodes.ASTDefineTableStatement;
-import com.google.zetasql.parser.ASTNodes.ASTDeleteStatement;
 import com.google.zetasql.parser.ASTNodes.ASTDescribeStatement;
 import com.google.zetasql.parser.ASTNodes.ASTDropAllRowAccessPoliciesStatement;
 import com.google.zetasql.parser.ASTNodes.ASTDropEntityStatement;
@@ -70,9 +69,7 @@ import com.google.zetasql.parser.ASTNodes.ASTForeignKeyReference;
 import com.google.zetasql.parser.ASTNodes.ASTFunctionCall;
 import com.google.zetasql.parser.ASTNodes.ASTFunctionDeclaration;
 import com.google.zetasql.parser.ASTNodes.ASTGrantStatement;
-import com.google.zetasql.parser.ASTNodes.ASTIdentifier;
 import com.google.zetasql.parser.ASTNodes.ASTImportStatement;
-import com.google.zetasql.parser.ASTNodes.ASTInsertStatement;
 import com.google.zetasql.parser.ASTNodes.ASTMergeStatement;
 import com.google.zetasql.parser.ASTNodes.ASTModelClause;
 import com.google.zetasql.parser.ASTNodes.ASTModuleStatement;
@@ -91,7 +88,6 @@ import com.google.zetasql.parser.ASTNodes.ASTTableClause;
 import com.google.zetasql.parser.ASTNodes.ASTTablePathExpression;
 import com.google.zetasql.parser.ASTNodes.ASTTruncateStatement;
 import com.google.zetasql.parser.ASTNodes.ASTUndropStatement;
-import com.google.zetasql.parser.ASTNodes.ASTUpdateStatement;
 import com.google.zetasql.parser.ParseTreeVisitor;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -109,9 +105,9 @@ import java.util.stream.Collectors;
 public class StatementRewriter {
 
   /**
-   * Represents a rewrite that can be applied to a query string. When applied
-   * using {@link #applyRewrites(String, List)}, the StatementRewriter replaces
-   * the substring between index from and to (exclusive) with the content.
+   * Represents a rewrite that can be applied to a query string. When applied using {@link
+   * #applyRewrites(String, List)}, the StatementRewriter replaces the substring between index from
+   * and to (exclusive) with the content.
    */
   public static class Rewrite {
     public final int from;
@@ -135,9 +131,10 @@ public class StatementRewriter {
    */
   public static String applyRewrites(String query, List<Rewrite> rewrites) {
     StringBuilder builder = new StringBuilder(query);
-    List<Rewrite> sortedRewrites = rewrites.stream()
-        .sorted(Comparator.comparing(rewrite -> rewrite.from))
-        .collect(Collectors.toList());
+    List<Rewrite> sortedRewrites =
+        rewrites.stream()
+            .sorted(Comparator.comparing(rewrite -> rewrite.from))
+            .collect(Collectors.toList());
 
     int rewritingOffset = 0;
     int previousRewriteTo = -1;
@@ -179,10 +176,12 @@ public class StatementRewriter {
   public static String quoteNamePaths(String query, ASTStatement parsedStatement) {
     List<Rewrite> rewrites =
         getResourcePathExpressionFromParseTree(parsedStatement).stream()
-            .map(pathExpression -> new Rewrite(
-                pathExpression.getParseLocationRange().start(),
-                pathExpression.getParseLocationRange().end(),
-                buildQuotedNamePath(pathExpression)))
+            .map(
+                pathExpression ->
+                    new Rewrite(
+                        pathExpression.getParseLocationRange().start(),
+                        pathExpression.getParseLocationRange().end(),
+                        buildQuotedNamePath(pathExpression)))
             .collect(Collectors.toList());
 
     return applyRewrites(query, rewrites);
