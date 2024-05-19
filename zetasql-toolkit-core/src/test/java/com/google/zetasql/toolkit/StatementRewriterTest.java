@@ -32,10 +32,8 @@ public class StatementRewriterTest {
   void testApplyRewrites() {
     String original = "Greetings, Google!";
     String expected = "Hello, World!";
-    List<Rewrite> rewrites = ImmutableList.of(
-        new Rewrite(0, 9, "Hello"),
-        new Rewrite(11, 17, "World")
-    );
+    List<Rewrite> rewrites =
+        ImmutableList.of(new Rewrite(0, 9, "Hello"), new Rewrite(11, 17, "World"));
 
     String rewritten = StatementRewriter.applyRewrites(original, rewrites);
     assertEquals(expected, rewritten);
@@ -46,11 +44,10 @@ public class StatementRewriterTest {
     String query = "SELECT * FROM `project.dataset`.`table`;";
     String expectedRewritten = "SELECT * FROM `project.dataset.table`;";
 
-    ASTStatement parsedStatement = Parser.parseStatement(
-        query, new LanguageOptions().enableMaximumLanguageFeatures());
+    ASTStatement parsedStatement =
+        Parser.parseStatement(query, new LanguageOptions().enableMaximumLanguageFeatures());
     String rewritten = StatementRewriter.quoteNamePaths(query, parsedStatement);
 
     assertEquals(expectedRewritten, rewritten);
   }
-
 }
