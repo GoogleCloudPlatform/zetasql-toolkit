@@ -18,4 +18,4 @@ using [Jib](https://cloud.google.com/java/getting-started/jib).
 
 Example:
 
-`mvn package jib:dockerBuild -DskipTests -Dcontainer.mainClass=com.google.zetasql.toolkit.examples.AnalyzeWithoutCatalog`
+`mvn -Prelease package jib:dockerBuild -Dcontainer.mainClass=com.google.zetasql.toolkit.examples.AnalyzeWithoutCatalog`

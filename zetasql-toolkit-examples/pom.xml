@@ -36,7 +36,6 @@
     <zetasql.toolkit.version>${project.version}</zetasql.toolkit.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.deploy.skip>true</maven.deploy.skip>
-    <google.cloud.jib.version>3.4.2</google.cloud.jib.version>
     <container.mainClass/>
   </properties>
 
@@ -58,8 +57,8 @@
       <plugin>
         <groupId>com.google.cloud.tools</groupId>
         <artifactId>jib-maven-plugin</artifactId>
-        <version>${google.cloud.jib.version}</version>
         <configuration>
+          <skip>false</skip>
           <container>
             <mainClass>${container.mainClass}</mainClass>
             <expandClasspathDependencies>true</expandClasspathDependencies>
