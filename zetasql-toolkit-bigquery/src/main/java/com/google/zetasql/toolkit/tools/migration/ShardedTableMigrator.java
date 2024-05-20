@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
 /**
  * Tool for migrating BigQuery jobs away from date-sharded tables to partitioned tables. This tool
  * automatically rewrites queries that use table wildcards and _TABLE_SUFFIX to use the new
- * partitioned tables. Only SELECT statements are currently rewritten.
+ * partitioned tables. Only SELECT statements and expressions are currently rewritten.
  *
  * <p>This tool currently makes the following assumptions about the migration:
  *
