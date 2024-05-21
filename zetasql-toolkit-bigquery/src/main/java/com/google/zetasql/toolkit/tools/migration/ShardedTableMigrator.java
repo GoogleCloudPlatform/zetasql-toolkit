@@ -184,7 +184,7 @@ public class ShardedTableMigrator {
    * @param referencedWildcardTables The sharded tables the ASTSelect references
    * @param tablesToPartitionColumns A mapping from the names of partitioned tables to their time
    *     partitioning column. E.g. if the only sharded table is `table_YYYYMMDD`, this map should be
-   *     ("table" -> "PARTITION_COLUMN_NAME")
+   *     ("table": "PARTITION_COLUMN_NAME", ...)
    * @return The list of Rewrites that need to be applied to the original query
    */
   private static List<Rewrite> replaceTableSuffixReferences(
@@ -222,7 +222,7 @@ public class ShardedTableMigrator {
    * @param referencedWildcardTables The sharded tables the ASTSelect references
    * @param tablesToPartitionColumns A mapping from the names of partitioned tables to their time
    *     partitioning column. E.g. if the only sharded table is `table_YYYYMMDD`, this map should be
-   *     ("table" -> "PARTITION_COLUMN_NAME")
+   *     ("table": "PARTITION_COLUMN_NAME", ...)
    * @return The list of Rewrites that need to be applied to the original query
    */
   private static List<Rewrite> insertNewWhereFilters(
@@ -288,7 +288,7 @@ public class ShardedTableMigrator {
    * @param projectId The GCP project id this query would be run on
    * @param tablesToPartitionColumns A mapping from the names of partitioned tables to their time
    *     partitioning column. E.g. if the only sharded table is `table_YYYYMMDD`, this map should be
-   *     ("table" -> "PARTITION_COLUMN_NAME")
+   *     ("table": "PARTITION_COLUMN_NAME", ...)
    * @return The list of Rewrites that need to be applied to the original query
    */
   private static List<Rewrite> rewriteSelect(
@@ -321,7 +321,7 @@ public class ShardedTableMigrator {
    * @param projectId The GCP project id this query would be run on
    * @param tablesToPartitionColumns A mapping from the names of partitioned tables to their time
    *     partitioning column. E.g. if the only sharded table is `table_YYYYMMDD`, this map should be
-   *     ("table" -> "PARTITION_COLUMN_NAME")
+   *     ("table": "PARTITION_COLUMN_NAME", ...)
    * @return The rewritten query
    */
   public static String migrate(
