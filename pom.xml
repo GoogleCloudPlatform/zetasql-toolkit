@@ -76,7 +76,7 @@
     <maven.test.skip>true</maven.test.skip>
     <!-- Dependency versions -->
     <zetasql.version>2024.03.1</zetasql.version>
-    <google.cloud.libraries.version>26.39.0</google.cloud.libraries.version>
+    <google.cloud.libraries.version>26.40.0</google.cloud.libraries.version>
     <!-- Testing dependency versions -->
     <junit.version>5.10.2</junit.version>
     <mockito.version>4.11.0</mockito.version>
