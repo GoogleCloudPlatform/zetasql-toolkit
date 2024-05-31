@@ -36,7 +36,7 @@
     <zetasql.toolkit.version>${project.version}</zetasql.toolkit.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.deploy.skip>true</maven.deploy.skip>
-    <google.cloud.jib.version>3.4.2</google.cloud.jib.version>
+    <google.cloud.jib.version>3.4.3</google.cloud.jib.version>
     <container.mainClass/>
   </properties>
 
