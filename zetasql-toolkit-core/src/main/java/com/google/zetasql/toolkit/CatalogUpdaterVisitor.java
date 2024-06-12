@@ -89,7 +89,7 @@ class CatalogUpdaterVisitor extends Visitor {
   private void visitCreateTableBase(ResolvedCreateTableStmtBase createTableStmtBase) {
     List<SimpleColumn> columns = this.getColumnsFromCreateTableStmt(createTableStmtBase);
     SimpleTable table =
-        CatalogOperations.buildSimpleTable(
+        new SimpleTable(
             String.join(".", createTableStmtBase.getNamePath()), columns);
 
     CreateMode createMode = createTableStmtBase.getCreateMode();
@@ -152,7 +152,7 @@ class CatalogUpdaterVisitor extends Visitor {
   private void visitCreateViewBase(ResolvedCreateViewBase createViewBase) {
     List<SimpleColumn> columns = this.getColumnsFromCreateViewBase(createViewBase);
     SimpleTable table =
-        CatalogOperations.buildSimpleTable(String.join(".", createViewBase.getNamePath()), columns);
+        new SimpleTable(String.join(".", createViewBase.getNamePath()), columns);
 
     CreateMode createMode = createViewBase.getCreateMode();
     CreateScope createScope = createViewBase.getCreateScope();

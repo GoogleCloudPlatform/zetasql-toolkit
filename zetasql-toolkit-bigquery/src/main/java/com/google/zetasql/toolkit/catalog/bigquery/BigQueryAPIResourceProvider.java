@@ -284,7 +284,7 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
     TableId tableId = table.getTableId();
     String fullTableName = BigQueryReference.from(tableId).getFullName();
     List<SimpleColumn> columns = this.extractColumnsFromBigQueryTable(table);
-    return CatalogOperations.buildSimpleTable(fullTableName, columns);
+    return new SimpleTable(fullTableName, columns);
   }
 
   /**
