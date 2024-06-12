@@ -178,7 +178,7 @@ public class SpannerResourceProviderImpl implements SpannerResourceProvider {
     return tableColumns.entrySet().stream()
         .map(
             tableAndColumns ->
-                CatalogOperations.buildSimpleTable(
+                new SimpleTable(
                     tableAndColumns.getKey(), tableAndColumns.getValue()))
         .collect(Collectors.toList());
   }
