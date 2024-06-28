@@ -162,19 +162,6 @@ public class ColumnLineageExtractor {
   }
 
   /**
-   * Extracts the column-level lineage entries for a {@link ResolvedQueryStmt} statement
-   *
-   * @param statement The ResolvedQueryStmt statement for which to extract lineage
-   * @param outputTable The name of the table the statement write to
-   * @return The set of resulting {@link ColumnLineage} objects
-   */
-  public static Set<ColumnLineage> extractColumnLevelLineage(
-      ResolvedQueryStmt statement, String outputTable) {
-    List<ResolvedOutputColumn> outputColumns = statement.getOutputColumnList();
-    return extractColumnLevelLineageForOutputColumns(outputTable, outputColumns, statement);
-  }
-
-  /**
    * Extracts the column-level lineage entries for a {@link ResolvedInsertStmt}
    *
    * @param insertStmt The ResolvedInsertStmt for which to extract lineage
