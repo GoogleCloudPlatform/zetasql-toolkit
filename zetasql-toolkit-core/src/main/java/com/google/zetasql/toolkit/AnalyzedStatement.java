@@ -38,5 +38,4 @@ public class AnalyzedStatement {
   public Optional<ResolvedStatement> getResolvedStatement() {
     return resolvedStatement;
   }
-
 }

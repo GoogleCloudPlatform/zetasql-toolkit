@@ -199,9 +199,10 @@ class BigQueryBuiltIns {
   public static void addToCatalog(SimpleCatalog catalog) {
     TYPE_ALIASES.forEach(catalog::addType);
     FUNCTIONS.forEach(catalog::addFunction);
-    PROCEDURES.forEach(procedure ->
-      CatalogOperations.createProcedureInCatalog(
-          catalog, procedure.getFullName(), procedure, CreateMode.CREATE_DEFAULT));
+    PROCEDURES.forEach(
+        procedure ->
+            CatalogOperations.createProcedureInCatalog(
+                catalog, procedure.getFullName(), procedure, CreateMode.CREATE_DEFAULT));
   }
 
   private BigQueryBuiltIns() {}

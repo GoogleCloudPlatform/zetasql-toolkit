@@ -93,14 +93,15 @@ import com.google.zetasql.parser.ParseTreeVisitor;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
  * Implements query-level rewrites based on the parsed tree. It allows modifying the query text
  * after parsing but before analyzing.
  *
- * <p> These rewrites are done at the query level because the parsed tree is immutable and can't
- * be modified itself.
+ * <p>These rewrites are done at the query level because the parsed tree is immutable and can't be
+ * modified itself.
  */
 class StatementRewriter {
 
@@ -109,9 +110,9 @@ class StatementRewriter {
    * said query are quoted entirely. For example, it rewrites "FROM project.dataset.table" to "FROM
    * `project.dataset.table`".
    *
-   * <p> To do so; it finds all {@link ASTPathExpression} nodes in the parse tree refer to a
-   * resource (i.e. tables, functions, etc.), builds their fully quoted representation and replaces
-   * their original text in the query with their quoted representation.
+   * <p>To do so; it finds all {@link ASTPathExpression} nodes in the parse tree refer to a resource
+   * (i.e. tables, functions, etc.), builds their fully quoted representation and replaces their
+   * original text in the query with their quoted representation.
    *
    * @param query The original query text the statement was parsed from
    * @param parsedStatement The parsed statement for which to rewrite name paths
@@ -147,21 +148,20 @@ class StatementRewriter {
   /**
    * Returns the fully quoted string representation of an {@link ASTPathExpression}.
    *
-   * @param pathExpression The path expression for which to build the fully quoted
-   *     representation
+   * @param pathExpression The path expression for which to build the fully quoted representation
    * @return The fully quoted representation of the path expression
    */
   private static String buildQuotedNamePath(ASTPathExpression pathExpression) {
-    String fullName = pathExpression.getNames()
-        .stream()
-        .map(ASTIdentifier::getIdString)
-        .collect(Collectors.joining("."));
+    String fullName =
+        pathExpression.getNames().stream()
+            .map(ASTIdentifier::getIdString)
+            .collect(Collectors.joining("."));
     return "`" + fullName + "`";
   }
 
   /**
-   * Extracts all {@link ASTPathExpression} nodes that refer to a resource
-   * (i.e. tables, functions, etc.) from a parse tree
+   * Extracts all {@link ASTPathExpression} nodes that refer to a resource (i.e. tables, functions,
+   * etc.) from a parse tree
    *
    * @param tree The parse tree
    * @return The list of all {@link ASTPathExpression} in the tree that refer to a resource
@@ -169,370 +169,372 @@ class StatementRewriter {
   private static List<ASTPathExpression> getResourcePathExpressionFromParseTree(ASTNode tree) {
     ArrayList<ASTPathExpression> result = new ArrayList<>();
 
-    tree.accept(new ParseTreeVisitor() {
-
-      public void visit(ASTTablePathExpression node) {
-        result.add(node.getPathExpr());
-      }
-
-      public void visit(ASTFunctionCall node) {
-        result.add(node.getFunction());
-        super.visit(node);
-      }
-
-      public void visit(ASTSequenceArg node) {
-        result.add(node.getSequencePath());
-      }
-
-      public void visit(ASTDescribeStatement node) {
-        result.add(node.getName());
-        if (node.getOptionalFromName() != null) {
-          result.add(node.getOptionalFromName());
-        }
-        super.visit(node);
-      }
-
-      public void visit(ASTShowStatement node) {
-        result.add(node.getOptionalName());
-        super.visit(node);
-      }
-
-      public void visit(ASTDropEntityStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTDropFunctionStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTDropTableFunctionStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTDropAllRowAccessPoliciesStatement node) {
-        result.add(node.getTableName());
-        super.visit(node);
-      }
-
-      public void visit(ASTDropMaterializedViewStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTDropSnapshotTableStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTDropSearchIndexStatement node) {
-        result.add(node.getName());
-        result.add(node.getTableName());
-        super.visit(node);
-      }
-
-      public void visit(ASTDropVectorIndexStatement node) {
-        result.add(node.getName());
-        result.add(node.getTableName());
-        super.visit(node);
-      }
-
-      public void visit(ASTRenameStatement node) {
-        result.add(node.getOldName());
-        result.add(node.getNewName());
-        super.visit(node);
-      }
-
-      public void visit(ASTImportStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTModuleStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTSystemVariableExpr node) {
-        result.add(node.getPath());
-      }
-
-      public void visit(ASTFunctionDeclaration node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTTVF node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTTableClause node) {
-        result.add(node.getTablePath());
-        super.visit(node);
-      }
-
-      public void visit(ASTModelClause node) {
-        result.add(node.getModelPath());
-      }
-
-      public void visit(ASTConnectionClause node) {
-        result.add(node.getConnectionPath());
-      }
-
-      public void visit(ASTCloneDataSource node) {
-        result.add(node.getPathExpr());
-        super.visit(node);
-      }
-
-      public void visit(ASTCopyDataSource node) {
-        result.add(node.getPathExpr());
-        super.visit(node);
-      }
-
-      public void visit(ASTCloneDataStatement node) {
-        result.add(node.getTargetPath());
-        super.visit(node);
-      }
-
-      public void visit(ASTCreateConstantStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTCreateDatabaseStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTCreateProcedureStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTCreateSchemaStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTCreateModelStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTCreateIndexStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTExportModelStatement node) {
-        result.add(node.getModelNamePath());
-        super.visit(node);
-      }
-
-      public void visit(ASTExportMetadataStatement node) {
-        result.add(node.getNamePath());
-        super.visit(node);
-      }
-
-      public void visit(ASTCallStatement node) {
-        result.add(node.getProcedureName());
-        super.visit(node);
-      }
-
-      public void visit(ASTDefineTableStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTCreateSnapshotStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTCreateSnapshotTableStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTTableAndColumnInfo node) {
-        result.add(node.getTableName());
-        super.visit(node);
-      }
-
-      public void visit(ASTTruncateStatement node) {
-        result.add(node.getTargetPath());
-        super.visit(node);
-      }
-
-      public void visit(ASTMergeStatement node) {
-        result.add(node.getTargetPath());
-        super.visit(node);
-      }
-
-      public void visit(ASTGrantStatement node) {
-        result.add(node.getTargetPath());
-        super.visit(node);
-      }
-
-      public void visit(ASTRevokeStatement node) {
-        result.add(node.getTargetPath());
-        super.visit(node);
-      }
-
-      public void visit(ASTRenameToClause node) {
-        result.add(node.getNewName());
-        super.visit(node);
-      }
-
-      public void visit(ASTAlterAllRowAccessPoliciesStatement node) {
-        result.add(node.getTableNamePath());
-        super.visit(node);
-      }
-
-      public void visit(ASTForeignKeyReference node) {
-        result.add(node.getTableName());
-        super.visit(node);
-      }
-
-      public void visit(ASTCreateEntityStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTDropPrivilegeRestrictionStatement node) {
-        result.add(node.getNamePath());
-        super.visit(node);
-      }
-
-      public void visit(ASTDropRowAccessPolicyStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTCreatePrivilegeRestrictionStatement node) {
-        result.add(node.getNamePath());
-        super.visit(node);
-      }
-
-      public void visit(ASTCreateRowAccessPolicyStatement node) {
-        result.add(node.getName());
-        result.add(node.getTargetPath());
-        super.visit(node);
-      }
-
-      public void visit(ASTDropStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTCreateTableStatement node) {
-        result.add(node.getName());
-        if (node.getLikeTableName() != null) {
-          result.add(node.getLikeTableName());
-        }
-        super.visit(node);
-      }
-
-      public void visit(ASTCreateExternalTableStatement node) {
-        result.add(node.getName());
-        if (node.getLikeTableName() != null) {
-          result.add(node.getLikeTableName());
-        }
-        super.visit(node);
-      }
-
-      public void visit(ASTAuxLoadDataStatement node) {
-        result.add(node.getName());
-        if (node.getLikeTableName() != null) {
-          result.add(node.getLikeTableName());
-        }
-        super.visit(node);
-      }
-
-      public void visit(ASTCreateViewStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTCreateApproxViewStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-      public void visit(ASTCreateMaterializedViewStatement node) {
-        result.add(node.getName());
-        if (node.getReplicaSource() != null) {
-          result.add(node.getReplicaSource());
-        }
-        super.visit(node);
-      }
-
-      public void visit(ASTAlterDatabaseStatement node) {
-        result.add(node.getPath());
-        super.visit(node);
-      }
-
-      public void visit(ASTAlterSchemaStatement node) {
-        result.add(node.getPath());
-        super.visit(node);
-      }
-
-      public void visit(ASTAlterTableStatement node) {
-        result.add(node.getPath());
-        super.visit(node);
-      }
-
-      public void visit(ASTAlterViewStatement node) {
-        result.add(node.getPath());
-        super.visit(node);
-      }
-
-      public void visit(ASTAlterMaterializedViewStatement node) {
-        result.add(node.getPath());
-        super.visit(node);
-      }
-
-      public void visit(ASTAlterApproxViewStatement node) {
-        result.add(node.getPath());
-        super.visit(node);
-      }
-
-      public void visit(ASTAlterModelStatement node) {
-        result.add(node.getPath());
-        super.visit(node);
-      }
-
-      public void visit(ASTAlterPrivilegeRestrictionStatement node) {
-        result.add(node.getPath());
-        super.visit(node);
-      }
-
-      public void visit(ASTAlterRowAccessPolicyStatement node) {
-        result.add(node.getPath());
-        super.visit(node);
-      }
-
-      public void visit(ASTAlterEntityStatement node) {
-        result.add(node.getPath());
-        super.visit(node);
-      }
-
-      public void visit(ASTSpannerInterleaveClause node) {
-        result.add(node.getTableName());
-        super.visit(node);
-      }
-
-      public void visit(ASTUndropStatement node) {
-        result.add(node.getName());
-        super.visit(node);
-      }
-
-    });
+    tree.accept(
+        new ParseTreeVisitor() {
+
+          public void visit(ASTTablePathExpression node) {
+            if (Objects.nonNull(node.getPathExpr())) {
+              result.add(node.getPathExpr());
+            }
+            super.visit(node);
+          }
+
+          public void visit(ASTFunctionCall node) {
+            result.add(node.getFunction());
+            super.visit(node);
+          }
+
+          public void visit(ASTSequenceArg node) {
+            result.add(node.getSequencePath());
+          }
+
+          public void visit(ASTDescribeStatement node) {
+            result.add(node.getName());
+            if (node.getOptionalFromName() != null) {
+              result.add(node.getOptionalFromName());
+            }
+            super.visit(node);
+          }
+
+          public void visit(ASTShowStatement node) {
+            result.add(node.getOptionalName());
+            super.visit(node);
+          }
+
+          public void visit(ASTDropEntityStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTDropFunctionStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTDropTableFunctionStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTDropAllRowAccessPoliciesStatement node) {
+            result.add(node.getTableName());
+            super.visit(node);
+          }
+
+          public void visit(ASTDropMaterializedViewStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTDropSnapshotTableStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTDropSearchIndexStatement node) {
+            result.add(node.getName());
+            result.add(node.getTableName());
+            super.visit(node);
+          }
+
+          public void visit(ASTDropVectorIndexStatement node) {
+            result.add(node.getName());
+            result.add(node.getTableName());
+            super.visit(node);
+          }
+
+          public void visit(ASTRenameStatement node) {
+            result.add(node.getOldName());
+            result.add(node.getNewName());
+            super.visit(node);
+          }
+
+          public void visit(ASTImportStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTModuleStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTSystemVariableExpr node) {
+            result.add(node.getPath());
+          }
+
+          public void visit(ASTFunctionDeclaration node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTTVF node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTTableClause node) {
+            result.add(node.getTablePath());
+            super.visit(node);
+          }
+
+          public void visit(ASTModelClause node) {
+            result.add(node.getModelPath());
+          }
+
+          public void visit(ASTConnectionClause node) {
+            result.add(node.getConnectionPath());
+          }
+
+          public void visit(ASTCloneDataSource node) {
+            result.add(node.getPathExpr());
+            super.visit(node);
+          }
+
+          public void visit(ASTCopyDataSource node) {
+            result.add(node.getPathExpr());
+            super.visit(node);
+          }
+
+          public void visit(ASTCloneDataStatement node) {
+            result.add(node.getTargetPath());
+            super.visit(node);
+          }
+
+          public void visit(ASTCreateConstantStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTCreateDatabaseStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTCreateProcedureStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTCreateSchemaStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTCreateModelStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTCreateIndexStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTExportModelStatement node) {
+            result.add(node.getModelNamePath());
+            super.visit(node);
+          }
+
+          public void visit(ASTExportMetadataStatement node) {
+            result.add(node.getNamePath());
+            super.visit(node);
+          }
+
+          public void visit(ASTCallStatement node) {
+            result.add(node.getProcedureName());
+            super.visit(node);
+          }
+
+          public void visit(ASTDefineTableStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTCreateSnapshotStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTCreateSnapshotTableStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTTableAndColumnInfo node) {
+            result.add(node.getTableName());
+            super.visit(node);
+          }
+
+          public void visit(ASTTruncateStatement node) {
+            result.add(node.getTargetPath());
+            super.visit(node);
+          }
+
+          public void visit(ASTMergeStatement node) {
+            result.add(node.getTargetPath());
+            super.visit(node);
+          }
+
+          public void visit(ASTGrantStatement node) {
+            result.add(node.getTargetPath());
+            super.visit(node);
+          }
+
+          public void visit(ASTRevokeStatement node) {
+            result.add(node.getTargetPath());
+            super.visit(node);
+          }
+
+          public void visit(ASTRenameToClause node) {
+            result.add(node.getNewName());
+            super.visit(node);
+          }
+
+          public void visit(ASTAlterAllRowAccessPoliciesStatement node) {
+            result.add(node.getTableNamePath());
+            super.visit(node);
+          }
+
+          public void visit(ASTForeignKeyReference node) {
+            result.add(node.getTableName());
+            super.visit(node);
+          }
+
+          public void visit(ASTCreateEntityStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTDropPrivilegeRestrictionStatement node) {
+            result.add(node.getNamePath());
+            super.visit(node);
+          }
+
+          public void visit(ASTDropRowAccessPolicyStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTCreatePrivilegeRestrictionStatement node) {
+            result.add(node.getNamePath());
+            super.visit(node);
+          }
+
+          public void visit(ASTCreateRowAccessPolicyStatement node) {
+            result.add(node.getName());
+            result.add(node.getTargetPath());
+            super.visit(node);
+          }
+
+          public void visit(ASTDropStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTCreateTableStatement node) {
+            result.add(node.getName());
+            if (node.getLikeTableName() != null) {
+              result.add(node.getLikeTableName());
+            }
+            super.visit(node);
+          }
+
+          public void visit(ASTCreateExternalTableStatement node) {
+            result.add(node.getName());
+            if (node.getLikeTableName() != null) {
+              result.add(node.getLikeTableName());
+            }
+            super.visit(node);
+          }
+
+          public void visit(ASTAuxLoadDataStatement node) {
+            result.add(node.getName());
+            if (node.getLikeTableName() != null) {
+              result.add(node.getLikeTableName());
+            }
+            super.visit(node);
+          }
+
+          public void visit(ASTCreateViewStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTCreateApproxViewStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+
+          public void visit(ASTCreateMaterializedViewStatement node) {
+            result.add(node.getName());
+            if (node.getReplicaSource() != null) {
+              result.add(node.getReplicaSource());
+            }
+            super.visit(node);
+          }
+
+          public void visit(ASTAlterDatabaseStatement node) {
+            result.add(node.getPath());
+            super.visit(node);
+          }
+
+          public void visit(ASTAlterSchemaStatement node) {
+            result.add(node.getPath());
+            super.visit(node);
+          }
+
+          public void visit(ASTAlterTableStatement node) {
+            result.add(node.getPath());
+            super.visit(node);
+          }
+
+          public void visit(ASTAlterViewStatement node) {
+            result.add(node.getPath());
+            super.visit(node);
+          }
+
+          public void visit(ASTAlterMaterializedViewStatement node) {
+            result.add(node.getPath());
+            super.visit(node);
+          }
+
+          public void visit(ASTAlterApproxViewStatement node) {
+            result.add(node.getPath());
+            super.visit(node);
+          }
+
+          public void visit(ASTAlterModelStatement node) {
+            result.add(node.getPath());
+            super.visit(node);
+          }
+
+          public void visit(ASTAlterPrivilegeRestrictionStatement node) {
+            result.add(node.getPath());
+            super.visit(node);
+          }
+
+          public void visit(ASTAlterRowAccessPolicyStatement node) {
+            result.add(node.getPath());
+            super.visit(node);
+          }
+
+          public void visit(ASTAlterEntityStatement node) {
+            result.add(node.getPath());
+            super.visit(node);
+          }
+
+          public void visit(ASTSpannerInterleaveClause node) {
+            result.add(node.getTableName());
+            super.visit(node);
+          }
+
+          public void visit(ASTUndropStatement node) {
+            result.add(node.getName());
+            super.visit(node);
+          }
+        });
 
     return result;
   }
-
 }

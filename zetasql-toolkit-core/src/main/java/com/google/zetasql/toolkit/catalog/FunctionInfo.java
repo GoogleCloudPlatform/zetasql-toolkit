@@ -25,7 +25,8 @@ import java.util.Optional;
 public class FunctionInfo {
 
   public enum Language {
-    LANGUAGE_UNSPECIFIED, SQL;
+    LANGUAGE_UNSPECIFIED,
+    SQL;
 
     public static Language valueOfOrUnspecified(String name) {
       try {

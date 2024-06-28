@@ -65,8 +65,7 @@ public class BigQueryAPIResourceProviderTest {
             Field.of("col1", StandardSQLTypeName.INT64),
             Field.newBuilder("col2", StandardSQLTypeName.STRING).setMode(Mode.REPEATED).build(),
             Field.of(
-                "col3", StandardSQLTypeName.STRUCT,
-                Field.of("field1", StandardSQLTypeName.INT64)));
+                "col3", StandardSQLTypeName.STRUCT, Field.of("field1", StandardSQLTypeName.INT64)));
 
     StandardTableDefinition.Builder tableDefinitionBuilder = StandardTableDefinition.newBuilder();
     tableDefinitionBuilder.setSchema(Schema.of(fields));
@@ -74,7 +73,8 @@ public class BigQueryAPIResourceProviderTest {
     if (timePartitioned) {
       TimePartitioning timePartitioning =
           TimePartitioning.newBuilder(TimePartitioning.Type.DAY)
-              .setField(null) // A null field means the table in ingestion-time partitioned
+              .setField(null) // A null field means the table in ingestion-time
+              // partitioned
               .build();
       tableDefinitionBuilder.setTimePartitioning(timePartitioning);
     }
@@ -110,7 +110,8 @@ public class BigQueryAPIResourceProviderTest {
 
     List<SimpleColumn> expectedSchemaForMockTable = expectedColumnsForMockTable();
 
-    List<SimpleTable> tables = bigqueryResourceProvider.getTables("project", ImmutableList.of("reference"));
+    List<SimpleTable> tables =
+        bigqueryResourceProvider.getTables("project", ImmutableList.of("reference"));
 
     assertEquals(1, tables.size());
     assertTrue(
@@ -124,7 +125,8 @@ public class BigQueryAPIResourceProviderTest {
     when(bigQueryServiceMock.fetchTable(anyString(), anyString()))
         .thenReturn(Result.success(mockTable));
 
-    List<SimpleTable> tables = bigqueryResourceProvider.getTables("project", ImmutableList.of("reference"));
+    List<SimpleTable> tables =
+        bigqueryResourceProvider.getTables("project", ImmutableList.of("reference"));
 
     assertEquals(1, tables.size());
 
@@ -308,7 +310,8 @@ public class BigQueryAPIResourceProviderTest {
     FunctionSignature expectedSignatureForMockTVF = expectedSignatureForMockTVF();
     TVFRelation expectedOutputSchemaForMockTVF = expectedOutputSchemaForMockTVF();
 
-    List<TVFInfo> functions = bigqueryResourceProvider.getTVFs("project", ImmutableList.of("reference"));
+    List<TVFInfo> functions =
+        bigqueryResourceProvider.getTVFs("project", ImmutableList.of("reference"));
 
     assertEquals(1, functions.size());
     assertTrue(

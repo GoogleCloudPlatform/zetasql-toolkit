@@ -32,13 +32,14 @@ public class AnalyzeBigQuery {
   public static void main(String[] args) {
     // Analyzing a query that uses bigquery-public-data tables
     String query =
-        "DECLARE x STRING DEFAULT 'ASD';" +
-        "SET x = 'ASD2';" +
-        "INSERT INTO `bigquery-public-data.samples.wikipedia` (title) VALUES ('random title');\n"
+        "DECLARE x STRING DEFAULT 'ASD';"
+            + "SET x = 'ASD2';"
+            + "INSERT INTO `bigquery-public-data.samples.wikipedia` (title) VALUES ('random title');\n"
             + "SELECT title, language FROM `bigquery-public-data.samples.wikipedia` WHERE title = 'random title';";
 
     // Step 1: Create a BigQueryCatalog
-    // In this case, we provide the project id where queries are assumed to be running. The catalog
+    // In this case, we provide the project id where queries are assumed to be running. The
+    // catalog
     // will connect to the BigQuery API using application-default credentials to access BigQuery
     // resources.
     // You can also provide your own BigQuery API client or a custom implementation of
@@ -48,13 +49,15 @@ public class AnalyzeBigQuery {
     // Step 2: Add tables to the catalog before analyzing
     // BigQueryCatalog.addTable will fetch the table metadata and
     // create the table in the catalog.
-    // Just as we can add tables and views; we can also add UDFs, TVFs and Procedures from BigQuery.
+    // Just as we can add tables and views; we can also add UDFs, TVFs and Procedures from
+    // BigQuery.
     // See also: BigQueryCatalog.addAllTablesInDataset and BigQueryCatalog.addAllTablesInProject
     catalog.addTable("bigquery-public-data.samples.wikipedia");
 
     // Step 3: Define the LanguageOptions and AnalyzerOptions to configure the ZetaSQL analyzer
 
-    // LanguageOptions are ZetaSQL's way of customizing the SQL dialect the analyzer accepts. This
+    // LanguageOptions are ZetaSQL's way of customizing the SQL dialect the analyzer accepts.
+    // This
     // toolkit
     // includes properly configured LanguageOptions for BigQuery.
 
@@ -71,7 +74,7 @@ public class AnalyzeBigQuery {
     Iterator<AnalyzedStatement> statementIterator = analyzer.analyzeStatements(query, catalog);
 
     // Step 5: Consume the previous iterator and use the ResolvedStatements however you need
-    statementIterator.forEachRemaining(statement ->
-        statement.getResolvedStatement().ifPresent(System.out::println));
+    statementIterator.forEachRemaining(
+        statement -> statement.getResolvedStatement().ifPresent(System.out::println));
   }
 }

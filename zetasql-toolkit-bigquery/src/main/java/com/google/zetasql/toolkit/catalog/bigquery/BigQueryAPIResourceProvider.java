@@ -202,7 +202,8 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
 
     if (table.getDefinition().getSchema() == null) {
       // BigQuery tables can have no columns, in which case the schema is null
-      // One such table is bigquery-public-data.america_health_rankings.america_health_rankings
+      // One such table is
+      // bigquery-public-data.america_health_rankings.america_health_rankings
       return ImmutableList.of();
     }
 

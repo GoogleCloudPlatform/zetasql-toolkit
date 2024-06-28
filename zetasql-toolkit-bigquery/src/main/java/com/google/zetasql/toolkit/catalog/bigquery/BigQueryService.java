@@ -173,8 +173,7 @@ public class BigQueryService {
    * Fetches a BigQuery Table from the API. Results are cached indefinitely.
    *
    * @param projectId The default BigQuery project id
-   * @param tableReference The String referencing the table,
-   * e.g. "project.dataset.table"
+   * @param tableReference The String referencing the table, e.g. "project.dataset.table"
    * @return A Result&lt;Table&gt; containing the fetched Table
    */
   public Result<Table> fetchTable(String projectId, String tableReference) {

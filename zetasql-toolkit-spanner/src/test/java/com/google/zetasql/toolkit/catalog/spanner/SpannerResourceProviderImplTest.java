@@ -88,6 +88,7 @@ public class SpannerResourceProviderImplTest {
     when(dbClient.singleUse().executeQuery(any())).thenReturn(resultSet);
 
     assertThrows(
-        SpannerTablesNotFound.class, () -> spannerResourceProvider.getTables(ImmutableList.of("table")));
+        SpannerTablesNotFound.class,
+        () -> spannerResourceProvider.getTables(ImmutableList.of("table")));
   }
 }
