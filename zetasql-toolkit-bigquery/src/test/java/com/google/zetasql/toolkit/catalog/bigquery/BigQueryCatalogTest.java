@@ -293,8 +293,7 @@ public class BigQueryCatalogTest {
     bigQueryCatalog.addTables(ImmutableList.of(table.getFullName()));
 
     // Verify the BigQueryCatalog got the tables from the BigQueryResourceProvider
-    verify(bigQueryResourceProviderMock, times(1))
-        .getTables(anyString(), anyList());
+    verify(bigQueryResourceProviderMock, times(1)).getTables(anyString(), anyList());
 
     // Verify the test table was added to the catalog
     assertTableExists(bigQueryCatalog, tableRef);
@@ -310,8 +309,7 @@ public class BigQueryCatalogTest {
 
     bigQueryCatalog.addAllTablesInDataset(testProjectId, "dataset");
 
-    verify(bigQueryResourceProviderMock, times(1))
-        .getAllTablesInDataset(anyString(), anyString());
+    verify(bigQueryResourceProviderMock, times(1)).getAllTablesInDataset(anyString(), anyString());
 
     assertTableExists(bigQueryCatalog, tableRef);
   }
@@ -326,8 +324,7 @@ public class BigQueryCatalogTest {
 
     bigQueryCatalog.addAllTablesInProject(testProjectId);
 
-    verify(bigQueryResourceProviderMock, times(1))
-        .getAllTablesInProject(anyString());
+    verify(bigQueryResourceProviderMock, times(1)).getAllTablesInProject(anyString());
 
     assertTableExists(bigQueryCatalog, tableRef);
   }

@@ -327,8 +327,7 @@ public class BigQueryCatalog implements CatalogWrapper {
         ImmutableList.of(CreateScope.CREATE_DEFAULT_SCOPE, CreateScope.CREATE_TEMP),
         table.getFullName(),
         "table");
-    this.validateNamePathForCreation(
-        ImmutableList.of(table.getFullName()), createScope, "table");
+    this.validateNamePathForCreation(ImmutableList.of(table.getFullName()), createScope, "table");
 
     List<String> catalogNamesForTable = buildCatalogNamesForResource(table.getFullName());
 
