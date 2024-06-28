@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.zetasql.Table;
 import com.google.zetasql.Type;
 import com.google.zetasql.resolvedast.ResolvedColumn;
-import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedQueryStmt;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedColumnRef;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedCreateTableAsSelectStmt;
 import com.google.zetasql.resolvedast.ResolvedNodes.ResolvedCreateViewBase;
