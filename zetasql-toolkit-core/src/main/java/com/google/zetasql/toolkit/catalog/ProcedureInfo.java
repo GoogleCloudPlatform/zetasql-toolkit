@@ -50,5 +50,4 @@ public class ProcedureInfo {
   public String getFullName() {
     return String.join(".", namePath);
   }
-
 }

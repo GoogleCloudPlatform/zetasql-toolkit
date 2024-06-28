@@ -114,7 +114,12 @@ public class BigQueryLanguageOptions {
             LanguageFeature.FEATURE_V_1_3_UNNEST_AND_FLATTEN_ARRAYS,
             LanguageFeature.FEATURE_V_1_3_UNPIVOT,
             LanguageFeature.FEATURE_V_1_3_WITH_GROUP_ROWS,
-            LanguageFeature.FEATURE_V_1_3_WITH_RECURSIVE));
+            LanguageFeature.FEATURE_V_1_3_WITH_RECURSIVE,
+            LanguageFeature.FEATURE_V_1_4_ARRAY_AGGREGATION_FUNCTIONS,
+            LanguageFeature.FEATURE_V_1_4_REMOTE_MODEL,
+            LanguageFeature.FEATURE_V_1_4_GROUPING_BUILTIN,
+            LanguageFeature.FEATURE_V_1_4_GROUPING_SETS,
+            LanguageFeature.FEATURE_V_1_4_GROUP_BY_ALL));
 
     languageOptions.setSupportedStatementKinds(
         ImmutableSet.of(

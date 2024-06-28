@@ -43,11 +43,9 @@ public class CoercerTest {
     Coercer coercer = new Coercer(languageOptions);
 
     assertTrue(
-        coercer.coercesTo(int32Type, int64Type, false, false),
-        "Expect INT32 to coerce to INT64");
+        coercer.coercesTo(int32Type, int64Type, false, false), "Expect INT32 to coerce to INT64");
     assertTrue(
-        coercer.coercesTo(int32Type, doubleType, false, false),
-        "Expect INT32 to coerce to DOUBLE");
+        coercer.coercesTo(int32Type, doubleType, false, false), "Expect INT32 to coerce to DOUBLE");
     assertFalse(
         coercer.coercesTo(int32Type, stringType, false, false),
         "Expect INT32 to not coerce to STRING");
@@ -70,12 +68,10 @@ public class CoercerTest {
 
   @Test
   void testArrayCoercions() {
-    Type int32Array = TypeFactory.createArrayType(
-        TypeFactory.createSimpleType(TypeKind.TYPE_INT32)
-    );
-    Type int64Array = TypeFactory.createArrayType(
-        TypeFactory.createSimpleType(TypeKind.TYPE_INT64)
-    );
+    Type int32Array =
+        TypeFactory.createArrayType(TypeFactory.createSimpleType(TypeKind.TYPE_INT32));
+    Type int64Array =
+        TypeFactory.createArrayType(TypeFactory.createSimpleType(TypeKind.TYPE_INT64));
 
     LanguageOptions languageOptions = new LanguageOptions();
 
@@ -100,12 +96,14 @@ public class CoercerTest {
 
   @Test
   void testStructCoercions() {
-    Type structWithInt32Field = TypeFactory.createStructType(ImmutableList.of(
-        new StructField("field", TypeFactory.createSimpleType(TypeKind.TYPE_INT32))
-    ));
-    Type structWithInt64Field = TypeFactory.createStructType(ImmutableList.of(
-        new StructField("field", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))
-    ));
+    Type structWithInt32Field =
+        TypeFactory.createStructType(
+            ImmutableList.of(
+                new StructField("field", TypeFactory.createSimpleType(TypeKind.TYPE_INT32))));
+    Type structWithInt64Field =
+        TypeFactory.createStructType(
+            ImmutableList.of(
+                new StructField("field", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))));
 
     LanguageOptions languageOptions = new LanguageOptions();
     languageOptions.enableMaximumLanguageFeatures();
@@ -119,16 +117,16 @@ public class CoercerTest {
 
   @Test
   void testComplexCoercions() {
-    Type int32StructArray = TypeFactory.createArrayType(
-        TypeFactory.createStructType(ImmutableList.of(
-          new StructField("field", TypeFactory.createSimpleType(TypeKind.TYPE_INT32))
-        ))
-    );
-    Type int64StructArray = TypeFactory.createArrayType(
-        TypeFactory.createStructType(ImmutableList.of(
-            new StructField("field", TypeFactory.createSimpleType(TypeKind.TYPE_INT64))
-        ))
-    );
+    Type int32StructArray =
+        TypeFactory.createArrayType(
+            TypeFactory.createStructType(
+                ImmutableList.of(
+                    new StructField("field", TypeFactory.createSimpleType(TypeKind.TYPE_INT32)))));
+    Type int64StructArray =
+        TypeFactory.createArrayType(
+            TypeFactory.createStructType(
+                ImmutableList.of(
+                    new StructField("field", TypeFactory.createSimpleType(TypeKind.TYPE_INT64)))));
 
     LanguageOptions languageOptions = new LanguageOptions();
     languageOptions.enableMaximumLanguageFeatures();
@@ -138,7 +136,5 @@ public class CoercerTest {
     assertTrue(
         coercer.coercesTo(int32StructArray, int64StructArray, true, false),
         "Expect compatible ARRAY<STRUCT<...>> literals to coerce to one another");
-
   }
-
 }

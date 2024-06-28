@@ -18,9 +18,13 @@ package com.google.zetasql.toolkit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.google.common.collect.ImmutableList;
 import com.google.zetasql.AnalyzerOptions;
 import com.google.zetasql.SimpleCatalog;
+import com.google.zetasql.SimpleColumn;
 import com.google.zetasql.SimpleTable;
+import com.google.zetasql.TypeFactory;
+import com.google.zetasql.ZetaSQLType.TypeKind;
 import com.google.zetasql.parser.ASTNodes.ASTSimpleType;
 import com.google.zetasql.parser.ASTNodes.ASTVariableDeclaration;
 import com.google.zetasql.resolvedast.ResolvedNodes.*;
@@ -67,9 +71,52 @@ public class ZetaSQLToolkitTest {
   }
 
   @Test
+  void testSelectStmtWithUnnest() {
+    SimpleCatalog catalog = new SimpleCatalog("catalog");
+    catalog.addSimpleTable(
+        "t",
+        new SimpleTable(
+            "t",
+            ImmutableList.of(
+                new SimpleColumn("t", "column1", TypeFactory.createSimpleType(TypeKind.TYPE_INT64)),
+                new SimpleColumn(
+                    "t",
+                    "column2",
+                    TypeFactory.createArrayType(
+                        TypeFactory.createSimpleType(TypeKind.TYPE_STRING))))));
+
+    String stmt = "SELECT column1, unnested FROM t CROSS JOIN UNNEST(t.column2) AS unnested;";
+
+    AnalyzedStatement analyzedStmt =
+        this.analyzer.analyzeStatements(stmt, new BasicCatalogWrapper(catalog)).next();
+
+    assertTrue(analyzedStmt.getResolvedStatement().isPresent());
+    ResolvedQueryStmt queryStmt =
+        assertInstanceOf(ResolvedQueryStmt.class, analyzedStmt.getResolvedStatement().get());
+
+    ResolvedProjectScan projectScan =
+        assertInstanceOf(ResolvedProjectScan.class, queryStmt.getQuery());
+    assertEquals(2, projectScan.getColumnList().size());
+    assertAll(
+        () -> assertEquals("column1", projectScan.getColumnList().get(0).getName()),
+        () -> assertTrue(projectScan.getColumnList().get(0).getType().isInteger()),
+        () -> assertEquals("unnested", projectScan.getColumnList().get(1).getName()),
+        () -> assertTrue(projectScan.getColumnList().get(1).getType().isString()));
+
+    ResolvedArrayScan arrayScan =
+        assertInstanceOf(ResolvedArrayScan.class, projectScan.getInputScan());
+    ResolvedColumnRef unnestedColumn =
+        assertInstanceOf(ResolvedColumnRef.class, arrayScan.getArrayExpr());
+    assertEquals("column2", unnestedColumn.getColumn().getName());
+
+    ResolvedTableScan tableScan =
+        assertInstanceOf(ResolvedTableScan.class, arrayScan.getInputScan());
+    assertEquals("t", tableScan.getTable().getName());
+  }
+
+  @Test
   void testTableDDL() {
-    String query = "CREATE TEMP TABLE t AS (SELECT 1 AS column);\n"
-        + "SELECT * FROM t;";
+    String query = "CREATE TEMP TABLE t AS (SELECT 1 AS column);\n" + "SELECT * FROM t;";
     SimpleCatalog catalog = new SimpleCatalog("catalog");
 
     Iterator<AnalyzedStatement> statementIterator =
@@ -83,8 +130,7 @@ public class ZetaSQLToolkitTest {
     assertAll(
         () -> assertEquals("t", table.getName()),
         () -> assertEquals(1, table.getColumnList().size()),
-        () -> assertEquals("column", table.getColumnList().get(0).getName())
-    );
+        () -> assertEquals("column", table.getColumnList().get(0).getName()));
 
     // Just check that the second statement was analyzed successfully
     AnalyzedStatement second = statementIterator.next();
@@ -94,8 +140,7 @@ public class ZetaSQLToolkitTest {
 
   @Test
   void testVariableDeclaration() {
-    String query = "DECLARE x INT64 DEFAULT 1;\n"
-        + "SELECT x;";
+    String query = "DECLARE x INT64 DEFAULT 1;\n" + "SELECT x;";
     SimpleCatalog catalog = new SimpleCatalog("catalog");
 
     Iterator<AnalyzedStatement> statementIterator =
@@ -131,11 +176,9 @@ public class ZetaSQLToolkitTest {
     assertThrows(AnalysisException.class, statementIterator::next);
 
     // Invalid type for SET statement
-    query = "DECLARE x INT64;\n"
-      + "SET x = 'ASD';";
+    query = "DECLARE x INT64;\n" + "SET x = 'ASD';";
     statementIterator = this.analyzer.analyzeStatements(query);
     statementIterator.next();
     assertThrows(AnalysisException.class, statementIterator::next);
   }
-
 }

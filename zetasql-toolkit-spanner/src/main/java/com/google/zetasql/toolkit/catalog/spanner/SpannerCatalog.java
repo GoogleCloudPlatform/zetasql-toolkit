@@ -66,7 +66,6 @@ public class SpannerCatalog implements CatalogWrapper {
    * DatabaseClient} with application default credentials to access Spanner.
    *
    * @deprecated Use {@link SpannerCatalog#usingSpannerClient(String, String, String)}
-   *
    * @param projectId The Spanner project id
    * @param instance The Spanner instance name
    * @param database The Spanner database name
@@ -81,7 +80,6 @@ public class SpannerCatalog implements CatalogWrapper {
    * Spanner.
    *
    * @deprecated Use {@link SpannerCatalog#usingSpannerClient(String, String, String, Spanner)}
-   *
    * @param projectId The Spanner project id
    * @param instance The Spanner instance name
    * @param database The Spanner database name
@@ -94,8 +92,7 @@ public class SpannerCatalog implements CatalogWrapper {
 
   /** Private constructor used for implementing {@link #copy()} */
   private SpannerCatalog(
-      SpannerResourceProvider spannerResourceProvider,
-      SimpleCatalog internalCatalog) {
+      SpannerResourceProvider spannerResourceProvider, SimpleCatalog internalCatalog) {
     this.spannerResourceProvider = spannerResourceProvider;
     this.catalog = internalCatalog;
   }
@@ -107,6 +104,7 @@ public class SpannerCatalog implements CatalogWrapper {
    * @param projectId The Spanner project id
    * @param instance The Spanner instance name
    * @param database The Spanner database name
+   * @return the new SpannerCatalog instance
    */
   public static SpannerCatalog usingSpannerClient(
       String projectId, String instance, String database) {
@@ -123,6 +121,7 @@ public class SpannerCatalog implements CatalogWrapper {
    * @param instance The Spanner instance name
    * @param database The Spanner database name
    * @param spannerClient The Spanner client to use
+   * @return the new SpannerCatalog instance
    */
   public static SpannerCatalog usingSpannerClient(
       String projectId, String instance, String database, Spanner spannerClient) {
@@ -132,10 +131,11 @@ public class SpannerCatalog implements CatalogWrapper {
   }
 
   /**
-   * Constructs a SpannerCatalog that can use the tables in the provided
-   * {@link CatalogResources} object.
+   * Constructs a SpannerCatalog that can use the tables in the provided {@link CatalogResources}
+   * object.
    *
    * @param resources The {@link CatalogResources} object from which this catalog will get tables
+   * @return the new SpannerCatalog instance
    */
   public static SpannerCatalog usingResources(CatalogResources resources) {
     SpannerResourceProvider resourceProvider = new LocalSpannerResourceProvider(resources);
@@ -225,9 +225,10 @@ public class SpannerCatalog implements CatalogWrapper {
   public void addTables(List<String> tableNames) {
     this.validateSpannerTableNames(tableNames);
 
-    List<String> tablesNotInCatalog = tableNames.stream()
-        .filter(tableName -> Objects.isNull(this.catalog.getTable(tableName, null)))
-        .collect(Collectors.toList());
+    List<String> tablesNotInCatalog =
+        tableNames.stream()
+            .filter(tableName -> Objects.isNull(this.catalog.getTable(tableName, null)))
+            .collect(Collectors.toList());
 
     this.spannerResourceProvider
         .getTables(tablesNotInCatalog)
@@ -284,8 +285,7 @@ public class SpannerCatalog implements CatalogWrapper {
   @Override
   public SpannerCatalog copy() {
     return new SpannerCatalog(
-        this.spannerResourceProvider,
-        CatalogOperations.copyCatalog(this.catalog));
+        this.spannerResourceProvider, CatalogOperations.copyCatalog(this.catalog));
   }
 
   @Override

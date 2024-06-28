@@ -10,8 +10,7 @@ public class UsageTrackingTest {
   @Test
   public void testRevisionIsSet() {
     assertNotNull(UsageTracking.CURRENT_REVISION, "Project revision not set");
-    assertNotEquals(
-        "UNSET", UsageTracking.CURRENT_REVISION, "Project revision not set");
+    assertNotEquals("UNSET", UsageTracking.CURRENT_REVISION, "Project revision not set");
   }
 
   @Test
@@ -20,5 +19,4 @@ public class UsageTrackingTest {
     String userAgentValue = headerProvider.getHeaders().get("user-agent");
     assertNotNull(userAgentValue, "User agent for API calls not set");
   }
-
 }
