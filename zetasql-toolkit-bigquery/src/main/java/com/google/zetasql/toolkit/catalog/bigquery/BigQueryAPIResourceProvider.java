@@ -34,7 +34,6 @@ import com.google.zetasql.ZetaSQLFunctions.FunctionEnums.NamedArgumentKind;
 import com.google.zetasql.ZetaSQLFunctions.FunctionEnums.ProcedureArgumentMode;
 import com.google.zetasql.ZetaSQLFunctions.SignatureArgumentKind;
 import com.google.zetasql.ZetaSQLType.TypeKind;
-import com.google.zetasql.toolkit.catalog.CatalogOperations;
 import com.google.zetasql.toolkit.catalog.FunctionInfo;
 import com.google.zetasql.toolkit.catalog.ProcedureInfo;
 import com.google.zetasql.toolkit.catalog.TVFInfo;
@@ -284,7 +283,7 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
     TableId tableId = table.getTableId();
     String fullTableName = BigQueryReference.from(tableId).getFullName();
     List<SimpleColumn> columns = this.extractColumnsFromBigQueryTable(table);
-    return CatalogOperations.buildSimpleTable(fullTableName, columns);
+    return new SimpleTable(fullTableName, columns);
   }
 
   /**

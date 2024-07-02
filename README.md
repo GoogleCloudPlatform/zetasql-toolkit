@@ -30,7 +30,7 @@ When analyzing queries using BigQuery semantics, you need to:
 <dependency>
   <groupId>com.google.zetasql.toolkit</groupId>
   <artifactId>zetasql-toolkit-bigquery</artifactId>
-  <version>0.5.1</version>
+  <version>0.5.2</version>
 </dependency>
 ```
 
@@ -113,7 +113,7 @@ Similarly, when analyzing queries using Spanner semantics, you need to:
 <dependency>
   <groupId>com.google.zetasql.toolkit</groupId>
   <artifactId>zetasql-toolkit-spanner</artifactId>
-  <version>0.5.1</version>
+  <version>0.5.2</version>
 </dependency>
 ```
 

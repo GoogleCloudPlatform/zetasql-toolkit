@@ -20,7 +20,6 @@ import com.google.cloud.spanner.*;
 import com.google.zetasql.SimpleColumn;
 import com.google.zetasql.SimpleTable;
 import com.google.zetasql.Type;
-import com.google.zetasql.toolkit.catalog.CatalogOperations;
 import com.google.zetasql.toolkit.catalog.spanner.exceptions.SpannerTablesNotFound;
 import com.google.zetasql.toolkit.catalog.typeparser.ZetaSQLTypeParser;
 import com.google.zetasql.toolkit.usage.UsageTracking;
@@ -178,8 +177,7 @@ public class SpannerResourceProviderImpl implements SpannerResourceProvider {
     return tableColumns.entrySet().stream()
         .map(
             tableAndColumns ->
-                CatalogOperations.buildSimpleTable(
-                    tableAndColumns.getKey(), tableAndColumns.getValue()))
+                new SimpleTable(tableAndColumns.getKey(), tableAndColumns.getValue()))
         .collect(Collectors.toList());
   }
 }

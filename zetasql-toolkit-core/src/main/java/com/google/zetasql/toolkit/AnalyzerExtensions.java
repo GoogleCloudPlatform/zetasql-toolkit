@@ -109,6 +109,7 @@ public class AnalyzerExtensions {
                     .map(ASTIdentifier::getIdString)
                     .collect(ImmutableList.toImmutableList());
             result.add(functionNamePath);
+            super.visit(functionCall);
           }
         };
 
@@ -183,6 +184,7 @@ public class AnalyzerExtensions {
                     .map(ASTIdentifier::getIdString)
                     .collect(ImmutableList.toImmutableList());
             result.add(functionNamePath);
+            super.visit(tvfCall);
           }
         };
 
@@ -260,6 +262,7 @@ public class AnalyzerExtensions {
                     .map(ASTIdentifier::getIdString)
                     .collect(ImmutableList.toImmutableList());
             result.add(functionNamePath);
+            super.visit(procedureCall);
           }
         };
 

@@ -41,21 +41,6 @@ public class CatalogOperations {
 
   private CatalogOperations() {}
 
-  /**
-   * Builds a properly configured SimpleTable object
-   *
-   * @param fullTableName The full name for the table, e.g. "project.dataset.table"
-   * @param columns The list of columns for the table
-   * @return The created SimpleTable object
-   */
-  public static SimpleTable buildSimpleTable(String fullTableName, List<SimpleColumn> columns) {
-    List<String> tablePath = Arrays.asList(fullTableName.split("\\."));
-    String tableName = tablePath.get(tablePath.size() - 1);
-    SimpleTable table = new SimpleTable(tableName, columns);
-    table.setFullName(fullTableName);
-    return table;
-  }
-
   /** Get a child catalog from an existing catalog, creating it if it does not exist */
   private static SimpleCatalog getOrCreateNestedCatalog(SimpleCatalog parent, String name) {
     Optional<SimpleCatalog> maybeExistingCatalog =

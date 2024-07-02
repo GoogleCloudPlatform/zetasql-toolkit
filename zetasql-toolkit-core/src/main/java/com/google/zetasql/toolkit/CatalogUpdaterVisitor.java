@@ -24,7 +24,6 @@ import com.google.zetasql.ZetaSQLType.TypeKind;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateScope;
 import com.google.zetasql.resolvedast.ResolvedNodes.*;
-import com.google.zetasql.toolkit.catalog.CatalogOperations;
 import com.google.zetasql.toolkit.catalog.CatalogWrapper;
 import com.google.zetasql.toolkit.catalog.FunctionInfo;
 import com.google.zetasql.toolkit.catalog.ProcedureInfo;
@@ -89,8 +88,7 @@ class CatalogUpdaterVisitor extends Visitor {
   private void visitCreateTableBase(ResolvedCreateTableStmtBase createTableStmtBase) {
     List<SimpleColumn> columns = this.getColumnsFromCreateTableStmt(createTableStmtBase);
     SimpleTable table =
-        CatalogOperations.buildSimpleTable(
-            String.join(".", createTableStmtBase.getNamePath()), columns);
+        new SimpleTable(String.join(".", createTableStmtBase.getNamePath()), columns);
 
     CreateMode createMode = createTableStmtBase.getCreateMode();
     CreateScope createScope = createTableStmtBase.getCreateScope();
@@ -151,8 +149,7 @@ class CatalogUpdaterVisitor extends Visitor {
    */
   private void visitCreateViewBase(ResolvedCreateViewBase createViewBase) {
     List<SimpleColumn> columns = this.getColumnsFromCreateViewBase(createViewBase);
-    SimpleTable table =
-        CatalogOperations.buildSimpleTable(String.join(".", createViewBase.getNamePath()), columns);
+    SimpleTable table = new SimpleTable(String.join(".", createViewBase.getNamePath()), columns);
 
     CreateMode createMode = createViewBase.getCreateMode();
     CreateScope createScope = createViewBase.getCreateScope();
