@@ -70,6 +70,16 @@ public class LocalBigQueryResourceProvider implements BigQueryResourceProvider {
   }
 
   @Override
+  public List<SimpleTable> getAllWildcardTables(String projectId, String wildcardTableReference) {
+    String[] wildcardTableRefSplit = wildcardTableReference.split("\\.");
+    String wildcardTablePattern =
+        wildcardTableRefSplit[wildcardTableRefSplit.length - 1].replace("*", "");
+    return catalogResources.getTables().stream()
+        .filter(tableId -> tableId.getName().startsWith(wildcardTablePattern))
+        .collect(Collectors.toList());
+  }
+
+  @Override
   public List<SimpleTable> getAllTablesInProject(String projectId) {
     return catalogResources.getTables().stream()
         .filter(
