@@ -47,6 +47,17 @@ public interface BigQueryResourceProvider {
   List<SimpleTable> getAllTablesInDataset(String projectId, String datasetName);
 
   /**
+   * Gets all BigQuery tables using wildcard matching and returns them as {@link SimpleTable}s
+   *
+   * @param projectId The default BigQuery project id.
+   * @param wildcardTableReference The table reference using wildcard. See <a
+   *     href="https://cloud.google.com/bigquery/docs/querying-wildcard-tables">Querying Wildcard
+   *     Tables</a>.
+   * @return The list of SimpleTables representing matching BigQuery wildcard tables.
+   */
+  List<SimpleTable> getAllWildcardTables(String projectId, String wildcardTableReference);
+
+  /**
    * Gets all BigQuery tables in a given project and returns them as {@link SimpleTable}s
    *
    * @param projectId The projectId from which to get the tables

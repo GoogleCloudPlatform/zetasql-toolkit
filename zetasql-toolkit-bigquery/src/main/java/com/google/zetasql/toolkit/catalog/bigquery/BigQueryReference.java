@@ -90,6 +90,16 @@ class BigQueryReference {
     return CharMatcher.is('.').countIn(referenceString) > 0;
   }
 
+  /**
+   * Returns whether the provided BigQuery reference string is wildcard reference
+   *
+   * @param referenceString The reference string to check (e.g. dataset.table_*)
+   * @return Whether the reference is wildcard reference
+   */
+  public static boolean isWildcardReference(String referenceString) {
+    return referenceString.endsWith("*");
+  }
+
   public String getProjectId() {
     return projectId;
   }

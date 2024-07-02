@@ -86,6 +86,25 @@ public class BigQueryAPIResourceProviderTest {
     return mockTable;
   }
 
+  Table createMockWildcardTable() {
+    TableId tableId = TableId.of("project", "dataset", "table_19700101");
+    FieldList fields =
+        FieldList.of(
+            Field.of("col1", StandardSQLTypeName.INT64),
+            Field.newBuilder("col2", StandardSQLTypeName.STRING).setMode(Mode.REPEATED).build(),
+            Field.of(
+                "col3", StandardSQLTypeName.STRUCT, Field.of("field1", StandardSQLTypeName.INT64)));
+
+    StandardTableDefinition.Builder tableDefinitionBuilder = StandardTableDefinition.newBuilder();
+    tableDefinitionBuilder.setSchema(Schema.of(fields));
+
+    Table mockTable = mock(Table.class);
+    when(mockTable.getTableId()).thenReturn(tableId);
+    when(mockTable.getDefinition()).thenReturn(tableDefinitionBuilder.build());
+
+    return mockTable;
+  }
+
   List<SimpleColumn> expectedColumnsForMockTable() {
     return ImmutableList.of(
         new SimpleColumn("table", "col1", TypeFactory.createSimpleType(TypeKind.TYPE_INT64)),
@@ -166,6 +185,26 @@ public class BigQueryAPIResourceProviderTest {
     List<SimpleColumn> expectedSchemaForMockTable = expectedColumnsForMockTable();
 
     List<SimpleTable> tables = bigqueryResourceProvider.getAllTablesInDataset("project", "dataset");
+
+    assertEquals(1, tables.size());
+    assertTrue(
+        CatalogTestUtils.tableColumnsEqual(
+            expectedSchemaForMockTable, tables.get(0).getColumnList()));
+  }
+
+  @Test
+  void testGetAllWildcardTables() {
+    TableId tableId = TableId.of("project", "dataset", "table_19700101");
+    Table mockTable = createMockWildcardTable();
+    when(bigQueryServiceMock.listTables(anyString(), anyString()))
+        .thenReturn(Result.success(ImmutableList.of(tableId)));
+    when(bigQueryServiceMock.fetchTable(anyString(), anyString()))
+        .thenReturn(Result.success(mockTable));
+
+    List<SimpleColumn> expectedSchemaForMockTable = expectedColumnsForMockTable();
+
+    List<SimpleTable> tables =
+        bigqueryResourceProvider.getAllWildcardTables("project", "project.dataset.table_*");
 
     assertEquals(1, tables.size());
     assertTrue(
