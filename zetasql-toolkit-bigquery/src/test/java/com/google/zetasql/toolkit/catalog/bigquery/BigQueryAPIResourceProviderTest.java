@@ -204,7 +204,7 @@ public class BigQueryAPIResourceProviderTest {
     List<SimpleColumn> expectedSchemaForMockTable = expectedColumnsForMockTable();
 
     List<SimpleTable> tables =
-        bigqueryResourceProvider.getAllWildcardTables("project", "project.dataset.table_*");
+        bigqueryResourceProvider.getTablesWithPrefix("project", "project.dataset.table_*");
 
     assertEquals(1, tables.size());
     assertTrue(

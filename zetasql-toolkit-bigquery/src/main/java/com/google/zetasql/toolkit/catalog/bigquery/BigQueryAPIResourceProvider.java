@@ -343,21 +343,28 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
    * @throws BigQueryAPIError if an API error occurs
    */
   @Override
-  public List<SimpleTable> getAllWildcardTables(String projectId, String wildcardTableReference) {
-    String[] wildcardTableRefSplit = wildcardTableReference.split("\\.");
-    String wildcardTablePattern =
-        wildcardTableRefSplit[wildcardTableRefSplit.length - 1].replace("*", "");
-    String datasetReference =
-        wildcardTableRefSplit.length == 3 ? wildcardTableRefSplit[1] : wildcardTableRefSplit[0];
+  public List<SimpleTable> getTablesWithPrefix(String projectId, String tablePrefixReference) {
     List<String> tableReferences =
-        this.service.listTables(projectId, datasetReference).get().stream()
-            .filter(tableId -> tableId.getTable().startsWith(wildcardTablePattern))
-            .map(
-                tableId ->
-                    String.format(
-                        "%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable()))
-            .collect(Collectors.toList());
+        listTablesWithPrefix(projectId, tablePrefixReference).stream().collect(Collectors.toList());
     return this.getTables(projectId, tableReferences);
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * @throws BigQueryAPIError if an API error occurs
+   */
+  @Override
+  public List<String> listTablesWithPrefix(String projectId, String tablePrefixReference) {
+    BigQueryReference tableReference = BigQueryReference.from(projectId, tablePrefixReference);
+    String tablePrefix = tableReference.getResourceName().replace("*", "");
+    return this.service.listTables(projectId, tableReference.getDatasetId()).get().stream()
+        .filter(tableId -> tableId.getTable().startsWith(tablePrefix))
+        .map(
+            tableId ->
+                String.format(
+                    "%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable()))
+        .collect(Collectors.toList());
   }
 
   /**

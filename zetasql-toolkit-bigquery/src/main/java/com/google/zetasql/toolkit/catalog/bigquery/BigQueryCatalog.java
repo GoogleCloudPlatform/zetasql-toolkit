@@ -19,7 +19,14 @@ package com.google.zetasql.toolkit.catalog.bigquery;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonParseException;
-import com.google.zetasql.*;
+import com.google.zetasql.Analyzer;
+import com.google.zetasql.AnalyzerOptions;
+import com.google.zetasql.Constant;
+import com.google.zetasql.LanguageOptions;
+import com.google.zetasql.NotFoundException;
+import com.google.zetasql.SimpleCatalog;
+import com.google.zetasql.SimpleTable;
+import com.google.zetasql.ZetaSQLBuiltinFunctionOptions;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateScope;
 import com.google.zetasql.toolkit.AnalyzerExtensions;
@@ -297,23 +304,6 @@ public class BigQueryCatalog implements CatalogWrapper {
     }
   }
 
-  private List<String> buildCatalogNamesForWildcardTable(String wildcardTableReference) {
-    String[] wildcardTableRefSplit = wildcardTableReference.split("\\.");
-
-    if (wildcardTableRefSplit.length < 2) return ImmutableList.of(wildcardTableReference);
-
-    if (wildcardTableRefSplit.length == 3) {
-      return ImmutableList.of(
-          String.format(
-              "%s.%s.%s",
-              wildcardTableRefSplit[0], wildcardTableRefSplit[1], wildcardTableRefSplit[2]),
-          String.format("%s.%s", wildcardTableRefSplit[1], wildcardTableRefSplit[2]));
-    }
-
-    return ImmutableList.of(
-        String.format("%s.%s", wildcardTableRefSplit[0], wildcardTableRefSplit[1]));
-  }
-
   private CatalogResourceAlreadyExists addCaseInsensitivityWarning(
       CatalogResourceAlreadyExists error) {
     return new CatalogResourceAlreadyExists(
@@ -350,27 +340,6 @@ public class BigQueryCatalog implements CatalogWrapper {
 
     try {
       catalogNamesForTable.forEach(
-          catalogName ->
-              CatalogOperations.createTableInCatalog(catalog, catalogName, table, createMode));
-    } catch (CatalogResourceAlreadyExists alreadyExists) {
-      throw this.addCaseInsensitivityWarning(alreadyExists);
-    }
-  }
-
-  private void registerWildcardTable(
-      SimpleTable table, String wildcardTableName, CreateMode createMode, CreateScope createScope) {
-    this.validateCreateScope(
-        createScope,
-        ImmutableList.of(CreateScope.CREATE_DEFAULT_SCOPE, CreateScope.CREATE_TEMP),
-        table.getFullName(),
-        "table");
-    this.validateNamePathForCreation(ImmutableList.of(table.getFullName()), createScope, "table");
-
-    List<String> catalogNamesForWildcardTable =
-        buildCatalogNamesForWildcardTable(wildcardTableName);
-
-    try {
-      catalogNamesForWildcardTable.forEach(
           catalogName ->
               CatalogOperations.createTableInCatalog(catalog, catalogName, table, createMode));
     } catch (CatalogResourceAlreadyExists alreadyExists) {
@@ -571,19 +540,20 @@ public class BigQueryCatalog implements CatalogWrapper {
 
   private void addWildcardTables(List<String> tableReference) {
     tableReference.forEach(
-        tableRef ->
-            this.bigQueryResourceProvider
-                .getAllWildcardTables(this.defaultProjectId, tableRef)
-                .forEach(
-                    table -> {
+        tableRef -> {
+          String concreteTableReference =
+              this.bigQueryResourceProvider
+                  .listTablesWithPrefix(this.defaultProjectId, tableRef)
+                  .get(0);
+          this.bigQueryResourceProvider
+              .getTables(this.defaultProjectId, ImmutableList.of((concreteTableReference)))
+              .forEach(
+                  table ->
                       this.register(
-                          table, CreateMode.CREATE_OR_REPLACE, CreateScope.CREATE_DEFAULT_SCOPE);
-                      this.registerWildcardTable(
-                          table,
-                          tableRef,
+                          CatalogOperations.buildSimpleTable(tableRef, table.getColumnList()),
                           CreateMode.CREATE_OR_REPLACE,
-                          CreateScope.CREATE_DEFAULT_SCOPE);
-                    }));
+                          CreateScope.CREATE_DEFAULT_SCOPE));
+        });
   }
 
   /**
@@ -632,13 +602,11 @@ public class BigQueryCatalog implements CatalogWrapper {
             .filter(BigQueryReference::isQualified) // Remove non-qualified tables
             .collect(Collectors.toSet());
     Set<String> standardTables =
-        ImmutableList.copyOf((tables)).stream()
+        tables.stream()
             .filter(ref -> !BigQueryReference.isWildcardReference(ref))
             .collect(Collectors.toSet());
     Set<String> wildcardTables =
-        ImmutableList.copyOf((tables)).stream()
-            .filter(BigQueryReference::isWildcardReference)
-            .collect(Collectors.toSet());
+        tables.stream().filter(BigQueryReference::isWildcardReference).collect(Collectors.toSet());
     this.addTables(ImmutableList.copyOf((standardTables)));
     this.addWildcardTables(ImmutableList.copyOf((wildcardTables)));
   }
