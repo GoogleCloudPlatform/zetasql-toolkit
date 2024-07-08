@@ -344,8 +344,7 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
    */
   @Override
   public List<SimpleTable> getTablesWithPrefix(String projectId, String tablePrefixReference) {
-    List<String> tableReferences =
-        listTablesWithPrefix(projectId, tablePrefixReference).stream().collect(Collectors.toList());
+    List<String> tableReferences = listTablesWithPrefix(projectId, tablePrefixReference);
     return this.getTables(projectId, tableReferences);
   }
 
