@@ -6,12 +6,12 @@
   <parent>
     <groupId>com.google.zetasql.toolkit</groupId>
     <artifactId>zetasql-toolkit</artifactId>
-    <version>0.5.1</version>
+    <version>0.5.2</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>zetasql-toolkit-spanner</artifactId>
-  <version>0.5.1</version>
+  <version>0.5.2</version>
 
   <name>${project.groupId}:${project.artifactId}</name>
 
