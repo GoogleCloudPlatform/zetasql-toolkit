@@ -176,6 +176,9 @@ public class StatementRewriter {
   public static String quoteNamePaths(String query, ASTStatement parsedStatement) {
     List<Rewrite> rewrites =
         getResourcePathExpressionFromParseTree(parsedStatement).stream()
+            .filter(
+                pathExpression ->
+                    !pathExpression.getNames().get(0).getIdString().equalsIgnoreCase("SAFE"))
             .map(
                 pathExpression ->
                     new Rewrite(
