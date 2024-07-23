@@ -86,6 +86,7 @@
     <maven.gpg.plugin.version>3.2.4</maven.gpg.plugin.version>
     <maven.surefire.version>3.3.0</maven.surefire.version>
     <spotless.version>2.30.0</spotless.version>
+    <google.cloud.jib.version>3.4.2</google.cloud.jib.version>
   </properties>
 
   <dependencyManagement>
@@ -204,6 +205,14 @@
               <importOrder/>
               <removeUnusedImports/>
             </java>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>com.google.cloud.tools</groupId>
+          <artifactId>jib-maven-plugin</artifactId>
+          <version>${google.cloud.jib.version}</version>
+          <configuration>
+            <skip>true</skip>
           </configuration>
         </plugin>
       </plugins>

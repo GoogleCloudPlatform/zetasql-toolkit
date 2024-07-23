@@ -14,8 +14,8 @@
 You can package an example into a container
 using [Jib](https://cloud.google.com/java/getting-started/jib).
 
-`mvn clean packge jib:build -DskipTests -Dcontainer.mainClass=MAIN_CLASS`
+`mvn -Prelease clean package jib:build -Dcontainer.mainClass=MAIN_CLASS`
 
 Example:
 
-`mvn package jib:dockerBuild -DskipTests -Dcontainer.mainClass=com.google.zetasql.toolkit.examples.AnalyzeWithoutCatalog`
+`mvn -Prelease clean package jib:dockerBuild -Dcontainer.mainClass=com.google.zetasql.toolkit.examples.AnalyzeWithoutCatalog`

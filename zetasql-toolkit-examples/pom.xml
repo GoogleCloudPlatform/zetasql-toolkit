@@ -58,8 +58,8 @@
       <plugin>
         <groupId>com.google.cloud.tools</groupId>
         <artifactId>jib-maven-plugin</artifactId>
-        <version>${google.cloud.jib.version}</version>
         <configuration>
+          <skip>false</skip>
           <container>
             <mainClass>${container.mainClass}</mainClass>
             <expandClasspathDependencies>true</expandClasspathDependencies>
