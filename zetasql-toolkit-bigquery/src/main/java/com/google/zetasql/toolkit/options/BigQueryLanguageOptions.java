@@ -66,6 +66,7 @@ public class BigQueryLanguageOptions {
             LanguageFeature.FEATURE_JSON_ARRAY_FUNCTIONS,
             LanguageFeature.FEATURE_JSON_TYPE,
             LanguageFeature.FEATURE_JSON_VALUE_EXTRACTION_FUNCTIONS,
+            LanguageFeature.FEATURE_JSON_MUTATOR_FUNCTIONS,
             LanguageFeature.FEATURE_NAMED_ARGUMENTS,
             LanguageFeature.FEATURE_NUMERIC_TYPE,
             LanguageFeature.FEATURE_PARAMETERIZED_TYPES,
