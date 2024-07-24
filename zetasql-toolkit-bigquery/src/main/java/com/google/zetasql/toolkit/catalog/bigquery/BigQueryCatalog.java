@@ -560,7 +560,7 @@ public class BigQueryCatalog implements CatalogWrapper {
               .forEach(
                   table ->
                       this.register(
-                          CatalogOperations.buildSimpleTable(tableRef, table.getColumnList()),
+                          new SimpleTable(tableRef, table.getColumnList()),
                           CreateMode.CREATE_OR_REPLACE,
                           CreateScope.CREATE_DEFAULT_SCOPE));
         });
