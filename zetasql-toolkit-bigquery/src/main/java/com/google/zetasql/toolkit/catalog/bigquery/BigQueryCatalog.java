@@ -529,13 +529,23 @@ public class BigQueryCatalog implements CatalogWrapper {
         tableReferences.stream()
             .filter(tableRef -> !this.tableExistsInCatalog(tableRef))
             .collect(Collectors.toList());
+    List<String> standardTables =
+        tablesNotInCatalog.stream()
+            .filter(tableRef -> BigQueryReference.isWildcardReference(tableRef))
+            .collect(Collectors.toList());
+    List<String> wildcardTables =
+        tablesNotInCatalog.stream()
+            .filter(BigQueryReference::isWildcardReference)
+            .collect(Collectors.toList());
 
     this.bigQueryResourceProvider
-        .getTables(this.defaultProjectId, tablesNotInCatalog)
+        .getTables(this.defaultProjectId, standardTables)
         .forEach(
             table ->
                 this.register(
                     table, CreateMode.CREATE_OR_REPLACE, CreateScope.CREATE_DEFAULT_SCOPE));
+
+    this.addWildcardTables(wildcardTables);
   }
 
   private void addWildcardTables(List<String> tableReference) {
@@ -601,14 +611,7 @@ public class BigQueryCatalog implements CatalogWrapper {
             .map(tablePath -> String.join(".", tablePath))
             .filter(BigQueryReference::isQualified) // Remove non-qualified tables
             .collect(Collectors.toSet());
-    Set<String> standardTables =
-        tables.stream()
-            .filter(ref -> !BigQueryReference.isWildcardReference(ref))
-            .collect(Collectors.toSet());
-    Set<String> wildcardTables =
-        tables.stream().filter(BigQueryReference::isWildcardReference).collect(Collectors.toSet());
-    this.addTables(ImmutableList.copyOf((standardTables)));
-    this.addWildcardTables(ImmutableList.copyOf((wildcardTables)));
+    this.addTables(ImmutableList.copyOf((tables)));
   }
 
   /**
