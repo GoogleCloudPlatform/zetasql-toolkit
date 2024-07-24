@@ -31,7 +31,7 @@ class BigQueryReference {
 
   private static final Pattern PROJECT_PATTERN = Pattern.compile("[a-zA-Z0-9\\.\\-\\:]+");
   private static final Pattern DATASET_PATTERN = Pattern.compile("[a-zA-Z_][a-zA-Z0-9\\_]*");
-  private static final Pattern RESOURCE_PATTERN = Pattern.compile("[a-zA-Z0-9\\_-]+");
+  private static final Pattern RESOURCE_PATTERN = Pattern.compile("[a-zA-Z0-9\\_-]+\\*{0,1}");
   private final String projectId;
   private final String datasetId;
   private final String resourceName;
@@ -88,6 +88,16 @@ class BigQueryReference {
    */
   public static boolean isQualified(String referenceString) {
     return CharMatcher.is('.').countIn(referenceString) > 0;
+  }
+
+  /**
+   * Returns whether the provided BigQuery reference string is wildcard reference
+   *
+   * @param referenceString The reference string to check (e.g. dataset.table_*)
+   * @return Whether the reference is wildcard reference
+   */
+  public static boolean isWildcardReference(String referenceString) {
+    return referenceString.endsWith("*");
   }
 
   public String getProjectId() {

@@ -70,6 +70,25 @@ public class LocalBigQueryResourceProvider implements BigQueryResourceProvider {
   }
 
   @Override
+  public List<SimpleTable> getTablesWithPrefix(String projectId, String tablePrefixReference) {
+    BigQueryReference tableReference = BigQueryReference.from(projectId, tablePrefixReference);
+    String tablePrefix = tableReference.getResourceName().replace("*", "");
+    return catalogResources.getTables().stream()
+        .filter(tableId -> tableId.getName().startsWith(tablePrefix))
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<String> listTablesWithPrefix(String projectId, String tablePrefixReference) {
+    BigQueryReference tableReference = BigQueryReference.from(projectId, tablePrefixReference);
+    String tablePrefix = tableReference.getResourceName().replace("*", "");
+    return catalogResources.getTables().stream()
+        .filter(tableId -> tableId.getName().startsWith(tablePrefix))
+        .map(table -> table.getFullName())
+        .collect(Collectors.toList());
+  }
+
+  @Override
   public List<SimpleTable> getAllTablesInProject(String projectId) {
     return catalogResources.getTables().stream()
         .filter(

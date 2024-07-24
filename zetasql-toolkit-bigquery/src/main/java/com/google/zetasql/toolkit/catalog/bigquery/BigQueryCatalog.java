@@ -19,7 +19,14 @@ package com.google.zetasql.toolkit.catalog.bigquery;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonParseException;
-import com.google.zetasql.*;
+import com.google.zetasql.Analyzer;
+import com.google.zetasql.AnalyzerOptions;
+import com.google.zetasql.Constant;
+import com.google.zetasql.LanguageOptions;
+import com.google.zetasql.NotFoundException;
+import com.google.zetasql.SimpleCatalog;
+import com.google.zetasql.SimpleTable;
+import com.google.zetasql.ZetaSQLBuiltinFunctionOptions;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateMode;
 import com.google.zetasql.resolvedast.ResolvedCreateStatementEnums.CreateScope;
 import com.google.zetasql.toolkit.AnalyzerExtensions;
@@ -522,13 +529,41 @@ public class BigQueryCatalog implements CatalogWrapper {
         tableReferences.stream()
             .filter(tableRef -> !this.tableExistsInCatalog(tableRef))
             .collect(Collectors.toList());
+    List<String> standardTables =
+        tablesNotInCatalog.stream()
+            .filter(tableRef -> BigQueryReference.isWildcardReference(tableRef))
+            .collect(Collectors.toList());
+    List<String> wildcardTables =
+        tablesNotInCatalog.stream()
+            .filter(BigQueryReference::isWildcardReference)
+            .collect(Collectors.toList());
 
     this.bigQueryResourceProvider
-        .getTables(this.defaultProjectId, tablesNotInCatalog)
+        .getTables(this.defaultProjectId, standardTables)
         .forEach(
             table ->
                 this.register(
                     table, CreateMode.CREATE_OR_REPLACE, CreateScope.CREATE_DEFAULT_SCOPE));
+
+    this.addWildcardTables(wildcardTables);
+  }
+
+  private void addWildcardTables(List<String> tableReference) {
+    tableReference.forEach(
+        tableRef -> {
+          String concreteTableReference =
+              this.bigQueryResourceProvider
+                  .listTablesWithPrefix(this.defaultProjectId, tableRef)
+                  .get(0);
+          this.bigQueryResourceProvider
+              .getTables(this.defaultProjectId, ImmutableList.of((concreteTableReference)))
+              .forEach(
+                  table ->
+                      this.register(
+                          new SimpleTable(tableRef, table.getColumnList()),
+                          CreateMode.CREATE_OR_REPLACE,
+                          CreateScope.CREATE_DEFAULT_SCOPE));
+        });
   }
 
   /**

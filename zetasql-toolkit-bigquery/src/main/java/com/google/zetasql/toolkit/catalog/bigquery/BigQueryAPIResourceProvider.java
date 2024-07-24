@@ -17,7 +17,6 @@
 package com.google.zetasql.toolkit.catalog.bigquery;
 
 import com.google.cloud.bigquery.*;
-import com.google.cloud.bigquery.Table;
 import com.google.common.collect.ImmutableList;
 import com.google.zetasql.Function;
 import com.google.zetasql.FunctionArgumentType;
@@ -336,6 +335,35 @@ public class BigQueryAPIResourceProvider implements BigQueryResourceProvider {
             .collect(Collectors.toList());
 
     return this.getTables(projectId, tableReferences);
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * @throws BigQueryAPIError if an API error occurs
+   */
+  @Override
+  public List<SimpleTable> getTablesWithPrefix(String projectId, String tablePrefixReference) {
+    List<String> tableReferences = listTablesWithPrefix(projectId, tablePrefixReference);
+    return this.getTables(projectId, tableReferences);
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * @throws BigQueryAPIError if an API error occurs
+   */
+  @Override
+  public List<String> listTablesWithPrefix(String projectId, String tablePrefixReference) {
+    BigQueryReference tableReference = BigQueryReference.from(projectId, tablePrefixReference);
+    String tablePrefix = tableReference.getResourceName().replace("*", "");
+    return this.service.listTables(projectId, tableReference.getDatasetId()).get().stream()
+        .filter(tableId -> tableId.getTable().startsWith(tablePrefix))
+        .map(
+            tableId ->
+                String.format(
+                    "%s.%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable()))
+        .collect(Collectors.toList());
   }
 
   /**

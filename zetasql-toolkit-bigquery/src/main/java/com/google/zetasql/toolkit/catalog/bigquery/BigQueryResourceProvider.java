@@ -47,6 +47,29 @@ public interface BigQueryResourceProvider {
   List<SimpleTable> getAllTablesInDataset(String projectId, String datasetName);
 
   /**
+   * Gets all BigQuery tables matching the provided prefix and returns them as {@link SimpleTable}s
+   *
+   * @param projectId The default BigQuery project id
+   * @param tablePrefixReference The table reference prefix ending with asterisk. See <a
+   *     href="https://cloud.google.com/bigquery/docs/querying-wildcard-tables">Querying Wildcard
+   *     Tables</a>.
+   * @return The list of SimpleTables representing tables matching the provided table prefix
+   */
+  List<SimpleTable> getTablesWithPrefix(String projectId, String tablePrefixReference);
+
+  /**
+   * List all BigQuery tables matching the provided prefix and returns them as table reference
+   * string
+   *
+   * @param projectId The default BigQuery project id
+   * @param tablePrefixReference The table reference prefix ending with asterisk. See <a
+   *     href="https://cloud.google.com/bigquery/docs/querying-wildcard-tables">Querying Wildcard
+   *     Tables</a>.
+   * @return The list of table reference matching the provided table prefix
+   */
+  List<String> listTablesWithPrefix(String projectId, String tablePrefixReference);
+
+  /**
    * Gets all BigQuery tables in a given project and returns them as {@link SimpleTable}s
    *
    * @param projectId The projectId from which to get the tables
